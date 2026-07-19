@@ -4,6 +4,8 @@ from app.infrastructure.models.user import UserModel
 from app.infrastructure.models.user_preference import UserPreferenceModel
 from app.infrastructure.models.user_profile import UserProfileModel
 from app.infrastructure.models.user_session import UserSessionModel
+from app.infrastructure.models.wallet import WalletModel
+from app.infrastructure.models.wallet_account import WalletAccountModel
 
 __all__ = [
     "EmailVerificationModel",
@@ -12,4 +14,6 @@ __all__ = [
     "UserPreferenceModel",
     "UserProfileModel",
     "UserSessionModel",
+    "WalletAccountModel",
+    "WalletModel",
 ]

@@ -10,6 +10,7 @@ from app.infrastructure.db.base import Base
 from .financial_account import FinancialAccountModel
 from .user_preference import UserPreferenceModel
 from .user_profile import UserProfileModel
+from .wallet import WalletModel
 
 
 class UserModel(Base):
@@ -60,6 +61,11 @@ class UserModel(Base):
     )
     accounts: Mapped[list[FinancialAccountModel]] = relationship(
         "FinancialAccountModel",
+        back_populates="user",
+        lazy="selectin",
+    )
+    wallets: Mapped[list[WalletModel]] = relationship(
+        "WalletModel",
         back_populates="user",
         lazy="selectin",
     )
