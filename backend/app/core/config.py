@@ -8,7 +8,10 @@ class Settings(BaseSettings):
     """Configuraciones de la aplicacion cargadas desde las variables de entorno"""
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
     )
 
     # --- App --------------------------------------------------------------------
@@ -36,8 +39,32 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
 
+    # --- Email ------------------------------------------------------------------
+    EMAIL_HOST: str = "smtp.gmail.com"
+    EMAIL_PORT: int = 587
+    EMAIL_USERNAME: str = ""
+    EMAIL_PASSWORD: str = ""
+    EMAIL_FROM: str = "noreply@fip.app"
+    EMAIL_USE_TLS: bool = True
+
+    # --- OAuth ------------------------------------------------------------------
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+
+    # --- Frontend ---------------------------------------------------------------
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # --- MFA --------------------------------------------------------------------
+    MFA_ISSUER_NAME: str = "FIP"
+
     # --- CORS -------------------------------------------------------------------
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:8080",
+    ]
 
     # --- Monitoring -------------------------------------------------------------
     SENTRY_DSN: str = ""
