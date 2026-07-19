@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
 
+from .category import CategoryModel
 from .financial_account import FinancialAccountModel
 from .user_preference import UserPreferenceModel
 from .user_profile import UserProfileModel
@@ -66,6 +67,11 @@ class UserModel(Base):
     )
     wallets: Mapped[list[WalletModel]] = relationship(
         "WalletModel",
+        back_populates="user",
+        lazy="selectin",
+    )
+    categories: Mapped[list[CategoryModel]] = relationship(
+        "CategoryModel",
         back_populates="user",
         lazy="selectin",
     )

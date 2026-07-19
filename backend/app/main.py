@@ -54,6 +54,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: UP043, 
     logger.info("Iniciando API FIP", version=settings.APP_VERSION)
     configure_sentry()
 
+    # Seed system categories on startup
+    from app.infrastructure.db.session import async_session_factory
+    from app.infrastructure.seed.category_seed import seed_system_categories
+
+    async with async_session_factory() as session, session.begin():
+        await seed_system_categories(session)
+
     yield
 
     # --- APAGADO ---

@@ -22,6 +22,15 @@ async def test_engine():
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed system categories into the test database
+    from app.infrastructure.seed.category_seed import seed_system_categories
+
+    session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as session:
+        async with session.begin():
+            await seed_system_categories(session)
+
     yield engine
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
