@@ -44,6 +44,7 @@ class PasswordResetEvent:
 
     event_id: UUID = field(default_factory=uuid4)
     user_id: UUID | None = None
+    email: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     event_type: str = "password.reset"
 

@@ -3,9 +3,12 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
+
+from .user_preference import UserPreferenceModel
+from .user_profile import UserProfileModel
 
 
 class UserModel(Base):
@@ -40,6 +43,19 @@ class UserModel(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None
+    )
+
+    profile: Mapped[UserProfileModel | None] = relationship(
+        "UserProfileModel",
+        back_populates="user",
+        uselist=False,
+        lazy="selectin",
+    )
+    preferences: Mapped[UserPreferenceModel | None] = relationship(
+        "UserPreferenceModel",
+        back_populates="user",
+        uselist=False,
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:
