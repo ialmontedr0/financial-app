@@ -3,6 +3,11 @@ from app.infrastructure.models.category_rule import CategoryRuleModel
 from app.infrastructure.models.email_verification import EmailVerificationModel
 from app.infrastructure.models.financial_account import FinancialAccountModel
 from app.infrastructure.models.subcategory import SubcategoryModel
+from app.infrastructure.models.transaction import TransactionModel
+from app.infrastructure.models.transaction_attachment import TransactionAttachmentModel
+from app.infrastructure.models.transaction_audit_log import TransactionAuditLogModel
+from app.infrastructure.models.transaction_recurring import TransactionRecurringModel
+from app.infrastructure.models.transaction_tag import TransactionTagModel
 from app.infrastructure.models.user import UserModel
 from app.infrastructure.models.user_preference import UserPreferenceModel
 from app.infrastructure.models.user_profile import UserProfileModel
@@ -16,6 +21,11 @@ __all__ = [
     "EmailVerificationModel",
     "FinancialAccountModel",
     "SubcategoryModel",
+    "TransactionAttachmentModel",
+    "TransactionAuditLogModel",
+    "TransactionModel",
+    "TransactionRecurringModel",
+    "TransactionTagModel",
     "UserModel",
     "UserPreferenceModel",
     "UserProfileModel",
