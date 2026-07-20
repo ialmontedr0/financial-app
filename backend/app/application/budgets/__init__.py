@@ -1,0 +1,1 @@
+"""Budget application use cases."""

@@ -1,3 +1,5 @@
+from app.infrastructure.models.budget import BudgetModel
+from app.infrastructure.models.budget_alert import BudgetAlertModel
 from app.infrastructure.models.category import CategoryModel
 from app.infrastructure.models.category_rule import CategoryRuleModel
 from app.infrastructure.models.credit_card import CreditCardModel
@@ -24,6 +26,8 @@ from app.infrastructure.models.wallet import WalletModel
 from app.infrastructure.models.wallet_account import WalletAccountModel
 
 __all__ = [
+    "BudgetAlertModel",
+    "BudgetModel",
     "CategoryModel",
     "CategoryRuleModel",
     "CreditCardBillModel",
