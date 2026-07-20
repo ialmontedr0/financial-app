@@ -55,14 +55,21 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Error no manejado", path=request.url.path, error=str(exc))
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "error": {
-                    "code": "INTERNAL_SERVER_ERROR",
-                    "message": "Ha ocurrido un error inesperado.",
+        try:
+            logger.error("unhandled_error", path=request.url.path, error_type=type(exc).__name__, error_msg=str(exc)[:200])
+        except Exception:
+            pass
+        try:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "Ha ocurrido un error inesperado.",
+                    },
                 },
-            },
-        )
+            )
+        except Exception:
+            from starlette.responses import PlainTextResponse
+            return PlainTextResponse('{"success":false,"error":{"code":"INTERNAL_SERVER_ERROR","message":"error"}}', status_code=500)
