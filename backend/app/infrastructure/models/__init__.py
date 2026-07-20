@@ -8,6 +8,9 @@ from app.infrastructure.models.email_verification import EmailVerificationModel
 from app.infrastructure.models.expense_service import ExpenseServiceModel
 from app.infrastructure.models.expense_template import ExpenseTemplateModel
 from app.infrastructure.models.financial_account import FinancialAccountModel
+from app.infrastructure.models.financial_goal import FinancialGoalModel
+from app.infrastructure.models.goal_milestone import GoalMilestoneModel
+from app.infrastructure.models.goal_simulation import GoalSimulationModel
 from app.infrastructure.models.income import IncomeModel
 from app.infrastructure.models.income_schedule import IncomeScheduleModel
 from app.infrastructure.models.income_source import IncomeSourceModel
@@ -36,6 +39,9 @@ __all__ = [
     "ExpenseServiceModel",
     "ExpenseTemplateModel",
     "FinancialAccountModel",
+    "FinancialGoalModel",
+    "GoalMilestoneModel",
+    "GoalSimulationModel",
     "IncomeModel",
     "IncomeScheduleModel",
     "IncomeSourceModel",
