@@ -1,0 +1,8 @@
+{% extends "base_email.html" %}
+{% block content %}
+<h2 style="color: #1abc9c;">Automatizacion Ejecutada</h2>
+<p>{{ body }}</p>
+{% if rule_name is defined %}
+<p><strong>Regla:</strong> {{ rule_name }}</p>
+{% endif %}
+{% endblock %}

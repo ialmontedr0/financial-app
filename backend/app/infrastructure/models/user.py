@@ -10,6 +10,8 @@ from app.infrastructure.db.base import Base
 from .category import CategoryModel
 from .financial_account import FinancialAccountModel
 from .loan import LoanModel
+from .notification import NotificationModel
+from .notification_preference import NotificationPreferenceModel
 from .user_preference import UserPreferenceModel
 from .user_profile import UserProfileModel
 from .wallet import WalletModel
@@ -80,6 +82,17 @@ class UserModel(Base):
         "LoanModel",
         back_populates="user",
         lazy="noload",
+    )
+    notifications: Mapped[list[NotificationModel]] = relationship(
+        "NotificationModel",
+        back_populates="user",
+        lazy="noload",
+    )
+    notification_preferences: Mapped[NotificationPreferenceModel | None] = relationship(
+        "NotificationPreferenceModel",
+        back_populates="user",
+        uselist=False,
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:

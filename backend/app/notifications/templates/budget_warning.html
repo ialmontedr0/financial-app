@@ -1,0 +1,8 @@
+{% extends "base_email.html" %}
+{% block content %}
+<h2 style="color: #e74c3c;">Advertencia de Presupuesto</h2>
+<p>{{ body }}</p>
+{% if percentage is defined %}
+<p style="font-size: 20px; font-weight: bold; color: #e74c3c;">{{ percentage }}% utilizado</p>
+{% endif %}
+{% endblock %}

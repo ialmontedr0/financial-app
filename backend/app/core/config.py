@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_ID: str = ""
     GITHUB_CLIENT_SECRET: str = ""
 
+    # --- Notifications ---------------------------------------------------------
+    TELEGRAM_BOT_TOKEN: str = ""
+    DISCORD_WEBHOOK_URL: str = ""
+    WEBHOOK_SECRET_KEY: str = ""
+    NOTIFICATION_RETRY_ATTEMPTS: int = 3
+    NOTIFICATION_RETRY_DELAY_SECONDS: int = 60
+    ARQ_REDIS_URL: str = "redis://localhost:6379/0"
+
     # --- Frontend ---------------------------------------------------------------
     FRONTEND_URL: str = "http://localhost:3000"
 

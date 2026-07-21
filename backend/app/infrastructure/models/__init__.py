@@ -25,6 +25,8 @@ from app.infrastructure.models.income_source import IncomeSourceModel
 from app.infrastructure.models.loan import LoanModel
 from app.infrastructure.models.loan_amortization_entry import LoanAmortizationEntryModel
 from app.infrastructure.models.loan_payment import LoanPaymentModel
+from app.infrastructure.models.notification import NotificationModel
+from app.infrastructure.models.notification_preference import NotificationPreferenceModel
 from app.infrastructure.models.subcategory import SubcategoryModel
 from app.infrastructure.models.subscription import SubscriptionModel
 from app.infrastructure.models.transaction import TransactionModel
@@ -65,6 +67,8 @@ __all__ = [
     "LoanAmortizationEntryModel",
     "LoanModel",
     "LoanPaymentModel",
+    "NotificationModel",
+    "NotificationPreferenceModel",
     "SubcategoryModel",
     "SubscriptionModel",
     "TransactionAttachmentModel",

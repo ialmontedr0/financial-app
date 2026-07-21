@@ -1,0 +1,13 @@
+{% extends "base_email.html" %}
+{% block content %}
+<h2 style="color: #3498db;">Alerta de Transaccion</h2>
+<p>{{ body }}</p>
+{% if amount is defined %}
+<p style="font-size: 24px; font-weight: bold; color: {% if amount < 0 %}#e74c3c{% else %}#2ecc71{% endif %};">
+    {{ "{:,.2f}".format(amount) }} {{ currency | default("DOP") }}
+</p>
+{% endif %}
+{% if category is defined %}
+<p><strong>Categoria:</strong> {{ category }}</p>
+{% endif %}
+{% endblock %}

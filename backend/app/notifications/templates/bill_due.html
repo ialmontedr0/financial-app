@@ -1,0 +1,8 @@
+{% extends "base_email.html" %}
+{% block content %}
+<h2 style="color: #f39c12;">Factura por Vencer</h2>
+<p>{{ body }}</p>
+{% if due_date is defined %}
+<p style="font-size: 18px; font-weight: bold; color: #f39c12;">Fecha de vencimiento: {{ due_date }}</p>
+{% endif %}
+{% endblock %}

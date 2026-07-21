@@ -1,0 +1,8 @@
+{% extends "base_email.html" %}
+{% block content %}
+<h2 style="color: #9b59b6;">Anomalia Detectada</h2>
+<p>{{ body }}</p>
+{% if anomaly_type is defined %}
+<p style="font-size: 16px; font-weight: bold; color: #9b59b6;">Tipo: {{ anomaly_type }}</p>
+{% endif %}
+{% endblock %}

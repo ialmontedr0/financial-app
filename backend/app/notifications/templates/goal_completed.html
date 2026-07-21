@@ -1,0 +1,8 @@
+{% extends "base_email.html" %}
+{% block content %}
+<h2 style="color: #2ecc71;">Meta Completada</h2>
+<p>{{ body }}</p>
+{% if goal_name is defined %}
+<p style="font-size: 18px; font-weight: bold; color: #2ecc71;">{{ goal_name }}</p>
+{% endif %}
+{% endblock %}

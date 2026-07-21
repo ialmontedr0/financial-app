@@ -1,0 +1,8 @@
+{% extends "base_email.html" %}
+{% block content %}
+<h2 style="color: #e74c3c;">Alerta de Seguridad</h2>
+<p>{{ body }}</p>
+{% if action is defined %}
+<p><strong>Accion:</strong> {{ action }}</p>
+{% endif %}
+{% endblock %}

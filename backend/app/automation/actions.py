@@ -271,17 +271,56 @@ class ActionExecutor:
     async def _exec_notify(
         self, rule: AutomationRuleModel, dry_run: bool
     ) -> dict[str, Any]:
-        """Send notification (placeholder for Phase 18)."""
+        """Send notification via NotificationService."""
         params = rule.action_params or {}
         message = params.get("message", "Notificacion de automatizacion")
+        title = params.get("title", f"Automatizacion: {rule.name}")
+        channel = params.get("channel")
 
-        return {
-            "action": "notify",
-            "message": message,
-            "channel": params.get("channel", "in_app"),
-            "status": "queued",
-            "note": "Full notification system will be implemented in Phase 18",
-        }
+        if dry_run:
+            return {
+                "action": "notify",
+                "message": message,
+                "channel": channel or "push",
+                "dry_run": True,
+            }
+
+        try:
+            from app.infrastructure.db.session import async_session_factory
+            from app.notifications.service import NotificationService
+
+            async with async_session_factory() as db:
+                service = NotificationService(db)
+                results = await service.send(
+                    user_id=rule.user_id,
+                    type="automation_executed",
+                    title=title,
+                    body=message,
+                    data={"rule_id": str(rule.id)},
+                    channels=[channel] if channel else None,
+                )
+                await db.commit()
+
+            success = any(r.success for r in results)
+            if success:
+                self.logger.info("notification_sent", rule_id=str(rule.id))
+            else:
+                self.logger.warning("notification_all_channels_failed", rule_id=str(rule.id))
+            return {
+                "action": "notify",
+                "message": message,
+                "channel": channel or "multi",
+                "status": "sent" if success else "failed",
+                "results": [{"channel": r.channel, "success": r.success, "error": r.error} for r in results],
+            }
+        except Exception as exc:
+            self.logger.exception("notification_send_error", rule_id=str(rule.id))
+            return {
+                "action": "notify",
+                "message": message,
+                "status": "error",
+                "error": str(exc),
+            }
 
     async def _exec_adjust_budget(
         self, rule: AutomationRuleModel, dry_run: bool
