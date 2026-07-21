@@ -1,3 +1,5 @@
+from app.infrastructure.models.ai_model_registry import AIModelRegistryModel
+from app.infrastructure.models.ai_prediction import AIPredictionModel
 from app.infrastructure.models.budget import BudgetModel
 from app.infrastructure.models.budget_alert import BudgetAlertModel
 from app.infrastructure.models.card_alert import CardAlertModel
@@ -34,6 +36,8 @@ from app.infrastructure.models.wallet import WalletModel
 from app.infrastructure.models.wallet_account import WalletAccountModel
 
 __all__ = [
+    "AIModelRegistryModel",
+    "AIPredictionModel",
     "BudgetAlertModel",
     "BudgetModel",
     "CardAlertModel",

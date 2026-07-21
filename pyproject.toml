@@ -63,6 +63,13 @@ dependencies = [
     "bcrypt>=4.0",
     "ruff>=0.15.22",
     "mypy>=2.3.0",
+    "scikit-learn >= 1.5",
+    "xgboost >= 2.1",
+    "lightgbm >= 4.5",
+    "torch >= 2.4",
+    "pandas >= 2.2",
+    "numpy >= 1.26",
+    "joblib >= 1.4",
 ]
 
 [project.optional-dependencies]
@@ -95,6 +102,12 @@ packages = ["backend/app"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
 
 # ═══════════════════════════════════════════
 # RUFF CONFIGURATION
