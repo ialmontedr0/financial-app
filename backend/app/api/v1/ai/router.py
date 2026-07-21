@@ -274,3 +274,143 @@ async def delete_prediction(
     if not deleted:
         raise NotFoundError("Prediction")
     return {"message": "Prediction deleted"}
+
+
+# ==============================================================
+# PHASE 16: Habit Analysis
+# ==============================================================
+
+
+@router.get("/habits/analysis")
+async def habits_analysis(
+    months: int = 6,
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.analyze_habits import AnalyzeHabitsUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await AnalyzeHabitsUseCase(session).execute(user_id, months=months)
+
+
+@router.get("/habits/trends")
+async def habits_trends(
+    months: int = 6,
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.get_habit_trends import GetHabitTrendsUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await GetHabitTrendsUseCase(session).execute(user_id, months=months)
+
+
+# ==============================================================
+# PHASE 16: Risk Assessment
+# ==============================================================
+
+
+@router.get("/risks/assessment")
+async def risks_assessment(
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.assess_risks import AssessRisksUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await AssessRisksUseCase(session).execute(user_id)
+
+
+@router.get("/risks/health-score")
+async def health_score(
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.get_health_score import GetHealthScoreUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await GetHealthScoreUseCase(session).execute(user_id)
+
+
+# ==============================================================
+# PHASE 16: Savings Optimization
+# ==============================================================
+
+
+@router.post("/savings/optimize")
+async def savings_optimize(
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.optimize_savings import OptimizeSavingsUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await OptimizeSavingsUseCase(session).execute(user_id)
+
+
+@router.post("/savings/simulate")
+async def savings_simulate(
+    monthly_amount: float = 5000,
+    months: int = 12,
+    annual_return_pct: float = 0.0,
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.simulate_savings import SimulateSavingsUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await SimulateSavingsUseCase(session).execute(
+        user_id,
+        monthly_amount=monthly_amount,
+        months=months,
+        annual_return_pct=annual_return_pct,
+    )
+
+
+# ==============================================================
+# PHASE 16: Personalized Explanations
+# ==============================================================
+
+
+@router.post("/explain")
+async def explain_recommendation(
+    rec_type: str,
+    title: str = "",
+    description: str = "",
+    priority: str = "medium",
+    estimated_savings: float = 0,
+    confidence: float = 0.5,
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.get_personalized_explanation import (
+        GetPersonalizedExplanationUseCase,
+    )
+
+    user_id = uuid.UUID(current_user["sub"])
+    recommendation = {
+        "type": rec_type,
+        "title": title,
+        "description": description,
+        "priority": priority,
+        "estimated_savings": estimated_savings,
+        "confidence": confidence,
+        "features_used": {},
+    }
+    return await GetPersonalizedExplanationUseCase(session).execute(user_id, recommendation)
+
+
+# ==============================================================
+# PHASE 16: Dashboard
+# ==============================================================
+
+
+@router.get("/dashboard")
+async def dashboard(
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.get_dashboard import GetDashboardUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await GetDashboardUseCase(session).execute(user_id)

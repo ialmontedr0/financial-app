@@ -127,3 +127,146 @@ class TestAIModels:
         assert resp.status_code == 200
         data = resp.json()
         assert "models" in data
+
+
+@pytest.mark.api
+class TestPhase16Habits:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login_resp.json()["tokens"]["access_token"]
+
+    async def test_habits_analysis(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_hab1@test.com", test_password)
+        resp = await client.get(
+            "/api/v1/ai/habits/analysis", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "habits" in data
+        assert "overall_habit_score" in data
+
+    async def test_habits_trends(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_hab2@test.com", test_password)
+        resp = await client.get(
+            "/api/v1/ai/habits/trends", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "trends" in data
+        assert "months_analyzed" in data
+
+
+@pytest.mark.api
+class TestPhase16Risks:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login_resp.json()["tokens"]["access_token"]
+
+    async def test_risks_assessment(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_risk1@test.com", test_password)
+        resp = await client.get(
+            "/api/v1/ai/risks/assessment", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "financial_health_score" in data
+        assert "risk_factors" in data
+        assert "metrics" in data
+        assert "recommendations" in data
+
+    async def test_health_score(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_risk2@test.com", test_password)
+        resp = await client.get(
+            "/api/v1/ai/risks/health-score", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "financial_health_score" in data
+        assert 0 <= data["financial_health_score"] <= 100
+
+
+@pytest.mark.api
+class TestPhase16Savings:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login_resp.json()["tokens"]["access_token"]
+
+    async def test_savings_optimize(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_sav1@test.com", test_password)
+        resp = await client.post(
+            "/api/v1/ai/savings/optimize", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "allocation_50_30_20" in data
+        assert "goal_allocation" in data
+        assert "debt_strategy" in data
+        assert "recommendations" in data
+
+    async def test_savings_simulate(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_sav2@test.com", test_password)
+        resp = await client.post(
+            "/api/v1/ai/savings/simulate?monthly_amount=5000&months=12&annual_return_pct=8",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["monthly_amount"] == 5000
+        assert data["months"] == 12
+        assert data["final_balance"] > 5000 * 12
+
+
+@pytest.mark.api
+class TestPhase16Explanation:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login_resp.json()["tokens"]["access_token"]
+
+    async def test_explain_recommendation(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_exp1@test.com", test_password)
+        resp = await client.post(
+            "/api/v1/ai/explain?rec_type=reduce_spending&title=Test&priority=high&estimated_savings=5000&confidence=0.8",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "headline" in data
+        assert "why" in data
+        assert "how" in data
+        assert "impact" in data
+        assert "action" in data
+        assert "tone" in data
+
+
+@pytest.mark.api
+class TestPhase16Dashboard:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login_resp.json()["tokens"]["access_token"]
+
+    async def test_dashboard(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "ai_dash1@test.com", test_password)
+        resp = await client.get(
+            "/api/v1/ai/dashboard", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "habits" in data
+        assert "risks" in data
+        assert "savings" in data
+        assert "recommendations" in data

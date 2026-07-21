@@ -11,6 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, timedelta
 
+from app.infrastructure.models.loan import LoanModel
 import structlog
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
