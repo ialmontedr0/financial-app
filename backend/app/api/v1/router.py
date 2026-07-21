@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.accounts.router import router as accounts_router
+from app.api.v1.admin.router import router as admin_router
 from app.api.v1.automations.router import router as automations_router
 from app.api.v1.ai.router import router as ai_router
 from app.api.v1.analytics.router import router as analytics_router
@@ -19,6 +20,7 @@ from app.api.v1.wallets.router import router as wallets_router
 
 api_v1_router = APIRouter()
 
+api_v1_router.include_router(admin_router)
 api_v1_router.include_router(automations_router)
 api_v1_router.include_router(auth_router)
 api_v1_router.include_router(users_router)

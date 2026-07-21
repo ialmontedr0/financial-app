@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.models.user import UserModel
@@ -91,3 +91,22 @@ class UserRepository:
     async def update_password(self, user_id: uuid.UUID, password_hash: str) -> None:
         """Update the user password hash."""
         await self.update(user_id, password_hash=password_hash)
+
+    async def list_users(
+        self, *, skip: int = 0, limit: int = 20, role: str | None = None
+    ) -> list[UserModel]:
+        """List users with optional role filter."""
+        stmt = select(UserModel).where(UserModel.deleted_at.is_(None))
+        if role:
+            stmt = stmt.where(UserModel.role == role)
+        stmt = stmt.order_by(UserModel.created_at.desc()).offset(skip).limit(limit)
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_users(self, *, role: str | None = None) -> int:
+        """Count users with optional role filter."""
+        stmt = select(func.count(UserModel.id)).where(UserModel.deleted_at.is_(None))
+        if role:
+            stmt = stmt.where(UserModel.role == role)
+        result = await self._session.execute(stmt)
+        return result.scalar() or 0

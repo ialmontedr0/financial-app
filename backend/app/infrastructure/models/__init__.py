@@ -27,8 +27,12 @@ from app.infrastructure.models.loan_amortization_entry import LoanAmortizationEn
 from app.infrastructure.models.loan_payment import LoanPaymentModel
 from app.infrastructure.models.notification import NotificationModel
 from app.infrastructure.models.notification_preference import NotificationPreferenceModel
+from app.infrastructure.models.permission import PermissionModel
+from app.infrastructure.models.role import RoleModel
+from app.infrastructure.models.role_permission import RolePermissionModel
 from app.infrastructure.models.subcategory import SubcategoryModel
 from app.infrastructure.models.subscription import SubscriptionModel
+from app.infrastructure.models.system_audit_log import SystemAuditLogModel
 from app.infrastructure.models.transaction import TransactionModel
 from app.infrastructure.models.transaction_attachment import TransactionAttachmentModel
 from app.infrastructure.models.transaction_audit_log import TransactionAuditLogModel
@@ -69,8 +73,12 @@ __all__ = [
     "LoanPaymentModel",
     "NotificationModel",
     "NotificationPreferenceModel",
+    "PermissionModel",
+    "RoleModel",
+    "RolePermissionModel",
     "SubcategoryModel",
     "SubscriptionModel",
+    "SystemAuditLogModel",
     "TransactionAttachmentModel",
     "TransactionAuditLogModel",
     "TransactionModel",

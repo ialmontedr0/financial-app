@@ -25,11 +25,13 @@ async def test_engine():
 
     # Seed system categories into the test database
     from app.infrastructure.seed.category_seed import seed_system_categories
+    from app.infrastructure.seed.role_seed import seed_roles_and_permissions
 
     session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
     async with session_factory() as session:
         async with session.begin():
             await seed_system_categories(session)
+            await seed_roles_and_permissions(session)
 
     yield engine
     async with engine.begin() as conn:
