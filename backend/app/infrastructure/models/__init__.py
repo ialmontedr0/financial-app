@@ -1,5 +1,7 @@
 from app.infrastructure.models.budget import BudgetModel
 from app.infrastructure.models.budget_alert import BudgetAlertModel
+from app.infrastructure.models.card_alert import CardAlertModel
+from app.infrastructure.models.card_spending_limit import CardSpendingLimitModel
 from app.infrastructure.models.category import CategoryModel
 from app.infrastructure.models.category_rule import CategoryRuleModel
 from app.infrastructure.models.credit_card import CreditCardModel
@@ -14,6 +16,9 @@ from app.infrastructure.models.goal_simulation import GoalSimulationModel
 from app.infrastructure.models.income import IncomeModel
 from app.infrastructure.models.income_schedule import IncomeScheduleModel
 from app.infrastructure.models.income_source import IncomeSourceModel
+from app.infrastructure.models.loan import LoanModel
+from app.infrastructure.models.loan_amortization_entry import LoanAmortizationEntryModel
+from app.infrastructure.models.loan_payment import LoanPaymentModel
 from app.infrastructure.models.subcategory import SubcategoryModel
 from app.infrastructure.models.subscription import SubscriptionModel
 from app.infrastructure.models.transaction import TransactionModel
@@ -31,6 +36,8 @@ from app.infrastructure.models.wallet_account import WalletAccountModel
 __all__ = [
     "BudgetAlertModel",
     "BudgetModel",
+    "CardAlertModel",
+    "CardSpendingLimitModel",
     "CategoryModel",
     "CategoryRuleModel",
     "CreditCardBillModel",
@@ -45,6 +52,9 @@ __all__ = [
     "IncomeModel",
     "IncomeScheduleModel",
     "IncomeSourceModel",
+    "LoanAmortizationEntryModel",
+    "LoanModel",
+    "LoanPaymentModel",
     "SubcategoryModel",
     "SubscriptionModel",
     "TransactionAttachmentModel",

@@ -32,6 +32,7 @@ class TransactionModel(Base):
         Index("ix_transaction_user_effective", "user_id", "effective_date"),
         Index("ix_transaction_user_type", "user_id", "transaction_type"),
         Index("ix_transaction_transfer_id", "transfer_id"),
+        Index("ix_transaction_credit_card", "credit_card_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -46,6 +47,9 @@ class TransactionModel(Base):
     )
     subcategory_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("subcategory.id", ondelete="SET NULL"), nullable=True, default=None,
+    )
+    credit_card_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("credit_card.id", ondelete="SET NULL"), nullable=True, default=None,
     )
 
     transaction_type: Mapped[str] = mapped_column(String(20), nullable=False)

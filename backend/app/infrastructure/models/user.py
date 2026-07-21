@@ -9,6 +9,7 @@ from app.infrastructure.db.base import Base
 
 from .category import CategoryModel
 from .financial_account import FinancialAccountModel
+from .loan import LoanModel
 from .user_preference import UserPreferenceModel
 from .user_profile import UserProfileModel
 from .wallet import WalletModel
@@ -74,6 +75,11 @@ class UserModel(Base):
         "CategoryModel",
         back_populates="user",
         lazy="selectin",
+    )
+    loans: Mapped[list[LoanModel]] = relationship(
+        "LoanModel",
+        back_populates="user",
+        lazy="noload",
     )
 
     def __repr__(self) -> str:
