@@ -70,6 +70,9 @@ dependencies = [
     "numpy >= 1.26",
     "joblib >= 1.4",
     "arq>=0.1",
+    "openpyxl>=3.1.5",
+    "reportlab>=5.0.0",
+    "icalendar>=7.2.2",
 ]
 
 [project.optional-dependencies]
@@ -139,6 +142,11 @@ select = [
 ignore = [
     "E501",   # line too long (handled by formatter)
     "S101",   # assert used (needed in tests)
+    "B008",   # FastAPI Depends() in defaults (standard pattern)
+    "TC001",  # FastAPI/Pydantic need runtime imports
+    "TC002",  # FastAPI needs runtime imports for DI
+    "TC003",  # Pydantic/SQLAlchemy need runtime imports
+    "ARG001", # Auth deps unused but required for security
 ]
 
 [tool.ruff.lint.isort]

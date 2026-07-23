@@ -19,6 +19,7 @@ from app.infrastructure.models.financial_account import FinancialAccountModel
 from app.infrastructure.models.financial_goal import FinancialGoalModel
 from app.infrastructure.models.goal_milestone import GoalMilestoneModel
 from app.infrastructure.models.goal_simulation import GoalSimulationModel
+from app.infrastructure.models.import_job import ImportJobModel
 from app.infrastructure.models.income import IncomeModel
 from app.infrastructure.models.income_schedule import IncomeScheduleModel
 from app.infrastructure.models.income_source import IncomeSourceModel
@@ -65,6 +66,7 @@ __all__ = [
     "FinancialGoalModel",
     "GoalMilestoneModel",
     "GoalSimulationModel",
+    "ImportJobModel",
     "IncomeModel",
     "IncomeScheduleModel",
     "IncomeSourceModel",

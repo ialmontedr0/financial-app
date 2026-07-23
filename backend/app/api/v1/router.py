@@ -2,15 +2,18 @@ from fastapi import APIRouter
 
 from app.api.v1.accounts.router import router as accounts_router
 from app.api.v1.admin.router import router as admin_router
-from app.api.v1.automations.router import router as automations_router
 from app.api.v1.ai.router import router as ai_router
 from app.api.v1.analytics.router import router as analytics_router
 from app.api.v1.auth.router import router as auth_router
+from app.api.v1.automations.router import router as automations_router
 from app.api.v1.budgets.router import router as budgets_router
 from app.api.v1.cards.router import router as cards_router
 from app.api.v1.categories.router import router as categories_router
 from app.api.v1.expenses.router import router as expenses_router
+from app.api.v1.exports.router import router as exports_router
+from app.api.v1.financial_data.router import router as financial_data_router
 from app.api.v1.goals.router import router as goals_router
+from app.api.v1.imports.router import router as imports_router
 from app.api.v1.incomes.router import router as incomes_router
 from app.api.v1.loans.router import router as loans_router
 from app.api.v1.notifications import router as notifications_router
@@ -28,8 +31,11 @@ api_v1_router.include_router(accounts_router)
 api_v1_router.include_router(wallets_router)
 api_v1_router.include_router(categories_router)
 api_v1_router.include_router(transactions_router)
+api_v1_router.include_router(imports_router)
 api_v1_router.include_router(incomes_router)
 api_v1_router.include_router(expenses_router)
+api_v1_router.include_router(exports_router)
+api_v1_router.include_router(financial_data_router)
 api_v1_router.include_router(goals_router)
 api_v1_router.include_router(budgets_router)
 api_v1_router.include_router(cards_router)
