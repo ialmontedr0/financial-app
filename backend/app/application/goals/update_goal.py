@@ -21,6 +21,8 @@ class UpdateGoalUseCase:
         self._repo = GoalRepository(session)
 
     async def execute(self, user_id: uuid.UUID, goal_id: uuid.UUID, *, changes: dict) -> dict:
+        from datetime import date as date_type
+
         from app.middleware.error_handler import NotFoundError, ValidationError
 
         goal = await self._repo.get_goal_by_id(goal_id, user_id)
@@ -29,8 +31,13 @@ class UpdateGoalUseCase:
         if goal.status == "completed":
             raise ValidationError("Cannot modify a completed goal")
 
-        allowed = {"name", "description", "target_amount", "target_date", "monthly_contribution", "interest_rate", "compound_frequency", "priority", "auto_contribute", "icon", "color", "image_url", "status", "account_id", "category_id"}
+        allowed = {"name", "description", "target_amount", "target_date", "start_date", "completed_date", "monthly_contribution", "interest_rate", "compound_frequency", "priority", "auto_contribute", "icon", "color", "image_url", "status", "account_id", "category_id"}
         updates = {k: v for k, v in changes.items() if k in allowed}
+
+        date_fields = {"target_date", "start_date", "completed_date"}
+        for field in date_fields & updates.keys():
+            if isinstance(updates[field], str):
+                updates[field] = date_type.fromisoformat(updates[field])
 
         if "target_amount" in updates and float(updates["target_amount"]) <= 0:
             raise ValidationError("target_amount debe ser mayor a 0")

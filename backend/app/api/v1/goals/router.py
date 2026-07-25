@@ -107,6 +107,16 @@ async def refresh_prediction(
     return await RefreshPredictionUseCase(db).execute(uuid.UUID(current_user["sub"]), goal_id)
 
 
+@router.get("/{goal_id}/simulations/{simulation_id}")
+async def get_simulation(
+    goal_id: uuid.UUID, simulation_id: uuid.UUID,
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    from app.application.goals.get_simulation import GetSimulationUseCase
+    return await GetSimulationUseCase(db).execute(uuid.UUID(current_user["sub"]), goal_id, simulation_id)
+
+
 @router.get("/{goal_id}/simulations")
 async def list_simulations(
     goal_id: uuid.UUID,
@@ -131,6 +141,10 @@ async def create_simulation(
         lump_sum_date=body.get("lump_sum_date"),
         interest_rate=float(body["interest_rate"]) if body.get("interest_rate") else None,
         increase_pct=float(body["increase_pct"]) if body.get("increase_pct") else None,
+        inflation_rate=float(body["inflation_rate"]) if body.get("inflation_rate") else None,
+        income_sources=body.get("income_sources"),
+        expenses=body.get("expenses"),
+        enable_monte_carlo=body.get("enable_monte_carlo", False),
         notes=body.get("notes"),
     )
 
