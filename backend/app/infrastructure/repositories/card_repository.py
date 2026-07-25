@@ -709,6 +709,7 @@ class CardRepository:
                     "name": c.name,
                     "last_four_digits": c.last_four_digits,
                     "card_network": c.card_network,
+                    "currency_code": c.currency_code,
                     "credit_limit": str(c.credit_limit) if c.credit_limit else None,
                     "is_active": c.is_active,
                     "color": c.color,

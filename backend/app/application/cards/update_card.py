@@ -24,8 +24,8 @@ class UpdateCardUseCase:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
         allowed_fields = {
-            "name", "last_four_digits", "card_network", "credit_limit",
-            "available_credit", "statement_day", "payment_due_day",
+            "name", "last_four_digits", "card_network", "currency_code",
+            "credit_limit", "available_credit", "statement_day", "payment_due_day",
             "interest_rate", "is_active", "include_in_totals", "color", "icon",
         }
         filtered = {k: v for k, v in changes.items() if k in allowed_fields}
@@ -61,6 +61,7 @@ class UpdateCardUseCase:
             "account_id": str(updated.account_id),
             "last_four_digits": updated.last_four_digits,
             "card_network": updated.card_network,
+            "currency_code": updated.currency_code,
             "credit_limit": str(updated.credit_limit) if updated.credit_limit else None,
             "available_credit": str(updated.available_credit) if updated.available_credit is not None else None,
             "statement_day": updated.statement_day,

@@ -9,6 +9,7 @@ class UpdateCardRequest(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=100)
     last_four_digits: str | None = None
     card_network: str | None = None
+    currency_code: str | None = None
     credit_limit: str | None = None
     available_credit: str | None = None
     statement_day: int | None = Field(None, ge=1, le=28)

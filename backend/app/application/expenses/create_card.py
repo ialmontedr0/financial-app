@@ -30,6 +30,7 @@ class CreateCardUseCase:
             "account_id": str(card.account_id),
             "last_four_digits": card.last_four_digits,
             "card_network": card.card_network,
+            "currency_code": card.currency_code,
             "credit_limit": str(card.credit_limit) if card.credit_limit else None,
             "available_credit": str(card.available_credit) if card.available_credit else None,
             "statement_day": card.statement_day,

@@ -233,6 +233,7 @@ class CreateCreditCardRequest(BaseModel):
     account_id: str  # linked financial account
     last_four_digits: str | None = None
     card_network: str | None = None
+    currency_code: str = "DOP"
     credit_limit: str | None = None
     available_credit: str | None = None
     statement_day: int | None = None
@@ -248,6 +249,7 @@ class CreditCardResponse(BaseModel):
     account_id: str
     last_four_digits: str | None = None
     card_network: str | None = None
+    currency_code: str = "DOP"
     credit_limit: str | None = None
     available_credit: str | None = None
     statement_day: int | None = None

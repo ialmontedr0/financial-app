@@ -54,6 +54,9 @@ class CreditCardModel(Base):
         String(20), nullable=True, default=None
     )  # visa, mastercard, amex
 
+    # --- Currency ---
+    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="DOP")
+
     # --- Limits ---
     credit_limit: Mapped[Decimal | None] = mapped_column(
         Numeric(precision=19, scale=4), nullable=True, default=None

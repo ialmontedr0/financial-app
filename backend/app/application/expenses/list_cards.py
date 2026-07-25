@@ -31,6 +31,7 @@ class ListCardsUseCase:
                 "account_id": str(c.account_id),
                 "last_four_digits": c.last_four_digits,
                 "card_network": c.card_network,
+                "currency_code": c.currency_code,
                 "credit_limit": str(c.credit_limit) if c.credit_limit else None,
                 "available_credit": str(c.available_credit) if c.available_credit else None,
                 "statement_day": c.statement_day,
