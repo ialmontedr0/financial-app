@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.api.deps import get_current_active_user, get_db
 
@@ -99,8 +99,8 @@ async def create_expense_split(
 
 @router.get("")
 async def list_expenses(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
     status: str | None = Query(None),
     category_id: str | None = Query(None),
     subcategory_id: str | None = Query(None),
@@ -145,8 +145,8 @@ async def list_expenses(
 
 @router.get("/dashboard")
 async def get_expense_dashboard(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
     date_from: str = Query(...),
     date_to: str = Query(...),
 ) -> dict:
@@ -163,8 +163,8 @@ async def get_expense_dashboard(
 
 @router.get("/patterns")
 async def get_spending_patterns(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.get_spending_patterns import GetSpendingPatternsUseCase
 
@@ -173,8 +173,8 @@ async def get_spending_patterns(
 
 @router.get("/duplicates")
 async def detect_duplicates(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
     days: int = Query(30, ge=1, le=365),
 ) -> dict:
     from app.application.expenses.detect_duplicates import DetectDuplicatesUseCase
@@ -184,12 +184,13 @@ async def detect_duplicates(
 
 @router.get("/recurring-candidates")
 async def detect_recurring_candidates(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.detect_recurring import DetectRecurringUseCase
 
     return await DetectRecurringUseCase(db).execute(uuid.UUID(current_user["sub"]))
+
 
 
 # ======================================================================
@@ -200,8 +201,8 @@ async def detect_recurring_candidates(
 @router.post("/templates", status_code=201)
 async def create_template(
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db),# noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.create_template import CreateTemplateUseCase
 
@@ -218,8 +219,8 @@ async def create_template(
 
 @router.get("/templates")
 async def list_templates(
-    current_user: dict = Depends(get_current_active_user),# noqa: B008
-    db: AsyncSession = Depends(get_db),# noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.list_templates import ListTemplatesUseCase
 
@@ -230,8 +231,8 @@ async def list_templates(
 async def create_from_template(
     template_id: uuid.UUID,
     body: dict,
-    current_user: dict = Depends(get_current_active_user),# noqa: B008
-    db: AsyncSession = Depends(get_db),# noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from datetime import date as date_type
 
@@ -256,8 +257,8 @@ async def create_from_template(
 @router.delete("/templates/{template_id}")
 async def delete_template(
     template_id: uuid.UUID,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.delete_template import DeleteTemplateUseCase
 
@@ -272,8 +273,8 @@ async def delete_template(
 @router.post("/services", status_code=201)
 async def create_service(
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.create_service import CreateServiceUseCase
 
@@ -292,8 +293,8 @@ async def create_service(
 
 @router.get("/services")
 async def list_services(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
     service_type: str | None = Query(None),
 ) -> dict:
     from app.application.expenses.list_services import ListServicesUseCase
@@ -305,21 +306,23 @@ async def list_services(
 
 @router.get("/services/upcoming")
 async def list_upcoming_services(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
     days_ahead: int = Query(30, ge=1, le=90),
 ) -> dict:
     from app.application.expenses.list_upcoming_services import ListUpcomingServicesUseCase
 
-    return await ListUpcomingServicesUseCase(db).execute(uuid.UUID(current_user["sub"]), days_ahead=days_ahead)
+    return await ListUpcomingServicesUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), days_ahead=days_ahead
+    )
 
 
 @router.patch("/services/{service_id}")
 async def update_service(
     service_id: uuid.UUID,
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.update_service import UpdateServiceUseCase
 
@@ -331,8 +334,8 @@ async def update_service(
 @router.delete("/services/{service_id}")
 async def delete_service(
     service_id: uuid.UUID,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.delete_service import DeleteServiceUseCase
 
@@ -343,8 +346,8 @@ async def delete_service(
 async def mark_service_paid(
     service_id: uuid.UUID,
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.mark_service_paid import MarkServicePaidUseCase
 
@@ -352,10 +355,15 @@ async def mark_service_paid(
     if account_id is None:
         from sqlalchemy import select
         from app.infrastructure.models.financial_account import FinancialAccountModel
-        stmt = select(FinancialAccountModel.id).where(
-            FinancialAccountModel.user_id == uuid.UUID(current_user["sub"]),
-            FinancialAccountModel.status == "active",
-        ).limit(1)
+
+        stmt = (
+            select(FinancialAccountModel.id)
+            .where(
+                FinancialAccountModel.user_id == uuid.UUID(current_user["sub"]),
+                FinancialAccountModel.status == "active",
+            )
+            .limit(1)
+        )
         result = await db.execute(stmt)
         row = result.first()
         if row:
@@ -377,8 +385,8 @@ async def mark_service_paid(
 @router.post("/subscriptions", status_code=201)
 async def create_subscription(
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from datetime import date as date_type
 
@@ -403,8 +411,8 @@ async def create_subscription(
 
 @router.get("/subscriptions")
 async def list_subscriptions(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
     status: str | None = Query(None),
 ) -> dict:
     from app.application.expenses.list_subscriptions import ListSubscriptionsUseCase
@@ -414,8 +422,8 @@ async def list_subscriptions(
 
 @router.get("/subscriptions/summary")
 async def get_subscription_summary(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.analyze_subscriptions import AnalyzeSubscriptionsUseCase
 
@@ -426,8 +434,8 @@ async def get_subscription_summary(
 async def update_subscription(
     subscription_id: uuid.UUID,
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.update_subscription import UpdateSubscriptionUseCase
 
@@ -439,8 +447,8 @@ async def update_subscription(
 @router.delete("/subscriptions/{subscription_id}")
 async def delete_subscription(
     subscription_id: uuid.UUID,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.delete_subscription import DeleteSubscriptionUseCase
 
@@ -457,8 +465,8 @@ async def delete_subscription(
 @router.post("/cards", status_code=201)
 async def create_credit_card(
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.create_card import CreateCardUseCase
 
@@ -467,8 +475,8 @@ async def create_credit_card(
 
 @router.get("/cards")
 async def list_credit_cards(
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.list_cards import ListCardsUseCase
 
@@ -478,8 +486,8 @@ async def list_credit_cards(
 @router.get("/cards/{card_id}/utilization")
 async def get_card_utilization(
     card_id: uuid.UUID,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db),# noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.get_card_utilization import GetCardUtilizationUseCase
 
@@ -490,8 +498,8 @@ async def get_card_utilization(
 async def create_card_bill(
     card_id: uuid.UUID,
     body: dict,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from datetime import date as date_type
 
@@ -512,9 +520,64 @@ async def create_card_bill(
 @router.get("/cards/{card_id}/bills")
 async def list_card_bills(
     card_id: uuid.UUID,
-    current_user: dict = Depends(get_current_active_user), # noqa: B008
-    db: AsyncSession = Depends(get_db), # noqa: B008
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict:
     from app.application.expenses.list_card_bills import ListCardBillsUseCase
 
     return await ListCardBillsUseCase(db).execute(uuid.UUID(current_user["sub"]), card_id)
+
+
+# ======================================================================
+# Expense detail & update (must be AFTER all specific routes)
+# ======================================================================
+
+
+@router.get("/{expense_id}")
+async def get_expense(
+    expense_id: uuid.UUID,
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    from app.application.expenses.get_expense import GetExpenseUseCase
+
+    return await GetExpenseUseCase(db).execute(
+        user_id=uuid.UUID(current_user["sub"]),
+        expense_id=expense_id,
+    )
+
+
+@router.patch("/{expense_id}")
+async def update_expense(
+    expense_id: uuid.UUID,
+    body: dict,
+    request: Request,
+    current_user: dict = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    from app.application.expenses.update_expense import UpdateExpenseUseCase
+
+    return await UpdateExpenseUseCase(db).execute(
+        user_id=uuid.UUID(current_user["sub"]),
+        expense_id=expense_id,
+        changes=body,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+
+@router.delete("/{expense_id}")
+async def delete_expense(
+    expense_id: uuid.UUID,
+    request: Request,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    from app.application.expenses.delete_expense import DeleteExpenseUseCase
+
+    return await DeleteExpenseUseCase(db).execute(
+        user_id=uuid.UUID(current_user["sub"]),
+        expense_id=expense_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
