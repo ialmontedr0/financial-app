@@ -1,0 +1,27 @@
+[Unit]
+Description=Financial Intelligence Platform API
+After=network.target postgresql.service redis.service
+Requires=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=fip
+Group=fip
+WorkingDirectory=/opt/financial-intelligence-platform
+EnvironmentFile=/opt/financial-intelligence-platform/.env
+ExecStart=/usr/local/bin/uv run uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 4 --log-level info
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/fip/api-stdout.log
+StandardError=append:/var/log/fip/api-stderr.log
+
+# Security hardening
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+MemoryMax=2G
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target

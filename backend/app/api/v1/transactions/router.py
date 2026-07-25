@@ -36,6 +36,7 @@ async def create_transaction(
         amount=body["amount"], currency_code=body.get("currency_code", "DOP"), description=body["description"],
         effective_date=effective_date, category_id=body.get("category_id"), subcategory_id=body.get("subcategory_id"),
         status=body.get("status", "completed"), notes=body.get("notes"), source=body.get("source", "manual"), tags=tags,
+        adjustment_operation=body.get("adjustment_operation"),
     )
 
 

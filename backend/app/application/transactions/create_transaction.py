@@ -40,6 +40,7 @@ class CreateTransactionUseCase:
         tags: list[str] | None = None,
         ip_address: str | None = None,
         user_agent: str | None = None,
+        adjustment_operation: str | None = None,
     ) -> dict:
         from decimal import Decimal
 
@@ -99,6 +100,9 @@ class CreateTransactionUseCase:
                 await self._repo.update_account_balance(account_id, amount_decimal, "add")
             elif tx_type.value == "expense":
                 await self._repo.update_account_balance(account_id, amount_decimal, "subtract")
+            elif tx_type.value == "adjustment":
+                operation = adjustment_operation or "subtract"
+                await self._repo.update_account_balance(account_id, amount_decimal, operation)
 
         await self._repo.create_audit_log(
             tx_id=tx.id,

@@ -1,0 +1,69 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: fip-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - fip-monitoring
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: fip-alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+    networks:
+      - fip-monitoring
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: fip-grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    restart: unless-stopped
+    networks:
+      - fip-monitoring
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: fip-node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+    networks:
+      - fip-monitoring
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  fip-monitoring:
+    driver: bridge

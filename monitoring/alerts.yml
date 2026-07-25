@@ -1,0 +1,57 @@
+groups:
+  - name: fip-alerts
+    interval: 30s
+    rules:
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, rate(fip_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency on {{ $labels.endpoint }}"
+          description: "P95 latency is {{ $value }}s (threshold: 1s)"
+
+      - alert: HighErrorRate
+        expr: rate(fip_request_duration_seconds_count{status=~"5.."}[5m]) / rate(fip_request_duration_seconds_count[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate above 5%"
+          description: "Current error rate: {{ $value | humanizePercentage }}"
+
+      - alert: DatabaseDown
+        expr: probe_success{job="fip-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "FIP API health check failing"
+          description: "The API health endpoint has been unreachable for 1 minute."
+
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.mountpoint }}"
+          description: "Only {{ $value | humanizePercentage }} available"
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: ApiInstanceDown
+        expr: up{job="fip-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "FIP API instance down"
+          description: "Instance {{ $labels.instance }} has been down for 1 minute."

@@ -1,0 +1,82 @@
+name: CI — Tests & Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.14"
+  POETRY_VERSION: "1.8"
+  REDIS_URL: "redis://localhost:6379/0"
+  DATABASE_URL: "postgresql+asyncpg://postgres:postgres@localhost:5432/fip_test"
+  ENVIRONMENT: "testing"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fip_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run migrations
+        run: uv run alembic upgrade head
+        working-directory: backend
+
+      - name: Run lint (ruff)
+        run: uv run ruff check backend/
+
+      - name: Run type check (mypy)
+        run: uv run mypy backend/
+
+      - name: Run tests
+        run: uv run pytest backend/ -v --tb=short --cov=backend/app --cov-report=xml
+        env:
+          REDIS_URL: ${{ env.REDIS_URL }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false

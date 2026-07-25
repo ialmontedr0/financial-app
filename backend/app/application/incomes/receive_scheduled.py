@@ -46,7 +46,14 @@ class ReceiveScheduledUseCase:
         if schedule.status in ("received", "cancelled"):
             raise ValidationError(f"Schedule ya esta en status: {schedule.status}")
 
-        final_amount = Decimal(str(amount)) if amount is not None else schedule.amount
+        final_amount: Decimal
+        if amount is not None:
+            final_amount = Decimal(str(amount))
+        elif schedule.income_source_id:
+            source = await self._income_repo.get_source_by_id(schedule.income_source_id, user_id)
+            final_amount = source.default_amount if source and source.default_amount else schedule.amount
+        else:
+            final_amount = schedule.amount
         if final_amount <= 0:
             raise ValidationError("amount debe ser mayor que 0")
 

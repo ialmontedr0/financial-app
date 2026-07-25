@@ -63,15 +63,28 @@ class ListIncomesUseCase:
 
         items = []
         for inc in incomes:
+            tx = inc.transaction
             items.append({
                 "id": str(inc.id),
                 "transaction_id": str(inc.transaction_id),
+                "account_id": str(tx.account_id) if tx else None,
+                "amount": str(tx.amount) if tx else "0",
+                "currency_code": tx.currency_code if tx else "DOP",
+                "description": tx.description if tx else "",
+                "notes": tx.notes if tx else None,
+                "effective_date": inc.effective_date.isoformat() if inc.effective_date else None,
+                "source": tx.source if tx else None,
                 "income_type": inc.income_type,
                 "income_status": inc.income_status,
                 "stability": inc.stability,
                 "employer_name": inc.employer_name,
-                "effective_date": inc.effective_date.isoformat() if inc.effective_date else None,
+                "gross_amount": str(inc.gross_amount) if inc.gross_amount else None,
+                "tax_withheld": str(inc.tax_withheld) if inc.tax_withheld else None,
+                "net_amount": str(inc.net_amount) if inc.net_amount else None,
+                "frequency": inc.frequency,
                 "income_source_id": str(inc.income_source_id) if inc.income_source_id else None,
+                "income_source_name": inc.income_source.name if inc.income_source else None,
+                "tags": [],
             })
 
         return {

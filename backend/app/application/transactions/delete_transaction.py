@@ -37,6 +37,8 @@ class DeleteTransactionUseCase:
                 await self._repo.update_account_balance(tx.account_id, tx.amount, "subtract")
             elif tx.transaction_type == "expense":
                 await self._repo.update_account_balance(tx.account_id, tx.amount, "add")
+            elif tx.transaction_type == "adjustment":
+                await self._repo.update_account_balance(tx.account_id, tx.amount, "add")
 
         deleted = await self._repo.soft_delete(transaction_id, user_id)
         if deleted is None:

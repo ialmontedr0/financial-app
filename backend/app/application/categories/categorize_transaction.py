@@ -71,10 +71,16 @@ class CategorizeTransactionUseCase:
             )
             return result
 
-        # Step 2: Try ML classifier (placeholder for Phase 15)
-        # ml_result = await self._classify_with_ml(search_text)
-        # if ml_result and ml_result["confidence"] > 0.7:
-        #     return ml_result
+        # Step 2: Try ML classifier
+        ml_result = await self._classify_with_ml(search_text, user_id)
+        if ml_result and ml_result["confidence"] > 0.7:
+            logger.info(
+                "transaction_categorized_by_ml",
+                user_id=str(user_id),
+                category_id=ml_result["category_id"],
+                confidence=ml_result["confidence"],
+            )
+            return ml_result
 
         # Step 3: Fallback to "Sin Categoria"
         sin_cat = await self._find_sin_categoria()
@@ -83,6 +89,47 @@ class CategorizeTransactionUseCase:
             "subcategory_id": None,
             "method": "fallback",
             "confidence": 0.0,
+            "rule_id": None,
+            "rule_name": None,
+        }
+
+    async def _classify_with_ml(self, text: str, user_id: uuid.UUID) -> dict | None:
+        """Use the ML classifier to predict a category."""
+        from app.ai.classifiers.ml_classifier import classifier
+        from sqlalchemy import select
+
+        from app.infrastructure.models.category import CategoryModel
+
+        if not classifier.is_trained:
+            classifier.load_model(str(user_id))
+
+        if not classifier.is_trained:
+            return None
+
+        result = await classifier.predict(text)
+        if result is None:
+            return None
+
+        confidence = result["confidence"]
+        category_name = result["category_slug"]
+
+        # Look up the category by name
+        stmt = select(CategoryModel).where(
+            CategoryModel.name == category_name,
+            CategoryModel.deleted_at.is_(None),
+            (CategoryModel.is_system.is_(True)) | (CategoryModel.user_id == user_id),
+        )
+        db_result = await self._session.execute(stmt)
+        cat = db_result.scalar_one_or_none()
+
+        if cat is None:
+            return None
+
+        return {
+            "category_id": str(cat.id),
+            "subcategory_id": None,
+            "method": "ml",
+            "confidence": round(confidence, 4),
             "rule_id": None,
             "rule_name": None,
         }

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import structlog
 
 from app.infrastructure.repositories.income_repository import IncomeRepository
+from app.infrastructure.repositories.transaction_repository import TransactionRepository
 
 if TYPE_CHECKING:
     import uuid
@@ -21,6 +22,7 @@ class CreateScheduleUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._repo = IncomeRepository(session)
+        self._tx_repo = TransactionRepository(session)
 
     async def execute(
         self,
@@ -37,6 +39,7 @@ class CreateScheduleUseCase:
         projection_method: str | None = None,
         notes: str | None = None,
     ) -> dict:
+        from datetime import UTC, datetime, date as date_type
         from decimal import Decimal
 
         from app.middleware.error_handler import ValidationError
@@ -63,6 +66,70 @@ class CreateScheduleUseCase:
             projection_method=projection_method,
             notes=notes,
         )
+
+        # Auto-receive if the expected date is in the past
+        today = date_type.today()
+        if expected_date < today and status not in ("received", "cancelled"):
+            final_amount = Decimal(str(amount))
+            ed = expected_date
+
+            tx = await self._tx_repo.create(
+                user_id,
+                account_id=account_id,
+                transaction_type="income",
+                status="completed",
+                amount=final_amount,
+                currency_code=currency_code,
+                description=str(description).strip(),
+                effective_date=ed,
+                source="scheduled",
+                notes=notes,
+            )
+
+            await self._tx_repo.update_account_balance(account_id, final_amount, "add")
+
+            income = await self._repo.create_income(
+                user_id,
+                transaction_id=tx.id,
+                income_type="other",
+                income_status="received",
+                stability="one_time",
+                income_source_id=income_source_id,
+                effective_date=ed,
+                notes=notes,
+            )
+
+            await self._repo.update_schedule(schedule.id, user_id,
+                status="received", received_transaction_id=tx.id,
+                received_at=datetime.now(UTC))
+
+            if schedule.income_source_id:
+                await self._repo.increment_source_stats(schedule.income_source_id, final_amount)
+
+            await self._tx_repo.create_audit_log(
+                tx_id=tx.id,
+                user_id=user_id,
+                action="auto_received_scheduled",
+                changes={"schedule_id": str(schedule.id), "amount": str(final_amount), "reason": "past_expected_date"},
+                ip_address=None,
+                user_agent=None,
+            )
+
+            return {
+                "id": str(schedule.id),
+                "description": schedule.description,
+                "amount": str(schedule.amount),
+                "currency_code": schedule.currency_code,
+                "account_id": str(schedule.account_id),
+                "expected_date": schedule.expected_date.isoformat(),
+                "status": "received",
+                "frequency": schedule.frequency,
+                "income_source_id": str(schedule.income_source_id) if schedule.income_source_id else None,
+                "projection_method": schedule.projection_method,
+                "notes": schedule.notes,
+                "created_at": schedule.created_at.isoformat() if schedule.created_at else None,
+                "auto_received": True,
+            }
 
         return {
             "id": str(schedule.id),

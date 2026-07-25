@@ -1,0 +1,59 @@
+name: Deploy — Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.14"
+  DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+  DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+  DEPLOY_PATH: "/opt/financial-intelligence-platform"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        run: uv run pytest backend/ -v --tb=short -x
+
+      - name: Upload project to server
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          ARGS: "-rlvz --delete"
+          SOURCE: "."
+          REMOTE_HOST: ${{ env.DEPLOY_HOST }}
+          REMOTE_USER: ${{ env.DEPLOY_USER }}
+          TARGET: ${{ env.DEPLOY_PATH }}
+
+      - name: Install deps & restart service
+        uses: appleboy/ssh-action@v1
+        with:
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          script: |
+            cd ${{ env.DEPLOY_PATH }}
+            uv sync --frozen
+            uv run alembic upgrade head
+            sudo systemctl daemon-reload
+            sudo systemctl restart fip-api
+            sudo systemctl status fip-api --no-pager

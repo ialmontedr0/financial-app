@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     # --- Security ---------------------------------------------------------------
     SECRET_KEY: str = "CHANGE-ME-IN-PRODUCTION"  # noqa: S105
+    ENCRYPTION_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
@@ -67,11 +68,16 @@ class Settings(BaseSettings):
     # --- MFA --------------------------------------------------------------------
     MFA_ISSUER_NAME: str = "FIP"
 
+    # --- Rate Limit -------------------------------------------------------------
+    RATE_LIMIT_MAX: int = 100
+    RATE_LIMIT_WINDOW: int = 60
+
     # --- CORS -------------------------------------------------------------------
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:8000",
         "http://localhost:8080",
+        "http://localhost:5173",
     ]
 
     # --- Monitoring -------------------------------------------------------------

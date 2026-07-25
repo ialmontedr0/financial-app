@@ -9,7 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_v1_router
 from app.core.config import get_settings
 from app.middleware.error_handler import register_error_handlers
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_logger import RequestLoggingMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 
 settings = get_settings()
 logger = structlog.get_logger()
@@ -47,10 +49,25 @@ def configure_opentelemetry(app: FastAPI) -> None:
         logger.info("OpenTelemetry tracking enabled")
 
 
+def _check_production_env() -> None:
+    """Verify critical env vars are set in production."""
+    required = ["DATABASE_URL", "REDIS_URL", "SECRET_KEY", "ENCRYPTION_KEY"]
+    missing = [var for var in required if not getattr(settings, var, None)]
+    if missing:
+        logger.error("Missing required env vars in production", missing=missing)
+        msg = f"Missing required environment variables: {', '.join(missing)}"
+        raise RuntimeError(msg)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: UP043, ARG001
     """Ciclo de vida de la aplicacion: eventos de inicio y apagado"""
     # --- INICIO ---
+    if settings.is_production:
+        _check_production_env()
+        from app.core.log_config import configure_production_logging
+        configure_production_logging()
+
     logger.info("Iniciando API FIP", version=settings.APP_VERSION)
     configure_sentry()
 
@@ -88,6 +105,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_MAX, window_seconds=settings.RATE_LIMIT_WINDOW)
     app.add_middleware(RequestLoggingMiddleware)
 
     # --- Monitoring (middleware must be added before startup) ------------------
@@ -101,9 +120,8 @@ def create_app() -> FastAPI:
     app.include_router(api_v1_router, prefix=settings.API_V1_PREFIX)
 
     # --- Health Check ----------------------------------------------------------
-    @app.get("/health", tags=["Health"])
-    async def health_check() -> dict[str, str]:
-        return {"status": "healthy", "version": settings.APP_VERSION}
+    from app.api.v1.health.router import router as health_router
+    app.include_router(health_router)
 
     return app
 

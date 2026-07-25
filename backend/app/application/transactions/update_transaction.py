@@ -52,6 +52,10 @@ class UpdateTransactionUseCase:
                 await self._repo.update_account_balance(tx.account_id, old_amount, "add")
                 new_acc = changes.get("account_id", tx.account_id)
                 await self._repo.update_account_balance(new_acc, new_amount, "subtract")
+            elif tx.transaction_type == "adjustment" and tx.status == "completed":
+                await self._repo.update_account_balance(tx.account_id, old_amount, "add")
+                new_acc = changes.get("account_id", tx.account_id)
+                await self._repo.update_account_balance(new_acc, new_amount, "subtract")
 
         updated = await self._repo.update(transaction_id, user_id, **changes)
         if updated is None:

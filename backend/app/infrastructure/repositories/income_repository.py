@@ -165,7 +165,7 @@ class IncomeRepository:
         by_source = [{"source": r.name or "Sin fuente", "count": r.count, "total": str(r.total or 0)}
             for r in (await self._session.execute(source_stmt)).all()]
 
-        months = max(1, (date_to - date_from).days // 30)
+        months = max(1, (date_to.year - date_from.year) * 12 + (date_to.month - date_from.month) + 1)
         avg_monthly = total_amount / months
 
         tax_stmt = select(func.sum(IncomeModel.gross_amount).label("gross"),

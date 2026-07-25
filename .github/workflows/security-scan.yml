@@ -1,0 +1,30 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Safety (dependency scan)
+        uses: pyupio/safety-action@v1
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
+
+      - name: Run Bandit (static analysis)
+        uses: jpetrucciani/bandit-check@master
+        with:
+          path: "./backend"
+
+      - name: Run truffleHog (secrets leak)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: "--only-verified"
