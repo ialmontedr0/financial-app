@@ -25,6 +25,8 @@ class UpdateCardUseCase:
 
         allowed_fields = {
             "name", "last_four_digits", "card_network", "currency_code",
+            "is_multicurrency", "secondary_currency_code",
+            "secondary_credit_limit", "secondary_available_credit",
             "credit_limit", "available_credit", "statement_day", "payment_due_day",
             "interest_rate", "is_active", "include_in_totals", "color", "icon",
         }
@@ -58,10 +60,14 @@ class UpdateCardUseCase:
         return {
             "id": str(updated.id),
             "name": updated.name,
-            "account_id": str(updated.account_id),
+            "account_id": str(updated.account_id) if updated.account_id else None,
             "last_four_digits": updated.last_four_digits,
             "card_network": updated.card_network,
             "currency_code": updated.currency_code,
+            "is_multicurrency": updated.is_multicurrency,
+            "secondary_currency_code": updated.secondary_currency_code,
+            "secondary_credit_limit": str(updated.secondary_credit_limit) if updated.secondary_credit_limit else None,
+            "secondary_available_credit": str(updated.secondary_available_credit) if updated.secondary_available_credit else None,
             "credit_limit": str(updated.credit_limit) if updated.credit_limit else None,
             "available_credit": str(updated.available_credit) if updated.available_credit is not None else None,
             "statement_day": updated.statement_day,

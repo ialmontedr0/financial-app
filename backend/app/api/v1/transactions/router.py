@@ -31,12 +31,26 @@ async def create_transaction(
 
     effective_date = date_type.fromisoformat(body["effective_date"]) if isinstance(body.get("effective_date"), str) else body.get("effective_date")
     tags = body.pop("tags", None)
+    account_id = body.get("account_id")
+    credit_card_id = body.get("credit_card_id")
+    debit_card_id = body.get("debit_card_id")
     return await CreateTransactionUseCase(db).execute(
-        user_id=uuid.UUID(current_user["sub"]), account_id=body["account_id"], transaction_type=body["transaction_type"],
-        amount=body["amount"], currency_code=body.get("currency_code", "DOP"), description=body["description"],
-        effective_date=effective_date, category_id=body.get("category_id"), subcategory_id=body.get("subcategory_id"),
-        status=body.get("status", "completed"), notes=body.get("notes"), source=body.get("source", "manual"), tags=tags,
+        user_id=uuid.UUID(current_user["sub"]),
+        account_id=uuid.UUID(account_id) if account_id else None,
+        transaction_type=body["transaction_type"],
+        amount=body["amount"],
+        currency_code=body.get("currency_code", "DOP"),
+        description=body["description"],
+        effective_date=effective_date,
+        category_id=body.get("category_id"),
+        subcategory_id=body.get("subcategory_id"),
+        status=body.get("status", "completed"),
+        notes=body.get("notes"),
+        source=body.get("source", "manual"),
+        tags=tags,
         adjustment_operation=body.get("adjustment_operation"),
+        credit_card_id=uuid.UUID(credit_card_id) if credit_card_id else None,
+        debit_card_id=uuid.UUID(debit_card_id) if debit_card_id else None,
     )
 
 

@@ -35,9 +35,12 @@ async def create_expense(
         if isinstance(body.get("effective_date"), str)
         else body.get("effective_date")
     )
+    account_id = body.get("account_id")
+    credit_card_id = body.get("credit_card_id")
+    debit_card_id = body.get("debit_card_id")
     return await CreateExpenseUseCase(db).execute(
         user_id=uuid.UUID(current_user["sub"]),
-        account_id=body["account_id"],
+        account_id=uuid.UUID(account_id) if account_id else None,
         amount=body["amount"],
         currency_code=body.get("currency_code", "DOP"),
         description=body["description"],
@@ -51,7 +54,8 @@ async def create_expense(
         template_id=body.get("template_id"),
         service_id=body.get("service_id"),
         subscription_id=body.get("subscription_id"),
-        credit_card_id=body.get("credit_card_id"),
+        credit_card_id=uuid.UUID(credit_card_id) if credit_card_id else None,
+        debit_card_id=uuid.UUID(debit_card_id) if debit_card_id else None,
         priority=body.get("priority", "normal"),
     )
 

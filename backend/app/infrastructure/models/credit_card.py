@@ -40,10 +40,10 @@ class CreditCardModel(Base):
         nullable=False,
         index=True,
     )
-    account_id: Mapped[uuid.UUID] = mapped_column(
+    account_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("financial_account.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("financial_account.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
 
@@ -56,6 +56,16 @@ class CreditCardModel(Base):
 
     # --- Currency ---
     currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="DOP")
+
+    # --- Multi-currency ---
+    is_multicurrency: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    secondary_currency_code: Mapped[str | None] = mapped_column(String(3), nullable=True, default=None)
+    secondary_credit_limit: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=True, default=None
+    )
+    secondary_available_credit: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=True, default=None
+    )
 
     # --- Limits ---
     credit_limit: Mapped[Decimal | None] = mapped_column(
@@ -102,7 +112,7 @@ class CreditCardModel(Base):
 
     # --- Relationships ---
     user: Mapped[UserModel] = relationship("UserModel", lazy="noload")
-    account: Mapped[FinancialAccountModel] = relationship("FinancialAccountModel", lazy="selectin")
+    account: Mapped[FinancialAccountModel | None] = relationship("FinancialAccountModel", lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<CreditCardModel(id={self.id}, name={self.name}, last4={self.last_four_digits})>"

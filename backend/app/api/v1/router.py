@@ -8,6 +8,7 @@ from app.api.v1.auth.router import router as auth_router
 from app.api.v1.automations.router import router as automations_router
 from app.api.v1.budgets.router import router as budgets_router
 from app.api.v1.cards.router import router as cards_router
+from app.api.v1.debit_cards.router import router as debit_cards_router
 from app.api.v1.categories.router import router as categories_router
 from app.api.v1.expenses.router import router as expenses_router
 from app.api.v1.exports.router import router as exports_router
@@ -39,6 +40,7 @@ api_v1_router.include_router(financial_data_router)
 api_v1_router.include_router(goals_router)
 api_v1_router.include_router(budgets_router)
 api_v1_router.include_router(cards_router)
+api_v1_router.include_router(debit_cards_router)
 api_v1_router.include_router(loans_router)
 api_v1_router.include_router(notifications_router)
 api_v1_router.include_router(analytics_router)

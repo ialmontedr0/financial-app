@@ -39,8 +39,8 @@ class TransactionModel(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True,
     )
-    account_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("financial_account.id", ondelete="CASCADE"), nullable=False, index=True,
+    account_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("financial_account.id", ondelete="SET NULL"), nullable=True, index=True,
     )
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("category.id", ondelete="SET NULL"), nullable=True, default=None,

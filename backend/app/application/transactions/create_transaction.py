@@ -26,7 +26,7 @@ class CreateTransactionUseCase:
         self,
         user_id: uuid.UUID,
         *,
-        account_id: uuid.UUID,
+        account_id: uuid.UUID | None = None,
         transaction_type: str,
         amount: float,
         currency_code: str,
@@ -41,6 +41,8 @@ class CreateTransactionUseCase:
         ip_address: str | None = None,
         user_agent: str | None = None,
         adjustment_operation: str | None = None,
+        credit_card_id: uuid.UUID | None = None,
+        debit_card_id: uuid.UUID | None = None,
     ) -> dict:
         from decimal import Decimal
 
@@ -76,13 +78,29 @@ class CreateTransactionUseCase:
         except Exception:
             raise ValidationError("amount invalido")  # noqa: B904
 
-        account = await self._repo.get_account_by_id(account_id, user_id)
-        if account is None:
-            raise NotFoundError("Account")
+        # Resolve debit card → linked account
+        if debit_card_id:
+            from app.infrastructure.repositories.debit_card_repository import DebitCardRepository
+            debit_card = await DebitCardRepository(self._session).get_by_id(debit_card_id, user_id)
+            if debit_card is None:
+                raise NotFoundError("DebitCard")
+            account_id = debit_card.account_id
+
+        if account_id:
+            account = await self._repo.get_account_by_id(account_id, user_id)
+            if account is None:
+                raise NotFoundError("Account")
+
+        if credit_card_id:
+            from app.infrastructure.repositories.expense_repository import ExpenseRepository
+            card = await ExpenseRepository(self._session).get_credit_card_by_id(credit_card_id, user_id)
+            if card is None:
+                raise NotFoundError("CreditCard")
 
         tx = await self._repo.create(
             user_id,
             account_id=account_id,
+            credit_card_id=credit_card_id,
             category_id=category_id,
             subcategory_id=subcategory_id,
             transaction_type=tx_type.value,
@@ -96,13 +114,21 @@ class CreateTransactionUseCase:
         )
 
         if tx_status.value == "completed":
-            if tx_type.value == "income":
-                await self._repo.update_account_balance(account_id, amount_decimal, "add")
-            elif tx_type.value == "expense":
-                await self._repo.update_account_balance(account_id, amount_decimal, "subtract")
-            elif tx_type.value == "adjustment":
-                operation = adjustment_operation or "subtract"
-                await self._repo.update_account_balance(account_id, amount_decimal, operation)
+            if account_id:
+                if tx_type.value == "income":
+                    await self._repo.update_account_balance(account_id, amount_decimal, "add")
+                elif tx_type.value == "expense":
+                    await self._repo.update_account_balance(account_id, amount_decimal, "subtract")
+                elif tx_type.value == "adjustment":
+                    operation = adjustment_operation or "subtract"
+                    await self._repo.update_account_balance(account_id, amount_decimal, operation)
+            if credit_card_id and tx_type.value == "expense":
+                from app.infrastructure.repositories.expense_repository import ExpenseRepository
+                card = await ExpenseRepository(self._session).get_credit_card_by_id(credit_card_id, user_id)
+                if card and card.available_credit is not None:
+                    from decimal import Decimal as D
+                    card.available_credit -= D(str(amount))
+                    await self._session.flush()
 
         await self._repo.create_audit_log(
             tx_id=tx.id,
@@ -152,7 +178,7 @@ class CreateTransactionUseCase:
             pass
         return {
             "id": str(tx.id),
-            "account_id": str(tx.account_id),
+            "account_id": str(tx.account_id) if tx.account_id else None,
             "category_id": str(tx.category_id) if tx.category_id else None,
             "subcategory_id": str(tx.subcategory_id) if tx.subcategory_id else None,
             "transaction_type": tx.transaction_type,
@@ -165,5 +191,6 @@ class CreateTransactionUseCase:
             "transfer_id": str(tx.transfer_id) if tx.transfer_id else None,
             "source": tx.source,
             "tags": [t.tag_name for t in tag_models],
+            "credit_card_id": str(credit_card_id) if credit_card_id else None,
             "created_at": tx.created_at.isoformat() if tx.created_at else None,
         }

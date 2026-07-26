@@ -28,7 +28,7 @@ class CreateExpenseUseCase:
         self,
         user_id: uuid.UUID,
         *,
-        account_id: uuid.UUID,
+        account_id: uuid.UUID | None = None,
         amount: float,
         currency_code: str,
         description: str,
@@ -43,11 +43,16 @@ class CreateExpenseUseCase:
         service_id: uuid.UUID | None = None,
         subscription_id: uuid.UUID | None = None,
         credit_card_id: uuid.UUID | None = None,
+        debit_card_id: uuid.UUID | None = None,
         priority: str = "normal",
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
+
+        # At least one funding source is required
+        if not account_id and not credit_card_id and not debit_card_id:
+            raise ValidationError("Debe especificar una cuenta, tarjeta de credito o tarjeta de debito")
 
         # Validate expense method
         if template_id:
@@ -62,12 +67,19 @@ class CreateExpenseUseCase:
                 f"priority no valido: {priority}. Soportado: {', '.join(sorted(valid_priorities))}"
             )
 
+        # Resolve debit card → linked account
+        if debit_card_id:
+            from app.infrastructure.repositories.debit_card_repository import DebitCardRepository
+            debit_card = await DebitCardRepository(self._session).get_by_id(debit_card_id, user_id)
+            if debit_card is None:
+                raise NotFoundError("DebitCard")
+            account_id = debit_card.account_id
+
         # Validate service exists if provided
         if service_id:
             service = await self._expense_repo.get_service_by_id(service_id, user_id)
             if service is None:
                 raise NotFoundError("Service")
-            # Auto-set category from service if not provided
             if not category_id and service.category_id:
                 category_id = service.category_id
 
@@ -77,10 +89,17 @@ class CreateExpenseUseCase:
             if sub is None:
                 raise NotFoundError("Subscription")
 
-        # Create the transaction via the transaction repository
+        # Validate credit card exists if provided
+        if credit_card_id:
+            card = await self._expense_repo.get_credit_card_by_id(credit_card_id, user_id)
+            if card is None:
+                raise NotFoundError("CreditCard")
+
+        # Create the transaction
         tx = await self._tx_repo.create(
             user_id,
             account_id=account_id,
+            credit_card_id=credit_card_id,
             category_id=category_id,
             subcategory_id=subcategory_id,
             transaction_type="expense",
@@ -93,11 +112,18 @@ class CreateExpenseUseCase:
             source=source,
         )
 
-        # Update balance if completed
+        # Update balances if completed
         from decimal import Decimal
 
         if status == "completed":
-            await self._tx_repo.update_account_balance(account_id, Decimal(str(amount)), "subtract")
+            if account_id:
+                await self._tx_repo.update_account_balance(account_id, Decimal(str(amount)), "subtract")
+            if credit_card_id:
+                card = await self._expense_repo.get_credit_card_by_id(credit_card_id, user_id)
+                if card and card.available_credit is not None:
+                    from decimal import Decimal as D
+                    card.available_credit -= D(str(amount))
+                    await self._session.flush()
 
         # Audit
         changes = {"initial": {"amount": str(amount), "source": source, "priority": priority}}
@@ -131,7 +157,7 @@ class CreateExpenseUseCase:
 
         return {
             "id": str(tx.id),
-            "account_id": str(tx.account_id),
+            "account_id": str(tx.account_id) if tx.account_id else None,
             "category_id": str(tx.category_id) if tx.category_id else None,
             "subcategory_id": str(tx.subcategory_id) if tx.subcategory_id else None,
             "transaction_type": tx.transaction_type,

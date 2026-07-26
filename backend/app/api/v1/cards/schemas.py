@@ -10,6 +10,10 @@ class UpdateCardRequest(BaseModel):
     last_four_digits: str | None = None
     card_network: str | None = None
     currency_code: str | None = None
+    is_multicurrency: bool | None = None
+    secondary_currency_code: str | None = None
+    secondary_credit_limit: str | None = None
+    secondary_available_credit: str | None = None
     credit_limit: str | None = None
     available_credit: str | None = None
     statement_day: int | None = Field(None, ge=1, le=28)

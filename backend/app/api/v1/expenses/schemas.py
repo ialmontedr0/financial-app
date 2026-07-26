@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 
 class CreateExpenseRequest(BaseModel):
-    account_id: str
+    account_id: str | None = None
     amount: str = Field(..., description="Monto positivo")
     currency_code: str = "DOP"
     description: str = Field(..., min_length=1, max_length=500)
@@ -234,6 +234,10 @@ class CreateCreditCardRequest(BaseModel):
     last_four_digits: str | None = None
     card_network: str | None = None
     currency_code: str = "DOP"
+    is_multicurrency: bool = False
+    secondary_currency_code: str | None = None
+    secondary_credit_limit: str | None = None
+    secondary_available_credit: str | None = None
     credit_limit: str | None = None
     available_credit: str | None = None
     statement_day: int | None = None
@@ -250,6 +254,10 @@ class CreditCardResponse(BaseModel):
     last_four_digits: str | None = None
     card_network: str | None = None
     currency_code: str = "DOP"
+    is_multicurrency: bool = False
+    secondary_currency_code: str | None = None
+    secondary_credit_limit: str | None = None
+    secondary_available_credit: str | None = None
     credit_limit: str | None = None
     available_credit: str | None = None
     statement_day: int | None = None
