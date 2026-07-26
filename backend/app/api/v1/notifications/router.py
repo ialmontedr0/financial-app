@@ -71,6 +71,85 @@ async def list_notifications(
     return notif_schemas.NotificationListResponse(notifications=notifs, total=len(notifs))
 
 
+# Specific routes MUST be defined BEFORE the parameterized /{notification_id} route
+# to prevent FastAPI from trying to parse "preferences", "stats", etc. as UUIDs.
+
+@router.get("/preferences", response_model=notif_schemas.NotificationPreferenceResponse)
+async def get_preferences(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = GetNotificationPreferencesUseCase(db)
+    prefs = await use_case.execute(user_id)
+    if not prefs:
+        return notif_schemas.NotificationPreferenceResponse(
+            email_enabled=True,
+            push_enabled=True,
+            telegram_enabled=False,
+            discord_enabled=False,
+            webhook_enabled=False,
+        )
+    return prefs
+
+
+@router.put("/preferences", response_model=notif_schemas.NotificationPreferenceResponse)
+async def update_preferences(
+    body: notif_schemas.NotificationPreferenceUpdate,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = UpdateNotificationPreferencesUseCase(db)
+    data = body.model_dump(exclude_unset=True)
+    prefs = await use_case.execute(user_id, data)
+    return prefs
+
+
+@router.get("/stats", response_model=notif_schemas.NotificationStatsResponse)
+async def get_stats(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = GetNotificationStatsUseCase(db)
+    return await use_case.execute(user_id)
+
+
+@router.post("/test", response_model=notif_schemas.NotificationSendResponse)
+async def send_test(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = SendTestNotificationUseCase(db)
+    email = current_user.get("email", "")
+    results = await use_case.execute(user_id, email)
+    return notif_schemas.NotificationSendResponse(success=True, results=results)
+
+
+@router.post("/bulk-read")
+async def bulk_mark_read(
+    body: notif_schemas.BulkMarkReadRequest,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = BulkMarkNotificationsReadUseCase(db)
+    count = await use_case.execute(body.notification_ids, user_id)
+    return {"success": True, "count": count}
+
+
 @router.get("/{notification_id}", response_model=notif_schemas.NotificationResponse)
 async def get_notification(
     notification_id: UUID,
@@ -118,84 +197,3 @@ async def delete_notification(
     ok = await use_case.execute(notification_id, user_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Notification not found")
-
-
-@router.get(
-    "/preferences/", response_model=notif_schemas.NotificationPreferenceResponse
-)
-async def get_preferences(
-    current_user: dict = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from uuid import UUID as _UUID
-
-    user_id = _UUID(current_user["sub"])
-    use_case = GetNotificationPreferencesUseCase(db)
-    prefs = await use_case.execute(user_id)
-    if not prefs:
-        return notif_schemas.NotificationPreferenceResponse(
-            email_enabled=True,
-            push_enabled=True,
-            telegram_enabled=False,
-            discord_enabled=False,
-            webhook_enabled=False,
-        )
-    return prefs
-
-
-@router.put(
-    "/preferences/", response_model=notif_schemas.NotificationPreferenceResponse
-)
-async def update_preferences(
-    body: notif_schemas.NotificationPreferenceUpdate,
-    current_user: dict = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from uuid import UUID as _UUID
-
-    user_id = _UUID(current_user["sub"])
-    use_case = UpdateNotificationPreferencesUseCase(db)
-    data = body.model_dump(exclude_unset=True)
-    prefs = await use_case.execute(user_id, data)
-    return prefs
-
-
-@router.post("/test", response_model=notif_schemas.NotificationSendResponse)
-async def send_test(
-    current_user: dict = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from uuid import UUID as _UUID
-
-    user_id = _UUID(current_user["sub"])
-    use_case = SendTestNotificationUseCase(db)
-    # Get email from JWT payload or use a placeholder
-    email = current_user.get("email", "")
-    results = await use_case.execute(user_id, email)
-    return notif_schemas.NotificationSendResponse(success=True, results=results)
-
-
-@router.get("/stats/", response_model=notif_schemas.NotificationStatsResponse)
-async def get_stats(
-    current_user: dict = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from uuid import UUID as _UUID
-
-    user_id = _UUID(current_user["sub"])
-    use_case = GetNotificationStatsUseCase(db)
-    return await use_case.execute(user_id)
-
-
-@router.post("/bulk-read")
-async def bulk_mark_read(
-    body: notif_schemas.BulkMarkReadRequest,
-    current_user: dict = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from uuid import UUID as _UUID
-
-    user_id = _UUID(current_user["sub"])
-    use_case = BulkMarkNotificationsReadUseCase(db)
-    count = await use_case.execute(body.notification_ids, user_id)
-    return {"success": True, "count": count}
