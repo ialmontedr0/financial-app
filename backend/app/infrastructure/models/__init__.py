@@ -11,6 +11,7 @@ from app.infrastructure.models.card_spending_limit import CardSpendingLimitModel
 from app.infrastructure.models.category import CategoryModel
 from app.infrastructure.models.category_rule import CategoryRuleModel
 from app.infrastructure.models.credit_card import CreditCardModel
+from app.infrastructure.models.debit_card import DebitCardModel
 from app.infrastructure.models.credit_card_bill import CreditCardBillModel
 from app.infrastructure.models.email_verification import EmailVerificationModel
 from app.infrastructure.models.expense_service import ExpenseServiceModel
@@ -59,6 +60,7 @@ __all__ = [
     "CategoryRuleModel",
     "CreditCardBillModel",
     "CreditCardModel",
+    "DebitCardModel",
     "EmailVerificationModel",
     "ExpenseServiceModel",
     "ExpenseTemplateModel",

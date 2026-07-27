@@ -12,6 +12,7 @@ from app.infrastructure.repositories.audit_repository import AuditRepository
 from app.infrastructure.repositories.permission_repository import PermissionRepository
 from app.infrastructure.repositories.role_repository import RoleRepository
 from app.infrastructure.repositories.user_repository import UserRepository
+from app.infrastructure.security.password_hasher import PasswordHasher
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -302,6 +303,91 @@ async def update_user_status(
     )
 
     return {"success": True, "is_active": body.is_active}
+
+
+@router.get("/users/{user_id}", response_model=admin_schemas.UserDetailResponse)
+async def get_user(
+    user_id: UUID,
+    current_user: dict = Depends(require_admin()),
+    db: AsyncSession = Depends(get_db),
+):
+    user_repo = UserRepository(db)
+    user = await user_repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.post("/users", response_model=admin_schemas.UserCreateResponse, status_code=201)
+async def create_user(
+    body: admin_schemas.UserCreateRequest,
+    request: Request,
+    current_user: dict = Depends(require_admin()),
+    db: AsyncSession = Depends(get_db),
+):
+    user_repo = UserRepository(db)
+    existing = await user_repo.get_by_email(body.email)
+    if existing:
+        raise HTTPException(status_code=409, detail="A user with this email already exists")
+
+    password_hash = PasswordHasher.hash_password(body.password)
+    user = await user_repo.create(
+        email=body.email,
+        password_hash=password_hash,
+        role=body.role,
+    )
+    if body.phone:
+        user.phone = body.phone
+        await db.flush()
+
+    audit = AuditService(db)
+    await audit.log_action(
+        user_id=UUID(current_user["sub"]),
+        action="create_user",
+        resource="user",
+        resource_id=user.id,
+        details={"email": user.email, "role": user.role},
+        ip_address=request.client.host if request.client else None,
+    )
+
+    return user
+
+
+@router.put("/users/{user_id}", response_model=admin_schemas.UserDetailResponse)
+async def update_user(
+    user_id: UUID,
+    body: admin_schemas.UserUpdateRequest,
+    request: Request,
+    current_user: dict = Depends(require_admin()),
+    db: AsyncSession = Depends(get_db),
+):
+    user_repo = UserRepository(db)
+    user = await user_repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    data = body.model_dump(exclude_unset=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    if "email" in data and data["email"] != user.email:
+        existing = await user_repo.get_by_email(data["email"])
+        if existing and existing.id != user_id:
+            raise HTTPException(status_code=409, detail="Email already in use")
+
+    updated = await user_repo.update(user_id, **data)
+
+    audit = AuditService(db)
+    await audit.log_action(
+        user_id=UUID(current_user["sub"]),
+        action="update_user",
+        resource="user",
+        resource_id=user_id,
+        details=data,
+        ip_address=request.client.host if request.client else None,
+    )
+
+    return updated
 
 
 # ─── Audit Log ─────────────────────────────────────────

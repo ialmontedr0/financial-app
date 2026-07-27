@@ -73,6 +73,50 @@ class UserListAdminResponse(BaseModel):
     total: int
 
 
+class UserCreateRequest(BaseModel):
+    email: str
+    password: str
+    role: str = "user"
+    phone: str | None = None
+
+
+class UserCreateResponse(BaseModel):
+    id: UUID
+    email: str
+    role: str
+    is_active: bool
+    is_verified: bool
+    phone: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UserUpdateRequest(BaseModel):
+    email: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
+    is_verified: bool | None = None
+    phone: str | None = None
+
+
+class UserDetailResponse(BaseModel):
+    id: UUID
+    email: str
+    role: str
+    is_active: bool
+    is_verified: bool
+    phone: str | None = None
+    avatar_url: str | None = None
+    mfa_enabled: bool
+    last_login_at: datetime | None = None
+    login_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class UserRoleUpdateRequest(BaseModel):
     role: str
 
