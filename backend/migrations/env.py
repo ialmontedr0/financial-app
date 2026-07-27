@@ -1,11 +1,11 @@
 import asyncio
+import os
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.core.config import get_settings
 from app.infrastructure.db.base import Base
 from app.infrastructure.models import *  # noqa: F403 — ensure all models are registered
 
@@ -14,8 +14,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Use DATABASE_URL from environment (Railway injects it), fallback to default
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/fip")
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 target_metadata = Base.metadata
 
@@ -47,7 +48,7 @@ def do_run_migrations(connection) -> None:
 
 async def run_async_migrations() -> None:
     cfg = config.get_section(config.config_ini_section, {})
-    cfg["sqlalchemy.url"] = settings.DATABASE_URL
+    cfg["sqlalchemy.url"] = DATABASE_URL
     connectable = async_engine_from_config(
         cfg,
         prefix="sqlalchemy.",
