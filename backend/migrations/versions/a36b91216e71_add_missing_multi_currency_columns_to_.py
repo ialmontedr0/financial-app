@@ -26,16 +26,50 @@ def upgrade() -> None:
         batch_op.drop_index(batch_op.f('ix_debit_card_user_id'))
 
     op.drop_table('debit_card')
-    with op.batch_alter_table('credit_card', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('is_multicurrency', sa.Boolean(), nullable=True))
-        batch_op.add_column(sa.Column('secondary_currency_code', sa.String(length=3), nullable=True))
-        batch_op.add_column(sa.Column('secondary_credit_limit', sa.Numeric(precision=19, scale=4), nullable=True))
-        batch_op.add_column(sa.Column('secondary_available_credit', sa.Numeric(precision=19, scale=4), nullable=True))
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'credit_card' AND column_name = 'is_multicurrency'
+            ) THEN
+                ALTER TABLE credit_card ADD COLUMN is_multicurrency BOOLEAN;
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'credit_card' AND column_name = 'secondary_currency_code'
+            ) THEN
+                ALTER TABLE credit_card ADD COLUMN secondary_currency_code VARCHAR(3);
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'credit_card' AND column_name = 'secondary_credit_limit'
+            ) THEN
+                ALTER TABLE credit_card ADD COLUMN secondary_credit_limit NUMERIC(19, 4);
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'credit_card' AND column_name = 'secondary_available_credit'
+            ) THEN
+                ALTER TABLE credit_card ADD COLUMN secondary_available_credit NUMERIC(19, 4);
+            END IF;
+        END $$;
+    """)
 
     op.execute("UPDATE credit_card SET is_multicurrency = false WHERE is_multicurrency IS NULL")
 
-    with op.batch_alter_table('credit_card', schema=None) as batch_op:
-        batch_op.alter_column('is_multicurrency', nullable=False)
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'credit_card' AND column_name = 'is_multicurrency'
+                    AND is_nullable = 'YES'
+            ) THEN
+                ALTER TABLE credit_card ALTER COLUMN is_multicurrency SET NOT NULL;
+            END IF;
+        END $$;
+    """)
 
     # ### end Alembic commands ###
 
