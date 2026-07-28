@@ -100,6 +100,7 @@ class TemplateResponse(BaseModel):
     description: str
     default_amount: str | None = None
     default_currency: str
+    default_account_id: str | None = None
     default_category_id: str | None = None
     default_subcategory_id: str | None = None
     default_notes: str | None = None

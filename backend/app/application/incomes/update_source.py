@@ -34,7 +34,7 @@ class UpdateSourceUseCase:
         if source is None:
             raise NotFoundError("IncomeSource")
 
-        allowed_fields = {"name", "income_type", "stability", "frequency", "expected_amount", "default_account_id", "default_category_id", "default_currency", "notes", "is_active"}
+        allowed_fields = {"name", "income_type", "stability", "frequency", "pay_day", "pay_month", "pay_weekday", "expected_amount", "default_account_id", "default_category_id", "default_currency", "notes", "is_active"}
 
         if "income_type" in changes:
             valid_types = {"salary", "freelance", "business", "investment", "rental", "refund", "gift", "bonus", "commission", "other"}
@@ -60,6 +60,9 @@ class UpdateSourceUseCase:
             "income_type": updated.income_type,
             "stability": updated.stability,
             "frequency": updated.frequency,
+            "pay_day": updated.pay_day,
+            "pay_month": updated.pay_month,
+            "pay_weekday": updated.pay_weekday,
             "expected_amount": str(updated.default_amount) if updated.default_amount else None,
             "default_account_id": str(updated.default_account_id) if updated.default_account_id else None,
             "default_category_id": str(updated.default_category_id) if updated.default_category_id else None,

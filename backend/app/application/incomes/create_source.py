@@ -34,6 +34,9 @@ class CreateSourceUseCase:
         default_category_id: uuid.UUID | None = None,
         default_currency: str = "DOP",
         notes: str | None = None,
+        pay_day: int | None = None,
+        pay_month: int | None = None,
+        pay_weekday: int | None = None,
     ) -> dict:
         from app.middleware.error_handler import ValidationError
 
@@ -59,6 +62,9 @@ class CreateSourceUseCase:
             default_category_id=default_category_id,
             default_currency=default_currency,
             description=notes,
+            pay_day=pay_day,
+            pay_month=pay_month,
+            pay_weekday=pay_weekday,
             is_active=True,
         )
 
@@ -68,6 +74,9 @@ class CreateSourceUseCase:
             "income_type": source.income_type,
             "stability": source.stability,
             "frequency": source.frequency,
+            "pay_day": source.pay_day,
+            "pay_month": source.pay_month,
+            "pay_weekday": source.pay_weekday,
             "expected_amount": str(source.default_amount) if source.default_amount else None,
             "default_account_id": str(source.default_account_id) if source.default_account_id else None,
             "default_category_id": str(source.default_category_id) if source.default_category_id else None,

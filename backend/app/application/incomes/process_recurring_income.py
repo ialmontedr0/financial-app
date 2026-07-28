@@ -57,7 +57,7 @@ class ProcessRecurringIncomeUseCase:
                     effective_date=date_type.today(),
                 )
 
-                frequency_days = {"daily": 1, "weekly": 7, "biweekly": 14, "monthly": 30, "quarterly": 90, "yearly": 365}
+                frequency_days = {"daily": 1, "weekly": 7, "biweekly": 14, "monthly": 30, "quarterly": 90, "cuatrimestral": 120, "yearly": 365}
                 days = frequency_days.get(rec.frequency, 30)
                 next_date = date_type.today() + timedelta(days=days)
 

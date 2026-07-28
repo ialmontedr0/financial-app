@@ -81,6 +81,8 @@ class CreateSourceRequest(BaseModel):
     default_category_id: str | None = None
     frequency: str | None = None
     pay_day: int | None = None
+    pay_month: int | None = None
+    pay_weekday: int | None = None
     icon: str | None = None
     color: str | None = None
 
@@ -97,6 +99,8 @@ class SourceResponse(BaseModel):
     default_category_id: str | None = None
     frequency: str | None = None
     pay_day: int | None = None
+    pay_month: int | None = None
+    pay_weekday: int | None = None
     total_received: str
     income_count: int
     last_received_at: str | None = None

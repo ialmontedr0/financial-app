@@ -238,6 +238,9 @@ async def create_source(
         default_account_id=uuid.UUID(body["default_account_id"]) if body.get("default_account_id") else None,
         default_category_id=uuid.UUID(body["default_category_id"]) if body.get("default_category_id") else None,
         notes=body.get("description"),
+        pay_day=int(body["pay_day"]) if body.get("pay_day") else None,
+        pay_month=int(body["pay_month"]) if body.get("pay_month") else None,
+        pay_weekday=int(body["pay_weekday"]) if body.get("pay_weekday") else None,
     )
 
 

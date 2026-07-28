@@ -49,6 +49,8 @@ class IncomeSourceModel(Base):
     default_currency: Mapped[str] = mapped_column(String(3), nullable=False, default="DOP")
     frequency: Mapped[str | None] = mapped_column(String(20), nullable=True, default=None)
     pay_day: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    pay_month: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    pay_weekday: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
 
     # --- Stats ---
     total_received: Mapped[Decimal] = mapped_column(

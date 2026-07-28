@@ -36,6 +36,7 @@ RECURRENCE_FREQUENCIES: dict[str, str] = {
     "biweekly": "Quincenal",
     "monthly": "Mensual",
     "quarterly": "Trimestral",
+    "cuatrimestral": "Cuatrimestral",
     "yearly": "Anual",
 }
 
@@ -133,8 +134,8 @@ class RecurrenceFrequency:
             return current + timedelta(weeks=interval)
         elif self.value == "biweekly":
             return current + timedelta(weeks=2 * interval)
-        elif self.value in ("monthly", "quarterly", "yearly"):
-            multipliers = {"monthly": 1, "quarterly": 3, "yearly": 12}
+        elif self.value in ("monthly", "quarterly", "cuatrimestral", "yearly"):
+            multipliers = {"monthly": 1, "quarterly": 3, "cuatrimestral": 4, "yearly": 12}
             months = interval * multipliers[self.value]
             month = current.month + months
             year = current.year + (month - 1) // 12

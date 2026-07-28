@@ -213,11 +213,11 @@ async def create_template(
     return await CreateTemplateUseCase(db).execute(
         uuid.UUID(current_user["sub"]),
         name=body["name"],
-        default_amount=float(body["amount"]) if body.get("amount") else 0,
-        default_category_id=body.get("category_id") or None,
-        default_subcategory_id=body.get("subcategory_id") or None,
-        default_account_id=body.get("account_id") or None,
-        default_notes=body.get("notes"),
+        default_amount=float(body["default_amount"]) if body.get("default_amount") else 0,
+        default_category_id=body.get("default_category_id") or None,
+        default_subcategory_id=body.get("default_subcategory_id") or None,
+        default_account_id=body.get("default_account_id") or None,
+        default_notes=body.get("default_notes"),
     )
 
 
