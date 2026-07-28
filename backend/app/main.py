@@ -11,6 +11,7 @@ print("DEBUG 1: imports done", flush=True)
 from app.api.v1.router import api_v1_router
 print("DEBUG 2: router imported", flush=True)
 from app.core.config import get_settings
+
 print("DEBUG 3: config imported", flush=True)
 from app.middleware.error_handler import register_error_handlers
 from app.middleware.rate_limit import RateLimitMiddleware
