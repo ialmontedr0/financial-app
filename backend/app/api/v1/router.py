@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.accounts.router import router as accounts_router
 from app.api.v1.admin.router import router as admin_router
+from app.api.v1.health.router import router as health_router
 from app.api.v1.ai.router import router as ai_router
 from app.api.v1.analytics.router import router as analytics_router
 from app.api.v1.auth.router import router as auth_router
@@ -45,3 +46,4 @@ api_v1_router.include_router(loans_router)
 api_v1_router.include_router(notifications_router)
 api_v1_router.include_router(analytics_router)
 api_v1_router.include_router(ai_router)
+api_v1_router.include_router(health_router)
