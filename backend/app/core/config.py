@@ -1,7 +1,15 @@
+import json
 from functools import lru_cache
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _parse_cors_origins(raw: str) -> list[str]:
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
 class Settings(BaseSettings):
@@ -73,12 +81,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW: int = 60
 
     # --- CORS -------------------------------------------------------------------
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "http://localhost:8080",
-        "http://localhost:5173",
-    ]
+    CORS_ORIGINS: str = '["http://localhost:3000","http://localhost:8000","http://localhost:8080","http://localhost:5173"]'
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return _parse_cors_origins(self.CORS_ORIGINS)
 
     # --- Monitoring -------------------------------------------------------------
     SENTRY_DSN: str = ""
