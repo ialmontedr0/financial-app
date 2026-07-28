@@ -1,0 +1,21 @@
+name: Deploy Backend
+
+on:
+    push:
+        branches: [main, master]
+        paths:
+            - 'fip-backend/**'
+            - '.github/workflows/deploy-backend.yml'
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Deploy to Railway
+              uses: bervProject/railway-deploy@v1
+              with:
+                railway_way: ${{ secrets.RAILWAY_TOKEN }}
+                service: fip-backend
+                directory: ./fip-backend
