@@ -1,215 +1,215 @@
 # Financial Intelligence Platform — Backend
 
-Enterprise-grade personal financial management API built with FastAPI + Clean Architecture + DDD.
+API de gestion financiera personal con arquitectura empresarial, construida con FastAPI + Clean Architecture + DDD.
 
-## Tech Stack
+## Stack Tecnologico
 
-| Layer | Technology |
+| Capa | Tecnologia |
 |-------|-----------|
 | Runtime | Python 3.14 |
 | Framework | FastAPI |
-| ORM | SQLAlchemy 2.x (async) |
-| Database | PostgreSQL 17+ |
-| Migrations | Alembic |
-| Cache / Queues | Redis 7 |
-| Validation | Pydantic v2 |
-| Auth | JWT + OAuth2 + MFA (TOTP) |
-| AI/ML | PyTorch, scikit-learn, XGBoost, LightGBM |
-| Monitoring | Prometheus, Grafana, OpenTelemetry, Sentry |
-| Logging | structlog (structured, JSON in production) |
-| Testing | pytest, pytest-asyncio, factory-boy |
-| Linting | Ruff, mypy (strict) |
+| ORM | SQLAlchemy 2.x (asincrono) |
+| Base de Datos | PostgreSQL 17+ |
+| Migraciones | Alembic |
+| Cache / Colas | Redis 7 |
+| Validacion | Pydantic v2 |
+| Autenticacion | JWT + OAuth2 + MFA (TOTP) |
+| IA/ML | PyTorch, scikit-learn, XGBoost, LightGBM |
+| Monitoreo | Prometheus, Grafana, OpenTelemetry, Sentry |
+| Logging | structlog (estructurado, JSON en produccion) |
+| Pruebas | pytest, pytest-asyncio, factory-boy |
+| Linting | Ruff, mypy (estricto) |
 | CI/CD | GitHub Actions |
 | Deploy | Railway / systemd |
 
-## Architecture
+## Arquitectura
 
-Clean Architecture + Domain-Driven Design with 4 layers:
+Clean Architecture + Domain-Driven Design con 4 capas:
 
 ```
-api/           # Presentation — FastAPI routers
-application/   # Use cases — one class per use case
-domain/        # Business entities, value objects, domain rules
-infrastructure/# ORM models, repositories, external services
+api/           # Presentacion — Routers de FastAPI
+application/   # Casos de uso — una clase por caso de uso
+domain/        # Entidades de negocio, value objects, reglas de dominio
+infrastructure/# Modelos ORM, repositorios, servicios externos
 ```
 
-### Rules
+### Reglas
 
-- Business logic never in routers
-- No SQL in routers or services
-- No business rules in ORM models
-- All modules remain independent (no circular deps)
+- La logica de negocio nunca va en los routers
+- No hay SQL en routers ni servicios
+- No hay reglas de negocio en los modelos ORM
+- Todos los modulos son independientes (sin dependencias circulares)
 
-## Features
+## Funcionalidades
 
-### Core Financial Management
-- Multi-currency transactions, accounts, wallets, categories
-- Income & expense tracking with recurring schedules
-- Budget management with threshold alerts
-- Credit/debit card management with spending limits
-- Loan tracking with amortization schedules
-- Financial goals with progress simulations
+### Gestion Financiera Principal
+- Transacciones multi-moneda, cuentas, carteras, categorias
+- Seguimiento de ingresos y gastos con programacion recurrente
+- Presupuestos con alertas de umbral
+- Tarjetas de credito/debito con limites de gasto
+- Prestamos con tabla de amortizacion
+- Metas financieras con simulaciones de progreso
 
-### AI & Intelligence
-- Transaction auto-classification (scikit-learn)
-- Expense & income prediction (XGBoost/LightGBM)
-- Anomaly detection (PyTorch AutoEncoder + Isolation Forest)
-- Personalized recommendations with explainable AI
-- Spending habit analysis and risk assessment
-- Savings optimization with simulations
-- Financial health scoring
+### IA e Inteligencia
+- Clasificacion automatica de transacciones (scikit-learn)
+- Prediccion de gastos e ingresos (XGBoost/LightGBM)
+- Deteccion de anomalias (AutoEncoder PyTorch + Isolation Forest)
+- Recomendaciones personalizadas con IA explicable
+- Analisis de habitos de gasto y evaluacion de riesgos
+- Optimizacion de ahorros con simulaciones
+- Puntaje de salud financiera
 
-### Analytics
-- KPI dashboards (monthly, portfolio)
-- Spending trends and income trends
-- Category breakdowns and cash flow
-- Net worth tracking
-- Spending heatmaps
+### Analitica
+- KPIs mensuales y de portafolio
+- Tendencias de gastos e ingresos
+- Desglose por categorias y flujo de caja
+- Seguimiento de patrimonio neto
+- Mapas de calor de gastos
 
-### Automation
-- Rule-based automation engine
-- Event-driven triggers and actions
+### Automatizacion
+- Motor de reglas automatizadas
+- Disparadores y acciones basados en eventos
 
-### Security
-- JWT with short-lived access tokens (15min) + refresh tokens (7d)
+### Seguridad
+- JWT con tokens de acceso de corta duracion (15min) + tokens de refresco (7d)
 - OAuth2 (Google, GitHub)
-- MFA (TOTP via Authenticator apps)
-- bcrypt password hashing with rehashing
-- Rate limiting (Redis sliding window)
-- RBAC with hierarchical permissions
-- Security headers middleware
-- Audit logging
+- MFA (TOTP via apps Authenticator)
+- Hashing de contrasenas con bcrypt y re-hashing
+- Limitacion de tasa (ventana deslizante en Redis)
+- RBAC con permisos jerarquicos
+- Middleware de headers de seguridad
+- Registro de auditoria
 
-### Notifications
-- Email (SMTP / SendGrid)
-- Telegram bot
-- Discord webhooks
-- Generic webhook support
-- Push notifications (configurable)
+### Notificaciones
+- Correo electronico (SMTP / SendGrid)
+- Bot de Telegram
+- Webhooks de Discord
+- Soporte para webhooks genericos
+- Notificaciones push (configurable)
 
-### Observability
-- Prometheus metrics (custom + auto-instrumented)
-- Grafana dashboards
-- OpenTelemetry tracing (Jaeger)
-- Sentry error tracking
-- Structured JSON logging
+### Observabilidad
+- Metricas de Prometheus (personalizadas + auto-instrumentadas)
+- Dashboards de Grafana
+- Trazado con OpenTelemetry (Jaeger)
+- Seguimiento de errores con Sentry
+- Logging estructurado en JSON
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
 backend/
   app/
-    api/v1/        # 24 route modules (auth, users, accounts, wallets, transactions, etc.)
-    application/   # ~230 use cases across all domains
-    domain/        # 18 domain modules with value objects
-    infrastructure/# 46 ORM models, 24 repositories, services (cache, email, security, etc.)
-    ai/            # ML models, recommendation engine, risk assessment
-    middleware/    # Error handler, rate limiter, request logger, security headers
-    core/         # Configuration (pydantic-settings), logging
-    audit/        # Audit trail service
-    automation/   # Rule engine
-    notifications/# Multi-channel notification service
-  migrations/     # 21 Alembic migration files
-  tests/          # Unit, API, and integration tests
+    api/v1/        # 24 modulos de rutas (auth, users, accounts, wallets, transactions, etc.)
+    application/   # ~230 casos de uso en todos los dominios
+    domain/        # 18 modulos de dominio con value objects
+    infrastructure/# 46 modelos ORM, 24 repositorios, servicios (cache, email, seguridad, etc.)
+    ai/            # Modelos ML, motor de recomendaciones, evaluacion de riesgos
+    middleware/    # Manejador de errores, limitador de tasa, logger, headers de seguridad
+    core/          # Configuracion (pydantic-settings), logging
+    audit/         # Servicio de pista de auditoria
+    automation/    # Motor de reglas
+    notifications/# Servicio de notificaciones multi-canal
+  migrations/     # 21 archivos de migracion Alembic
+  tests/          # Pruebas unitarias, API y de integracion
 ```
 
-## Quick Start
+## Inicio Rapido
 
 ```bash
-# Prerequisites: Python 3.14, PostgreSQL, Redis, uv
+# Prerrequisitos: Python 3.14, PostgreSQL, Redis, uv
 
-# Clone and enter backend directory
+# Clonar y entrar al directorio
 cd fip-backend
 
-# Copy environment file
+# Copiar archivo de entorno
 cp .env.example .env
-# Edit .env with your local PostgreSQL and Redis URLs
+# Edita .env con tus URLs de PostgreSQL y Redis
 
-# Sync dependencies
+# Sincronizar dependencias
 uv sync
 
-# Run database migrations
+# Ejecutar migraciones
 uv run alembic upgrade head
 
-# Seed initial data (categories, roles)
+# Sembrar datos iniciales (categorias, roles)
 uv run python -c "from app.infrastructure.seed.category_seed import seed_categories; from app.infrastructure.db.session import async_session_factory; import asyncio; asyncio.run(seed_categories(async_session_factory))"
 uv run python -c "from app.infrastructure.seed.role_seed import seed_roles; from app.infrastructure.db.session import async_session_factory; import asyncio; asyncio.run(seed_roles(async_session_factory))"
 
-# Start development server
+# Iniciar servidor de desarrollo
 uv run uvicorn app.main:app --reload --port 8080
 ```
 
-API docs: http://localhost:8080/docs
+Documentacion de la API: http://localhost:8080/docs
 
-## Environment Variables
+## Variables de Entorno
 
-Key variables (see `.env.example` for full list):
+Variables principales (ver `.env.example` para la lista completa):
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection (supports `postgresql://` — auto-adds `+asyncpg`) |
-| `REDIS_URL` | Yes | Redis connection |
-| `SECRET_KEY` | Yes | JWT signing key (generate with `openssl rand -hex 32`) |
-| `CORS_ORIGINS` | No | JSON array or comma-separated origins (default: localhost) |
-| `SENTRY_DSN` | No | Sentry error tracking |
-| `ENVIRONMENT` | No | `development`, `staging`, or `production` |
+| Variable | Requerida | Descripcion |
+|----------|-----------|-------------|
+| `DATABASE_URL` | Si | Conexion a PostgreSQL (soporta `postgresql://` — agrega `+asyncpg` automaticamente) |
+| `REDIS_URL` | Si | Conexion a Redis |
+| `SECRET_KEY` | Si | Clave para firmar JWT (genera con `openssl rand -hex 32`) |
+| `CORS_ORIGINS` | No | JSON array u origenes separados por coma (default: localhost) |
+| `SENTRY_DSN` | No | DSN de Sentry para seguimiento de errores |
+| `ENVIRONMENT` | No | `development`, `staging` o `production` |
 
-## Testing
+## Pruebas
 
 ```bash
-# Run all tests
+# Ejecutar todas las pruebas
 uv run pytest
 
-# With coverage
+# Con cobertura
 uv run pytest --cov=app --cov-report=html
 
-# Run specific test file
+# Ejecutar un archivo especifico
 uv run pytest tests/api/v1/health/test_health.py -v
 ```
 
-## Deployment
+## Deploy
 
 ### Railway (auto-deploy)
-Push to `main` triggers Railway deploy via GitHub Actions.
+Push a `main` dispara el deploy en Railway via GitHub Actions.
 
 ### Manual (systemd)
 ```bash
-# Build and deploy
+# Compilar y desplegar
 uv sync --frozen
 alembic upgrade head
 systemctl restart fip-api
 ```
 
-### CI/CD Pipelines
-- **ci.yml**: Lint + typecheck + tests on every PR/push
-- **deploy-backend.yml**: Railway deploy on main push
-- **deploy.yml**: SSH deploy to VPS
-- **security-scan.yml**: Weekly dependency/vulnerability scan
+### Pipelines de CI/CD
+- **ci.yml**: Lint + typecheck + pruebas en cada PR/push
+- **deploy-backend.yml**: Deploy a Railway en push a main
+- **deploy.yml**: Deploy SSH a VPS
+- **security-scan.yml**: Escaneo semanal de dependencias/vulnerabilidades
 
-## API Endpoints
+## Endpoints de la API
 
-All endpoints under `/api/v1`. OpenAPI docs at `/docs` (disabled in production).
+Todos los endpoints bajo `/api/v1`. Documentacion OpenAPI en `/docs` (deshabilitado en produccion).
 
-| Module | Base Path | Description |
+| Modulo | Ruta Base | Descripcion |
 |--------|-----------|-------------|
 | Health | `/health` | Health, readiness, liveness probes |
-| Auth | `/auth` | Register, login, MFA, refresh, password reset |
-| Users | `/users` | Profile, preferences |
-| Accounts | `/accounts` | Financial accounts CRUD |
-| Wallets | `/wallets` | Wallet grouping with accounts |
-| Categories | `/categories` | Categories + subcategories |
-| Transactions | `/transactions` | Full transaction management with recurring, OCR, attachments |
-| Incomes | `/incomes` | Income records, sources, schedules, recurring |
-| Expenses | `/expenses` | Expenses, subscriptions, services, card bills |
-| Budgets | `/budgets` | Budgets with alerts and auto-adjust |
-| Cards | `/cards` | Credit cards, bills, spending limits |
-| Debit Cards | `/debit-cards` | Debit card management |
-| Loans | `/loans` | Loans, amortization, early payoff simulation |
-| Goals | `/goals` | Financial goals with predictions and simulations |
-| Analytics | `/analytics` | KPIs, trends, cash flow, heatmaps |
-| AI | `/ai` | Classification, prediction, anomalies, recommendations |
-| Automations | `/automations/rules` | Automation rules and execution logs |
-| Notifications | `/notifications` | User notifications and preferences |
-| Imports | `/imports` | File import (CSV, bank exports) |
-| Exports | `/exports` | Data export (CSV, Excel, PDF) |
-| Admin | `/admin` | User/role/permission management, audit logs |
+| Auth | `/auth` | Registro, login, MFA, refresco, restablecer contrasena |
+| Users | `/users` | Perfil, preferencias |
+| Accounts | `/accounts` | CRUD de cuentas financieras |
+| Wallets | `/wallets` | Agrupacion de cuentas en carteras |
+| Categories | `/categories` | Categorias y subcategorias |
+| Transactions | `/transactions` | Gestion completa de transacciones con recurrencia, OCR, adjuntos |
+| Incomes | `/incomes` | Registros de ingresos, fuentes, programacion, recurrencia |
+| Expenses | `/expenses` | Gastos, suscripciones, servicios, facturas de tarjeta |
+| Budgets | `/budgets` | Presupuestos con alertas y auto-ajuste |
+| Cards | `/cards` | Tarjetas de credito, facturas, limites de gasto |
+| Debit Cards | `/debit-cards` | Gestion de tarjetas de debito |
+| Loans | `/loans` | Prestamos, amortizacion, simulacion de pago anticipado |
+| Goals | `/goals` | Metas financieras con predicciones y simulaciones |
+| Analytics | `/analytics` | KPIs, tendencias, flujo de caja, mapas de calor |
+| AI | `/ai` | Clasificacion, prediccion, anomalias, recomendaciones |
+| Automations | `/automations/rules` | Reglas de automatizacion y registros de ejecucion |
+| Notifications | `/notifications` | Notificaciones y preferencias del usuario |
+| Imports | `/imports` | Importacion de archivos (CSV, exportaciones bancarias) |
+| Exports | `/exports` | Exportacion de datos (CSV, Excel, PDF) |
+| Admin | `/admin` | Gestion de usuarios, roles, permisos, registros de auditoria |
