@@ -106,6 +106,14 @@ class Settings(BaseSettings):
         "URL para alembic (sync driver)"
         return self.DATABASE_URL.replace("+asyncpg", "")
 
+    @property
+    def database_url_async(self) -> str:
+        "URL for async engine (ensures +asyncpg driver)"
+        url = self.DATABASE_URL
+        if "+asyncpg" not in url and url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
 
 @lru_cache
 def get_settings() -> Settings:
