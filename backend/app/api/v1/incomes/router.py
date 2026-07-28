@@ -234,7 +234,7 @@ async def create_source(
         income_type=body.get("income_type", "salary"),
         stability=body.get("stability", "fixed"),
         frequency=body.get("frequency"),
-        expected_amount=float(body["default_amount"]) if body.get("default_amount") else None,
+        default_amount=float(body["default_amount"]) if body.get("default_amount") else None,
         default_account_id=uuid.UUID(body["default_account_id"]) if body.get("default_account_id") else None,
         default_category_id=uuid.UUID(body["default_category_id"]) if body.get("default_category_id") else None,
         notes=body.get("description"),
@@ -259,6 +259,47 @@ async def list_sources(
         is_active=is_active,
         income_type=income_type,
     )
+
+
+@router.get("/sources/{source_id}")
+async def get_source(
+    source_id: str,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    import uuid
+    from app.infrastructure.repositories.income_repository import IncomeRepository
+    from app.middleware.error_handler import NotFoundError
+
+    repo = IncomeRepository(db)
+    source = await repo.get_source_by_id(uuid.UUID(source_id), uuid.UUID(current_user["sub"]))
+    if source is None:
+        raise NotFoundError("IncomeSource")
+
+    return {
+        "id": str(source.id),
+        "name": source.name,
+        "income_type": source.income_type,
+        "stability": source.stability,
+        "description": source.description,
+        "tax_id": source.tax_id,
+        "frequency": source.frequency,
+        "pay_day": source.pay_day,
+        "pay_month": source.pay_month,
+        "pay_weekday": source.pay_weekday,
+        "default_amount": str(source.default_amount) if source.default_amount else None,
+        "default_account_id": str(source.default_account_id) if source.default_account_id else None,
+        "default_category_id": str(source.default_category_id) if source.default_category_id else None,
+        "default_currency": source.default_currency,
+        "icon": source.icon,
+        "color": source.color,
+        "is_active": source.is_active,
+        "total_received": str(source.total_received) if source.total_received else "0",
+        "income_count": source.income_count,
+        "last_received_at": source.last_received_at.isoformat() if source.last_received_at else None,
+        "created_at": source.created_at.isoformat() if source.created_at else None,
+        "updated_at": source.updated_at.isoformat() if source.updated_at else None,
+    }
 
 
 @router.post("/sources/{source_id}/create-income", status_code=201)
