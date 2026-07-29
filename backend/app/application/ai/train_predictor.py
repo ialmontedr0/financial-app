@@ -23,18 +23,46 @@ class TrainPredictorUseCase:
         user_id: uuid.UUID,
         *,
         target_type: str = "expense",
+        model_type: str = "xgboost",
     ) -> dict:
-        """Train the XGBoost expense/income predictor."""
-        from app.ai.predictors.expense_predictor import ExpensePredictor
+        """Train a predictor (XGBoost or LightGBM)."""
         from app.infrastructure.repositories.ai_repository import AIRepository
 
-        repo = AIRepository(self._session)
-        predictor = ExpensePredictor()
-        predictor._target_type = target_type
-        if target_type == "income":
-            predictor._model_version = "xgb_income_v1.0"
+        if model_type == "lightgbm":
+            from app.ai.predictors.lightgbm_predictor import LightGBMPredictor
+
+            predictor = LightGBMPredictor()
+            predictor._target_type = target_type
+            if target_type == "income":
+                predictor._model_version = "lgbm_income_v1.0"
+            else:
+                predictor._model_version = "lgbm_expense_v1.0"
+            model_type_key = f"{target_type}_predictor_lightgbm"
+            display_name = f"LightGBM {target_type.title()} Predictor v{predictor._model_version}"
+            hyperparameters = {
+                "n_estimators": 100,
+                "max_depth": 4,
+                "learning_rate": 0.1,
+            }
         else:
-            predictor._model_version = "xgb_expense_v1.0"
+            from app.ai.predictors.expense_predictor import ExpensePredictor
+
+            predictor = ExpensePredictor()
+            predictor._target_type = target_type
+            if target_type == "income":
+                predictor._model_version = "xgb_income_v1.0"
+            else:
+                predictor._model_version = "xgb_expense_v1.0"
+            model_type_key = f"{target_type}_predictor_xgboost"
+            display_name = f"XGBoost {target_type.title()} Predictor v{predictor._model_version}"
+            hyperparameters = {
+                "n_estimators": 100,
+                "max_depth": 4,
+                "learning_rate": 0.1,
+                "objective": "reg:squarederror",
+            }
+
+        repo = AIRepository(self._session)
 
         # Train
         metrics = await predictor.train(
@@ -47,18 +75,12 @@ class TrainPredictorUseCase:
             return {"success": False, **metrics}
 
         # Register in model registry
-        model_type = f"{target_type}_predictor_xgboost"
         model = await repo.create_model(
             user_id,
-            model_type=model_type,
+            model_type=model_type_key,
             version=predictor._model_version,
-            display_name=f"XGBoost {target_type.title()} Predictor v{predictor._model_version}",
-            hyperparameters={
-                "n_estimators": 100,
-                "max_depth": 4,
-                "learning_rate": 0.1,
-                "objective": "reg:squarederror",
-            },
+            display_name=display_name,
+            hyperparameters=hyperparameters,
             feature_names=[
                 "total_transactions",
                 "total_amount",
@@ -108,6 +130,7 @@ class TrainPredictorUseCase:
             "predictor_training_completed",
             user_id=str(user_id),
             target_type=target_type,
+            model_type=model_type_key,
             metrics=metrics,
         )
 
@@ -116,5 +139,6 @@ class TrainPredictorUseCase:
             "model_id": str(model.id),
             "model_version": predictor._model_version,
             "target_type": target_type,
+            "model_type": model_type_key,
             **metrics,
         }

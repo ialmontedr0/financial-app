@@ -76,6 +76,8 @@ dependencies = [
     "psutil>=6.0",
     "gunicorn>=23.0",
     "railway>=0.0.4",
+    "groq>=0.12",
+    "openai>=1.60",
 ]
 
 [project.optional-dependencies]

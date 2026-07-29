@@ -1,19 +1,27 @@
 """Personalized explainer — generates natural language explanations."""
 
 from __future__ import annotations
-from sqlalchemy import select as _sel  # noqa: E402
 
+import json
+import time
 import uuid
 from typing import Any
 
 import structlog
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.llm import LLMClient, SYSTEM_PROMPT_EXPLANATION, USER_PROMPT_EXPLANATION
+from app.infrastructure.models.transaction import TransactionModel
 from app.infrastructure.models.user_preference import UserPreferenceModel
 
 logger = structlog.get_logger()
 
-# Spanish language templates
+# Cache simple en memoria: {cache_key: (timestamp, response)}
+_EXPLANATION_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_CACHE_TTL_SECONDS = 3600
+
+# Spanish language templates (fallback cuando LLM no esta disponible)
 EXPLANATION_TEMPLATES: dict[str, dict[str, str]] = {
     "reduce_spending": {
         "headline": "Tu gasto ha aumentado significativamente.",
@@ -152,6 +160,9 @@ EXPLANATION_TEMPLATES: dict[str, dict[str, str]] = {
 class Explainer:
     """Generates personalized explanations for recommendations."""
 
+    def __init__(self, llm_client: LLMClient | None = None) -> None:
+        self._llm_client = llm_client
+
     async def explain(
         self,
         session: AsyncSession,
@@ -160,15 +171,94 @@ class Explainer:
     ) -> dict[str, Any]:
         """Generate a personalized explanation for a recommendation.
 
-        Returns:
-        - headline: main takeaway
-        - why: why this matters
-        - how: how it happened
-        - impact: potential impact
-        - action: specific action to take
-        - tone: encouraging/urgent/informative
-        - personalized: whether personalization was applied
+        Uses LLM first if available, falls back to template-based generation.
         """
+        rec_type = recommendation.get("type", "")
+        features = recommendation.get("features_used", {})
+
+        # Try LLM first
+        if self._llm_client is not None:
+            result = await self._try_llm_explanation(session, user_id, recommendation)
+            if result is not None:
+                return result
+
+        # Fallback to template-based explanation
+        return await self._template_explanation(session, user_id, recommendation)
+
+    async def _try_llm_explanation(
+        self,
+        session: AsyncSession,
+        user_id: uuid.UUID,
+        recommendation: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Try to generate explanation via LLM. Returns None on failure."""
+        rec_type = recommendation.get("type", "")
+        features = recommendation.get("features_used", {})
+
+        # Check cache
+        cache_key = self._cache_key(user_id, rec_type, features)
+        cached = _EXPLANATION_CACHE.get(cache_key)
+        if cached is not None:
+            elapsed = time.time() - cached[0]
+            if elapsed < _CACHE_TTL_SECONDS:
+                logger.debug("explanation_cache_hit", rec_type=rec_type)
+                return cached[1]
+
+        # Gather user context for the prompt
+        context = await self._get_context_data(session, user_id)
+
+        prompt = USER_PROMPT_EXPLANATION.format(
+            rec_type=rec_type,
+            title=recommendation.get("title", ""),
+            description=recommendation.get("description", ""),
+            priority=recommendation.get("priority", "medium"),
+            confidence=recommendation.get("confidence", 0.5),
+            estimated_savings=recommendation.get("estimated_savings", 0),
+            income=context.get("income", 0),
+            expense=context.get("expense", 0),
+            balance=context.get("balance", 0),
+            top_category=context.get("top_category", "N/A"),
+            tx_count=context.get("tx_count", 0),
+            months_data=context.get("months_data", 0),
+        )
+
+        raw = await self._llm_client.generate(
+            prompt, system_prompt=SYSTEM_PROMPT_EXPLANATION
+        )
+        if raw is None:
+            return None
+
+        parsed = self._parse_llm_json(raw)
+        if parsed is None:
+            logger.warning("llm_response_parse_failed", rec_type=rec_type, raw=raw[:200])
+            return None
+
+        result = {
+            "headline": parsed.get("headline", ""),
+            "why": parsed.get("why", ""),
+            "how": parsed.get("how", ""),
+            "impact": parsed.get("impact", ""),
+            "action": parsed.get("action", ""),
+            "tone": self._determine_tone(recommendation, context),
+            "personalized": True,
+            "llm_generated": True,
+            "rec_type": rec_type,
+            "priority": recommendation.get("priority", "medium"),
+            "estimated_savings": recommendation.get("estimated_savings", 0),
+            "confidence": recommendation.get("confidence", 0),
+        }
+
+        # Store in cache
+        _EXPLANATION_CACHE[cache_key] = (time.time(), result)
+        return result
+
+    async def _template_explanation(
+        self,
+        session: AsyncSession,
+        user_id: uuid.UUID,
+        recommendation: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Fallback: generate explanation from templates."""
         rec_type = recommendation.get("type", "")
         features = recommendation.get("features_used", {})
 
@@ -176,24 +266,18 @@ class Explainer:
         if not template:
             return self._fallback_explanation(recommendation)
 
-        # Get user preferences for personalization
         prefs = await self._get_user_preferences(session, user_id)
         tone = self._determine_tone(recommendation, prefs)
 
-        # Fill templates with actual values
-        why = self._fill_template(template["why"], features)
-        how = self._fill_template(template["how"], features)
-        impact = self._fill_template(template["impact"], features)
-        action = self._fill_template(template["action"], features)
-
         return {
             "headline": template["headline"],
-            "why": why,
-            "how": how,
-            "impact": impact,
-            "action": action,
+            "why": self._fill_template(template["why"], features),
+            "how": self._fill_template(template["how"], features),
+            "impact": self._fill_template(template["impact"], features),
+            "action": self._fill_template(template["action"], features),
             "tone": tone,
             "personalized": True,
+            "llm_generated": False,
             "rec_type": rec_type,
             "priority": recommendation.get("priority", "medium"),
             "estimated_savings": recommendation.get("estimated_savings", 0),
@@ -206,20 +290,100 @@ class Explainer:
         user_id: uuid.UUID,
     ) -> dict[str, Any]:
         """Get user preferences for personalization."""
-        stmt = _sel(UserPreferenceModel).where(UserPreferenceModel.user_id == user_id)
-        from sqlalchemy import select as sel
-
-        result = await session.execute(
-            sel(UserPreferenceModel).where(UserPreferenceModel.user_id == user_id)
-        )
+        stmt = select(UserPreferenceModel).where(UserPreferenceModel.user_id == user_id)
+        result = await session.execute(stmt)
         prefs = result.scalar_one_or_none()
-
         if prefs:
             return {
                 "language": prefs.language,
                 "currency": prefs.currency_code,
             }
         return {"language": "es", "currency": "DOP"}
+
+    async def _get_context_data(
+        self,
+        session: AsyncSession,
+        user_id: uuid.UUID,
+    ) -> dict[str, Any]:
+        """Gather user financial context for the LLM prompt."""
+        from datetime import date, timedelta
+
+        today = date.today()
+        six_months_ago = today - timedelta(days=180)
+        month_start = today.replace(day=1)
+
+        stmt = (
+            select(TransactionModel)
+            .where(
+                and_(
+                    TransactionModel.user_id == user_id,
+                    TransactionModel.deleted_at.is_(None),
+                    TransactionModel.status == "completed",
+                    TransactionModel.effective_date >= six_months_ago,
+                    TransactionModel.effective_date <= today,
+                )
+            )
+            .order_by(TransactionModel.effective_date.asc())
+        )
+        result = await session.execute(stmt)
+        transactions = list(result.scalars().all())
+
+        income = sum(
+            float(t.amount) for t in transactions if t.transaction_type == "income"
+        )
+        expense = sum(
+            abs(float(t.amount)) for t in transactions if t.transaction_type == "expense"
+        )
+
+        monthly_months: set[str] = set()
+        category_totals: dict[str, float] = {}
+        current_month_count = 0
+
+        for t in transactions:
+            monthly_months.add(t.effective_date.strftime("%Y-%m"))
+            cat = t.category.name if t.category else "Otros"
+            category_totals[cat] = category_totals.get(cat, 0) + abs(float(t.amount))
+            if t.effective_date >= month_start:
+                current_month_count += 1
+
+        top_category = max(category_totals, key=category_totals.get) if category_totals else "N/A"
+
+        return {
+            "income": round(income, 2),
+            "expense": round(expense, 2),
+            "balance": round(income - expense, 2),
+            "top_category": top_category,
+            "tx_count": current_month_count,
+            "months_data": len(monthly_months),
+        }
+
+    def _parse_llm_json(self, raw: str) -> dict[str, Any] | None:
+        """Try to parse LLM response as JSON."""
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            cleaned = cleaned.strip()
+        try:
+            data = json.loads(cleaned)
+            required = {"headline", "why", "how", "impact", "action"}
+            if required.issubset(data.keys()):
+                return data
+            logger.warning("llm_json_missing_keys", missing=required - data.keys())
+            return None
+        except json.JSONDecodeError:
+            return None
+
+    def _cache_key(
+        self,
+        user_id: uuid.UUID,
+        rec_type: str,
+        features: dict[str, Any],
+    ) -> str:
+        """Build a cache key from user, rec type, and features."""
+        feature_hash = hash(frozenset(features.items()))
+        return f"{user_id}:{rec_type}:{feature_hash}"
 
     def _determine_tone(
         self,
@@ -241,7 +405,6 @@ class Explainer:
     def _fill_template(self, template: str, features: dict[str, Any]) -> str:
         """Fill a template string with feature values."""
         try:
-            # Map common feature keys to template placeholders
             replacements = {}
             for key, value in features.items():
                 if isinstance(value, (int, float)):
@@ -251,7 +414,6 @@ class Explainer:
                 else:
                     replacements[key] = str(value)
 
-            # Add computed values if missing
             if "annual" not in replacements and "savings" in replacements:
                 replacements["annual"] = replacements["savings"] * 12
             if "monthly" not in replacements and "gap" in replacements:
@@ -276,11 +438,9 @@ class Explainer:
             "action": "Revisa los detalles de esta recomendacion.",
             "tone": "informative",
             "personalized": False,
+            "llm_generated": False,
             "rec_type": recommendation.get("type", "unknown"),
             "priority": recommendation.get("priority", "medium"),
             "estimated_savings": recommendation.get("estimated_savings", 0),
             "confidence": recommendation.get("confidence", 0),
         }
-
-
-# Need this import at module level

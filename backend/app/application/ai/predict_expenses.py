@@ -18,15 +18,21 @@ class PredictExpensesUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, user_id: uuid.UUID, *, months_ahead: int = 1) -> dict:
-        """Predict next month's total expenses using XGBoost."""
-        from app.ai.predictors.expense_predictor import ExpensePredictor
+    async def execute(
+        self,
+        user_id: uuid.UUID,
+        *,
+        months_ahead: int = 1,
+        model_version: str = "xgb_expense_v1.0",
+    ) -> dict:
+        """Predict next month's total expenses."""
+        from app.ai.predictors.registry import create_predictor
         from app.infrastructure.repositories.ai_repository import AIRepository
 
         repo = AIRepository(self._session)
-        predictor = ExpensePredictor()
+        predictor = create_predictor(model_version)
         predictor._target_type = "expense"
-        predictor._model_version = "xgb_expense_v1.0"
+        predictor._model_version = model_version
 
         if not predictor.is_trained:
             predictor.load_model(str(user_id))

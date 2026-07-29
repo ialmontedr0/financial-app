@@ -1,4 +1,4 @@
-"""Use case: Generate financial recommendations."""
+"""Use case: Generate and persist financial recommendations."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ class GetRecommendationsUseCase:
         self._session = session
 
     async def execute(self, user_id: uuid.UUID) -> dict:
-        """Generate personalized financial recommendations."""
+        """Generate and persist personalized financial recommendations."""
         from app.ai.recommendations.engine import RecommendationEngine
         from app.infrastructure.repositories.ai_repository import AIRepository
 
@@ -39,6 +39,22 @@ class GetRecommendationsUseCase:
                 reason=rec.get("description"),
                 features_used=rec.get("features_used"),
             )
+
+        # Save full batch in a single record for retrieval
+        await repo.create_prediction(
+            user_id,
+            prediction_type="recommendation_batch",
+            model_version="rule_engine_v1.0",
+            reason=f"Batch with {len(recommendations)} recommendations",
+            features_used={
+                "total": len(recommendations),
+                "high_priority": sum(1 for r in recommendations if r.get("priority") == "high"),
+                "estimated_total_savings": round(
+                    sum(r.get("estimated_savings", 0) for r in recommendations), 2
+                ),
+            },
+            metadata_json={"recommendations": recommendations},
+        )
 
         return {
             "recommendations": recommendations,

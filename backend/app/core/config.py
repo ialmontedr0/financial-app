@@ -93,6 +93,14 @@ class Settings(BaseSettings):
     ENABLE_METRICS: bool = True
     ENABLE_TRACING: bool = True
 
+    # --- LLM --------------------------------------------------------------------
+    LLM_PROVIDER: str = "groq"
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = "llama3-70b-8192"
+    LLM_MAX_TOKENS: int = 512
+    LLM_TEMPERATURE: float = 0.7
+    LLM_TIMEOUT_SECONDS: int = 15
+
     # --- OpenTelemetry ----------------------------------------------------------
     OTEL_SERVICE_NAME: str = "fip-api"
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"

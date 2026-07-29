@@ -66,36 +66,41 @@ async def classifier_status(
 
 @router.post("/predict/expenses")
 async def predict_expenses(
+    model_version: str = "xgb_expense_v1.0",
     current_user: dict = Depends(get_current_active_user),
     session=Depends(get_db),
 ):
     from app.application.ai.predict_expenses import PredictExpensesUseCase
 
     user_id = uuid.UUID(current_user["sub"])
-    return await PredictExpensesUseCase(session).execute(user_id)
+    return await PredictExpensesUseCase(session).execute(user_id, model_version=model_version)
 
 
 @router.post("/predict/income")
 async def predict_income(
+    model_version: str = "xgb_income_v1.0",
     current_user: dict = Depends(get_current_active_user),
     session=Depends(get_db),
 ):
     from app.application.ai.predict_income import PredictIncomeUseCase
 
     user_id = uuid.UUID(current_user["sub"])
-    return await PredictIncomeUseCase(session).execute(user_id)
+    return await PredictIncomeUseCase(session).execute(user_id, model_version=model_version)
 
 
 @router.post("/train/predictor")
 async def train_predictor(
     target_type: str = "expense",
+    model_type: str = "xgboost",
     current_user: dict = Depends(get_current_active_user),
     session=Depends(get_db),
 ):
     from app.application.ai.train_predictor import TrainPredictorUseCase
 
     user_id = uuid.UUID(current_user["sub"])
-    return await TrainPredictorUseCase(session).execute(user_id, target_type=target_type)
+    return await TrainPredictorUseCase(session).execute(
+        user_id, target_type=target_type, model_type=model_type
+    )
 
 
 @router.post("/anomalies/detect")
@@ -144,6 +149,17 @@ async def get_recommendations(
 
     user_id = uuid.UUID(current_user["sub"])
     return await GetRecommendationsUseCase(session).execute(user_id)
+
+
+@router.get("/recommendations/latest")
+async def get_latest_recommendations(
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    from app.application.ai.get_latest_recommendations import GetLatestRecommendationsUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+    return await GetLatestRecommendationsUseCase(session).execute(user_id)
 
 
 @router.get("/recommendations/history")

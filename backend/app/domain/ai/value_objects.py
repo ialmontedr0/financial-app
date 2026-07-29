@@ -39,6 +39,8 @@ MODEL_TYPES: dict[str, str] = {
     "classifier_tfidf_lsvc": "TF-IDF + LinearSVC Classifier",
     "expense_predictor_xgboost": "XGBoost Expense Predictor",
     "income_predictor_xgboost": "XGBoost Income Predictor",
+    "expense_predictor_lightgbm": "LightGBM Expense Predictor",
+    "income_predictor_lightgbm": "LightGBM Income Predictor",
     "anomaly_isolation_forest": "Isolation Forest Anomaly Detector",
     "anomaly_autoencoder": "PyTorch Autoencoder Anomaly Detector",
     "lstm_predictor": "LSTM Sequence Predictor",
