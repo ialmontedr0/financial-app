@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 
 import structlog
 from fastapi import APIRouter, Depends, Request
@@ -388,28 +389,33 @@ async def get_me(
 # ============================================================
 @router.get(
     "/sessions",
-    response_model=list[dict],
     summary="List active sessions",
 )
 async def list_sessions(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> list[dict]:
+) -> dict:
     """List all active sessions for the current user."""
     from app.infrastructure.repositories.session_repository import SessionRepository
 
     user_id = uuid.UUID(current_user["sub"])
     session_repo = SessionRepository(db)
     sessions = await session_repo.get_active_sessions(user_id)
+    now = datetime.now(timezone.utc)
 
-    return [
-        {
+    result = []
+    for s in sessions:
+        result.append({
             "id": str(s.id),
+            "device_name": s.device_info.split(" - ")[0] if " - " in s.device_info else s.device_info,
+            "device_type": "mobile" if any(x in s.user_agent.lower() for x in ["mobile", "android", "iphone"]) else "web",
             "device_info": s.device_info,
             "ip_address": s.ip_address,
             "user_agent": s.user_agent,
+            "is_current": False,
+            "last_active_at": s.created_at.isoformat() if s.created_at else None,
             "created_at": s.created_at.isoformat() if s.created_at else None,
             "expires_at": s.expires_at.isoformat() if s.expires_at else None,
-        }
-        for s in sessions
-    ]
+        })
+
+    return {"sessions": result, "total": len(result)}

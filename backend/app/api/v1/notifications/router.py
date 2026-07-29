@@ -124,6 +124,7 @@ async def get_stats(
 
 @router.post("/test", response_model=notif_schemas.NotificationSendResponse)
 async def send_test(
+    body: notif_schemas.TestNotificationRequest,
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -132,7 +133,7 @@ async def send_test(
     user_id = _UUID(current_user["sub"])
     use_case = SendTestNotificationUseCase(db)
     email = current_user.get("email", "")
-    results = await use_case.execute(user_id, email)
+    results = await use_case.execute(user_id, email, channel=body.channel, telegram_chat_id=body.telegram_chat_id)
     return notif_schemas.NotificationSendResponse(success=True, results=results)
 
 

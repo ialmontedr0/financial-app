@@ -64,6 +64,7 @@ class Settings(BaseSettings):
 
     # --- Notifications ---------------------------------------------------------
     TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_WEBHOOK_SECRET: str = ""
     DISCORD_WEBHOOK_URL: str = ""
     WEBHOOK_SECRET_KEY: str = ""
     NOTIFICATION_RETRY_ATTEMPTS: int = 3

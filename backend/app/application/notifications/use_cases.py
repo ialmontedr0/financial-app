@@ -104,13 +104,17 @@ class SendTestNotificationUseCase:
     def __init__(self, db: AsyncSession) -> None:
         self._service = NotificationService(db)
 
-    async def execute(self, user_id: UUID, email: str) -> list[dict[str, Any]]:
+    async def execute(self, user_id: UUID, email: str, channel: str = "telegram", telegram_chat_id: str | None = None) -> list[dict[str, Any]]:
+        data: dict[str, Any] = {"email": email}
+        if telegram_chat_id:
+            data["telegram_chat_id"] = telegram_chat_id
         results = await self._service.send(
             user_id=user_id,
             type="system",
             title="Notificacion de Prueba",
             body="Esta es una notificacion de prueba del sistema Financial Intelligence Platform.",
-            data={"email": email},
+            data=data,
+            channels=[channel],
         )
         return [
             {"success": r.success, "channel": r.channel, "error": r.error} for r in results

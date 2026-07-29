@@ -11,8 +11,10 @@ from app.infrastructure.models.card_spending_limit import CardSpendingLimitModel
 from app.infrastructure.models.category import CategoryModel
 from app.infrastructure.models.category_rule import CategoryRuleModel
 from app.infrastructure.models.credit_card import CreditCardModel
-from app.infrastructure.models.debit_card import DebitCardModel
 from app.infrastructure.models.credit_card_bill import CreditCardBillModel
+from app.infrastructure.models.credit_purchase import CreditPurchaseModel
+from app.infrastructure.models.credit_purchase_installment import CreditPurchaseInstallmentModel
+from app.infrastructure.models.debit_card import DebitCardModel
 from app.infrastructure.models.email_verification import EmailVerificationModel
 from app.infrastructure.models.expense_service import ExpenseServiceModel
 from app.infrastructure.models.expense_template import ExpenseTemplateModel
@@ -35,6 +37,7 @@ from app.infrastructure.models.role_permission import RolePermissionModel
 from app.infrastructure.models.subcategory import SubcategoryModel
 from app.infrastructure.models.subscription import SubscriptionModel
 from app.infrastructure.models.system_audit_log import SystemAuditLogModel
+from app.infrastructure.models.telegram_link_code import TelegramLinkCodeModel
 from app.infrastructure.models.transaction import TransactionModel
 from app.infrastructure.models.transaction_attachment import TransactionAttachmentModel
 from app.infrastructure.models.transaction_audit_log import TransactionAuditLogModel
@@ -60,6 +63,8 @@ __all__ = [
     "CategoryRuleModel",
     "CreditCardBillModel",
     "CreditCardModel",
+    "CreditPurchaseInstallmentModel",
+    "CreditPurchaseModel",
     "DebitCardModel",
     "EmailVerificationModel",
     "ExpenseServiceModel",
@@ -83,6 +88,7 @@ __all__ = [
     "SubcategoryModel",
     "SubscriptionModel",
     "SystemAuditLogModel",
+    "TelegramLinkCodeModel",
     "TransactionAttachmentModel",
     "TransactionAuditLogModel",
     "TransactionModel",

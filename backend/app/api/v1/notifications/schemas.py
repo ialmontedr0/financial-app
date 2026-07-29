@@ -81,6 +81,11 @@ class BulkMarkReadRequest(BaseModel):
     notification_ids: list[UUID]
 
 
+class TestNotificationRequest(BaseModel):
+    channel: str
+    telegram_chat_id: str | None = None
+
+
 class NotificationResultItem(BaseModel):
     success: bool
     channel: str
