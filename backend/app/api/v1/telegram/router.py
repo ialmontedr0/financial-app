@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user, get_db
 from app.api.v1.telegram import schemas as tg_schemas
-from app.application.telegram.use_cases import GenerateLinkCodeUseCase, ProcessTelegramUpdateUseCase
+from app.application.telegram.use_cases import GenerateLinkCodeUseCase, ProcessTelegramUpdateUseCase, UnlinkTelegramUseCase
 from app.core.config import get_settings
 from app.infrastructure.repositories.notification_repository import NotificationRepository
 
@@ -52,3 +52,14 @@ async def check_link(
     if prefs and prefs.telegram_chat_id:
         return tg_schemas.CheckLinkResponse(linked=True, telegram_chat_id=prefs.telegram_chat_id)
     return tg_schemas.CheckLinkResponse(linked=False)
+
+
+@router.post("/unlink")
+async def unlink_telegram(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    user_id = UUID(current_user["sub"])
+    use_case = UnlinkTelegramUseCase(db)
+    await use_case.execute(user_id)
+    return {"success": True}

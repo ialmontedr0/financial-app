@@ -33,6 +33,18 @@ class GenerateLinkCodeUseCase:
         return code
 
 
+class UnlinkTelegramUseCase:
+    def __init__(self, db: AsyncSession) -> None:
+        self._notif_repo = NotificationRepository(db)
+
+    async def execute(self, user_id: UUID) -> None:
+        prefs = await self._notif_repo.get_user_preferences(user_id)
+        if prefs:
+            prefs.telegram_chat_id = None
+            prefs.telegram_enabled = False
+            await self._notif_repo._db.flush()
+
+
 class ProcessTelegramUpdateUseCase:
     def __init__(self, db: AsyncSession) -> None:
         self._link_repo = TelegramLinkRepository(db)
@@ -93,11 +105,29 @@ class ProcessTelegramUpdateUseCase:
             logger.info("telegram_account_linked", user_id=str(link.user_id), chat_id=chat_id)
             return
 
+        if text.startswith("/unlink"):
+            from sqlalchemy import select
+            from app.infrastructure.models.notification_preference import NotificationPreferenceModel
+            result = await self._notif_repo._db.execute(
+                select(NotificationPreferenceModel).where(NotificationPreferenceModel.telegram_chat_id == str(chat_id))
+            )
+            prefs = result.scalar_one_or_none()
+            if prefs:
+                prefs.telegram_chat_id = None
+                prefs.telegram_enabled = False
+                await self._notif_repo._db.flush()
+                await self._send_message(chat_id, "Cuenta desvinculada. Ya no recibiras notificaciones aqui.")
+                logger.info("telegram_account_unlinked", chat_id=chat_id)
+            else:
+                await self._send_message(chat_id, "No hay ninguna cuenta vinculada a este chat.")
+            return
+
         await self._send_message(
             chat_id,
             "Comandos disponibles:\n"
             "/start - Informacion\n"
-            "/link <codigo> - Vincular tu cuenta de FIP",
+            "/link <codigo> - Vincular tu cuenta de FIP\n"
+            "/unlink - Desvincular tu cuenta de FIP",
         )
 
     async def _send_message(self, chat_id: int | str, text: str) -> None:
