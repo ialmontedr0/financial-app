@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+import shutil
 import time
 from datetime import datetime, timezone
 
@@ -48,8 +48,8 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         all_healthy = False
 
     try:
-        usage = os.statvfs("/")
-        free_gb = (usage.f_bavail * usage.f_frsize) / (1024**3)
+        usage = shutil.disk_usage("/")
+        free_gb = usage.free / (1024**3)
         checks["disk"] = {"free_gb": round(free_gb, 2), "status": "ok" if free_gb > 1.0 else "warning"}
         if free_gb < 1.0:
             all_healthy = False

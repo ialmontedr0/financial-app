@@ -6,22 +6,15 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-print("DEBUG 1: imports done", flush=True)
-
 from app.api.v1.router import api_v1_router
-print("DEBUG 2: router imported", flush=True)
 from app.core.config import get_settings
 
-print("DEBUG 3: config imported", flush=True)
 from app.middleware.error_handler import register_error_handlers
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_logger import RequestLoggingMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
-print("DEBUG 4: middleware imported", flush=True)
-
 settings = get_settings()
-print("DEBUG 5: settings loaded", flush=True)
 logger = structlog.get_logger()
 
 
@@ -96,7 +89,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: UP043
 
 def create_app() -> FastAPI:
     """Aplicacion por defecto."""
-    print("DEBUG 6: starting create_app", flush=True)
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
@@ -105,8 +97,6 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json" if not settings.is_production else None,
         lifespan=lifespan,
     )
-    print("DEBUG 7: FastAPI created", flush=True)
-
     # --- Middleware (must be added before startup) -----------------------------
     app.add_middleware(
         CORSMiddleware,
@@ -116,34 +106,25 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(SecurityHeadersMiddleware)
-    print("DEBUG 8: CORS + Security middleware added", flush=True)
     app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_MAX, window_seconds=settings.RATE_LIMIT_WINDOW)
     app.add_middleware(RequestLoggingMiddleware)
-    print("DEBUG 9: rate limit + request logging added", flush=True)
 
     # --- Monitoring (middleware must be added before startup) ------------------
     configure_prometheus(app)
-    print("DEBUG 10: prometheus configured", flush=True)
     configure_opentelemetry(app)
-    print("DEBUG 11: opentelemetry configured", flush=True)
 
     # --- Error handlers --------------------------------------------------------
     register_error_handlers(app)
-    print("DEBUG 12: error handlers registered", flush=True)
 
     # --- Routers ---------------------------------------------------------------
     app.include_router(api_v1_router, prefix=settings.API_V1_PREFIX)
-    print("DEBUG 13: router included", flush=True)
 
     # --- Health Check ----------------------------------------------------------
     from app.api.v1.health.router import router as health_router
     app.include_router(health_router)
-    print("DEBUG 14: health router included", flush=True)
 
     return app
 
 
 # Punto de entrada para uvicorn
-print("DEBUG 0: before create_app()", flush=True)
 app = create_app()
-print("DEBUG 15: app created", flush=True)

@@ -14,7 +14,12 @@ logger = structlog.get_logger()
 
 class WebhookChannel(BaseChannel):
     def __init__(self) -> None:
-        self._client = httpx.AsyncClient(timeout=10.0)
+        self._client: httpx.AsyncClient | None = None
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(timeout=10.0)
+        return self._client
 
     async def send(self, message: NotificationMessage) -> NotificationResult:
         webhook_url = message.data.get("webhook_url")
@@ -43,7 +48,8 @@ class WebhookChannel(BaseChannel):
                 ).hexdigest()
                 headers["X-Webhook-Signature"] = f"sha256={sig}"
 
-            resp = await self._client.post(webhook_url, json=payload, headers=headers)
+            client = await self._get_client()
+            resp = await client.post(webhook_url, json=payload, headers=headers)
             resp.raise_for_status()
             return NotificationResult(
                 success=True,
@@ -59,3 +65,8 @@ class WebhookChannel(BaseChannel):
 
     def get_name(self) -> str:
         return "webhook"
+
+    async def close(self) -> None:
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None

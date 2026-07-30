@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 
+import structlog
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import ASGIApp
@@ -12,6 +13,8 @@ from app.core.config import get_settings
 from app.infrastructure.cache.redis import redis_client
 
 settings = get_settings()
+
+logger = structlog.get_logger()
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -48,6 +51,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     headers={"Retry-After": str(self.window_seconds)},
                 )
         except Exception:
+            logger.warning("rate_limit_redis_error", exc_info=True)
             pass
 
         return await call_next(request)

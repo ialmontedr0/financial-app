@@ -43,7 +43,7 @@ class EmailChannel(BaseChannel):
                 **(message.template_vars or {}),
             )
 
-            await self._email_service._send_email(
+            await self._email_service._send_email_raw(
                 to_email=to_email, subject=message.title, html_body=html
             )
             return NotificationResult(

@@ -41,6 +41,10 @@ class SessionStore:
             "is_active": True,
         }
         await redis_client.setex(key, ttl_seconds, json.dumps(data))
+        user_sessions_key = f"{SESSION_PREFIX}:user:{user_id}"
+        await redis_client.sadd(user_sessions_key, key)
+        await redis_client.expire(user_sessions_key, ttl_seconds)
+
         logger.info("session_created", jti=jti, user_id=user_id)
 
     @staticmethod
@@ -56,8 +60,13 @@ class SessionStore:
     async def delete_session(jti: str) -> None:
         """Elimina una sesion desde Redis."""
         key = f"{SESSION_PREFIX}:{jti}"
+        raw = await redis_client.get(key)
+        if raw:
+            data = json.loads(raw)
+            uid = data.get("user_id")
+            if uid:
+                await redis_client.srem(f"{SESSION_PREFIX}:user:{uid}", key)
         await redis_client.delete(key)
-        logger.info("session_deleted", jti=jti)
 
     @staticmethod
     async def revoke_all_user_sessions(
@@ -67,28 +76,26 @@ class SessionStore:
 
         Retorna el numero de sesiones revocadas.
         """
-        count = 0
-        pattern = f"{SESSION_PREFIX}:*"
-        async for raw_key in redis_client.scan_iter(match=pattern):
-            raw_data = await redis_client.get(raw_key)
-            if raw_data:
-                data = json.loads(raw_data)
-                if data.get("user_id") == user_id:
-                    await redis_client.delete(raw_key)
-                    count += 1
+        user_sessions_key = f"{SESSION_PREFIX}:user:{user_id}"
+        keys = await redis_client.smembers(user_sessions_key)
+        if keys:
+            await redis_client.delete(*keys)
+            await redis_client.delete(user_sessions_key)
+        count = len(keys)
         logger.info("all_sessions_revoked", user_id=user_id, count=count)
         return count
 
     @staticmethod
     async def get_user_sessions(user_id: str) -> list[dict]:
         """Obtiene todas las sesiones activas para un usuario."""
-        sessions: list[dict] = []
-        pattern = f"{SESSION_PREFIX}:*"
-        async for raw_key in redis_client.scan_iter(match=pattern):
-            raw_data = await redis_client.get(raw_key)
-            if raw_data:
-                data = json.loads(raw_data)
-                if data.get("user_id") == user_id and data.get("is_active"):
+        user_sessions_key = f"{SESSION_PREFIX}:user:{user_id}"
+        keys = await redis_client.smembers(user_sessions_key)
+        sessions = []
+        for key in keys:
+            raw = await redis_client.get(key)
+            if raw:
+                data = json.loads(raw)
+                if data.get("is_active"):
                     sessions.append(data)
         return sessions
 

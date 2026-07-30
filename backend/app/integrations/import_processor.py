@@ -81,7 +81,7 @@ async def process_import(
 
             transaction = TransactionModel(
                 user_id=user_id,
-                account_id=account_id or uuid.UUID(int=0),
+                account_id=account_id,
                 category_id=category_id,
                 transaction_type=tx_data.get("type", "expense"),
                 amount=tx_data["amount"],

@@ -25,13 +25,11 @@ async_session_factory = async_sessionmaker(
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:  # noqa: UP043
-    """Dependencia que provee una sesion de base de datos asincrona."""
-    async with async_session_factory() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    async with async_session_factory() as session:  # noqa: SIM117
+        async with session.begin():  # transacción explícita
+            try:
+                yield session
+            except Exception:
+                await session.rollback()
+                raise
+            # session.begin() hace commit al salir si no hay excepción

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime, timedelta
 
+import structlog
 from arq import cron
 from arq.connections import RedisSettings
 from sqlalchemy import and_, select
@@ -11,11 +11,11 @@ from app.core.config import get_settings
 from app.infrastructure.db.session import async_session_factory
 from app.infrastructure.models.notification import NotificationModel
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
-async def retry_failed_notifications(ctx: dict) -> None:  # noqa: ARG001
+async def retry_failed_notifications(ctx: dict) -> None:
     """Retry notifications that failed to send."""
     async with async_session_factory() as db:
         cutoff = datetime.now(UTC) - timedelta(minutes=30)
@@ -33,7 +33,7 @@ async def retry_failed_notifications(ctx: dict) -> None:  # noqa: ARG001
         if not failed:
             return
 
-        logger.info("Retrying %d failed notifications", len(failed))
+        logger.info("Reintentando %d notificaciones fallidas", len(failed))
 
         from app.notifications.service import NotificationService
 
@@ -52,14 +52,14 @@ async def retry_failed_notifications(ctx: dict) -> None:  # noqa: ARG001
                 notif.is_sent = True
                 notif.sent_at = datetime.now(UTC)
             except Exception:
-                logger.exception("Retry failed for notification %s", notif.id)
+                logger.exception("Reintentar notificacion fallida %s", notif.id)
 
         await db.commit()
 
 
 class WorkerSettings:
-    functions = [retry_failed_notifications]
-    cron_jobs = [
+    functions = [retry_failed_notifications]  # noqa: RUF012
+    cron_jobs = [  # noqa: RUF012
         cron(retry_failed_notifications, minute={0, 15, 30, 45}),
     ]
     redis_settings = RedisSettings.from_dsn(settings.ARQ_REDIS_URL)

@@ -14,7 +14,9 @@ class NotificationPreferenceModel(Base):
     __tablename__ = "notification_preference"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user.id"), unique=True, nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
 
     email_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     push_enabled: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -67,7 +67,7 @@ class SessionRepository:
             update(UserSessionModel)
             .where(
                 UserSessionModel.user_id == user_id,
-                UserSessionModel.is_revoked == False,  # noqa: E712
+                UserSessionModel.is_revoked.is_(False),
             )
             .values(is_revoked=True)
         )
@@ -82,7 +82,7 @@ class SessionRepository:
             select(UserSessionModel)
             .where(
                 UserSessionModel.user_id == user_id,
-                UserSessionModel.is_revoked == False,  # noqa: E712
+                UserSessionModel.is_revoked.is_(False),
                 UserSessionModel.expires_at > datetime.now(UTC),
             )
             .order_by(UserSessionModel.created_at.desc())

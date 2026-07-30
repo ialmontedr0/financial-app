@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 import structlog
@@ -28,7 +29,7 @@ class CreateTransactionUseCase:
         *,
         account_id: uuid.UUID | None = None,
         transaction_type: str,
-        amount: float,
+        amount: Decimal,
         currency_code: str,
         description: str,
         effective_date: date,
@@ -44,7 +45,6 @@ class CreateTransactionUseCase:
         credit_card_id: uuid.UUID | None = None,
         debit_card_id: uuid.UUID | None = None,
     ) -> dict:
-        from decimal import Decimal
 
         from app.domain.transactions.value_objects import (
             TransactionSource,
@@ -70,7 +70,7 @@ class CreateTransactionUseCase:
             raise ValidationError("description es requerido")
 
         try:
-            amount_decimal = Decimal(str(amount))
+            amount_decimal = amount
             if amount_decimal <= 0:
                 raise ValidationError("amount debe ser mayor a 0")
         except ValidationError:
@@ -81,6 +81,7 @@ class CreateTransactionUseCase:
         # Resolve debit card → linked account
         if debit_card_id:
             from app.infrastructure.repositories.debit_card_repository import DebitCardRepository
+
             debit_card = await DebitCardRepository(self._session).get_by_id(debit_card_id, user_id)
             if debit_card is None:
                 raise NotFoundError("DebitCard")
@@ -93,7 +94,10 @@ class CreateTransactionUseCase:
 
         if credit_card_id:
             from app.infrastructure.repositories.expense_repository import ExpenseRepository
-            card = await ExpenseRepository(self._session).get_credit_card_by_id(credit_card_id, user_id)
+
+            card = await ExpenseRepository(self._session).get_credit_card_by_id(
+                credit_card_id, user_id
+            )
             if card is None:
                 raise NotFoundError("CreditCard")
 
@@ -124,9 +128,13 @@ class CreateTransactionUseCase:
                     await self._repo.update_account_balance(account_id, amount_decimal, operation)
             if credit_card_id and tx_type.value == "expense":
                 from app.infrastructure.repositories.expense_repository import ExpenseRepository
-                card = await ExpenseRepository(self._session).get_credit_card_by_id(credit_card_id, user_id)
+
+                card = await ExpenseRepository(self._session).get_credit_card_by_id(
+                    credit_card_id, user_id
+                )
                 if card and card.available_credit is not None:
                     from decimal import Decimal as D
+
                     card.available_credit -= D(str(amount))
                     await self._session.flush()
 
@@ -174,7 +182,7 @@ class CreateTransactionUseCase:
                     )
         except Exception:
             # Classification is best-effort, never block transaction creation
-            structlog.get_logger(logger.info("Pasa"))
+            logger.info("classification_skipped", reason="model_error")
             pass
         return {
             "id": str(tx.id),

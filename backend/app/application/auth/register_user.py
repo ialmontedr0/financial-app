@@ -9,9 +9,11 @@ from app.domain.auth.events import UserRegisteredEvent
 from app.domain.auth.value_objects import Email, TokenPair
 from app.infrastructure.cache.session_store import SessionStore
 from app.infrastructure.email.email_service import EmailService
+from app.infrastructure.repositories.session_repository import SessionRepository
 from app.infrastructure.repositories.user_repository import UserRepository
 from app.infrastructure.security.jwt_service import JWTService
 from app.infrastructure.security.password_hasher import PasswordHasher
+from app.middleware.error_handler import ValidationError
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -42,8 +44,6 @@ class RegisterUserUseCase:
         # Check if user already exists
         existing_user = await self._user_repo.get_by_email(str(validated_email))
         if existing_user:
-            from app.middleware.error_handler import ValidationError
-
             raise ValidationError("A user with this email already exists")
 
         # Hash password
@@ -82,8 +82,6 @@ class RegisterUserUseCase:
         )
 
         # Store session in DB
-        from app.infrastructure.repositories.session_repository import SessionRepository
-
         session_repo = SessionRepository(self._session)
         expires_at = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         await session_repo.create(
@@ -96,10 +94,11 @@ class RegisterUserUseCase:
         )
 
         # Send verification email (fire and forget)
+        verification_token = str(uuid.uuid4())
         try:
             await EmailService.send_verification_email(
                 to_email=str(validated_email),
-                token=access_token,  # In production, use a dedicated verification token
+                token=verification_token,  # In production, use a dedicated verification token
                 user_name=str(validated_email).split("@")[0],
             )
         except Exception as exc:

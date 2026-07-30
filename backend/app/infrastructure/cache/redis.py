@@ -37,8 +37,11 @@ async def cache_delete(key: str) -> None:
 
 async def cache_flush(pattern: str = "*") -> None:
     """Flush cache por patron."""
-    keys = []
+    batch: list[str] = []
     async for key in redis_client.scan_iter(match=pattern):
-        keys.append(key)
-    if keys:
-        await redis_client.delete(*keys)
+        batch.append(key)
+        if len(batch) >= 1000:
+            await redis_client.delete(*batch)
+            batch = []
+    if batch:
+        await redis.delete(*batch)

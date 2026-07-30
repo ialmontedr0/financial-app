@@ -18,7 +18,7 @@ class EmailService:
     """Async email service using aiosmtplib + Jinja2."""
 
     @staticmethod
-    async def _send_email(
+    async def _send_email_raw(
         to_email: str,
         subject: str,
         html_body: str,
@@ -68,7 +68,7 @@ Content-Type: text/html; charset=UTF-8
             verify_url=verify_url,
             app_name=settings.APP_NAME,
         )
-        await EmailService._send_email(
+        await EmailService._send_email_raw(
             to_email=to_email,
             subject=f"Verifica tu email en {settings.APP_NAME}",
             html_body=html_body,
@@ -85,7 +85,7 @@ Content-Type: text/html; charset=UTF-8
             app_name=settings.APP_NAME,
             expires_hours=24,
         )
-        await EmailService._send_email(
+        await EmailService._send_email_raw(
             to_email=to_email,
             subject=f"Restablece tu contrasena en {settings.APP_NAME}",
             html_body=html_body,
@@ -105,7 +105,7 @@ Content-Type: text/html; charset=UTF-8
         </body>
         </html>
         """
-        await EmailService._send_email(
+        await EmailService._send_email_raw(
             to_email=to_email,
             subject="Tu codigo de verificacion",
             html_body=html_body,
