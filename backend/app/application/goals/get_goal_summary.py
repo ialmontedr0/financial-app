@@ -10,6 +10,7 @@ from app.infrastructure.repositories.goal_repository import GoalRepository
 
 if TYPE_CHECKING:
     import uuid
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
@@ -21,4 +22,7 @@ class GetGoalSummaryUseCase:
         self._repo = GoalRepository(session)
 
     async def execute(self, user_id: uuid.UUID) -> dict:
+        goals = await self._repo.list_goals(user_id)
+        for g in goals:
+            await self._repo.recalculate_progress(g.id, user_id)
         return await self._repo.get_goals_summary(user_id)

@@ -10,6 +10,7 @@ from app.infrastructure.repositories.goal_repository import GoalRepository
 
 if TYPE_CHECKING:
     import uuid
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
@@ -24,6 +25,10 @@ class ListGoalsUseCase:
         goals = await self._repo.list_goals(user_id, goal_type=goal_type, status=status, priority=priority)
         result = []
         for g in goals:
+            refreshed = await self._repo.recalculate_progress(g.id, user_id)
+            if refreshed is None:
+                continue
+            g = refreshed
             target = float(g.target_amount)
             current = float(g.current_amount)
             pct = round((current / target * 100), 2) if target > 0 else 0.0
