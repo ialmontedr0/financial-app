@@ -198,12 +198,16 @@ class CardRepository:
         if not period_end:
             period_end = date_type.today()
 
+        from app.infrastructure.models.category import CategoryModel
+
         stmt = (
             select(
                 TransactionModel.category_id,
+                CategoryModel.name.label("category_name"),
                 func.coalesce(func.sum(TransactionModel.amount), 0).label("total"),
                 func.count().label("transaction_count"),
             )
+            .join(CategoryModel, TransactionModel.category_id == CategoryModel.id, isouter=True)
             .where(
                 TransactionModel.user_id == user_id,
                 TransactionModel.credit_card_id == card_id,
@@ -213,15 +217,16 @@ class CardRepository:
                 TransactionModel.effective_date <= period_end,
                 TransactionModel.deleted_at.is_(None),
             )
-            .group_by(TransactionModel.category_id)
+            .group_by(TransactionModel.category_id, CategoryModel.name)
             .order_by(func.sum(TransactionModel.amount).desc())
         )
         result = await self._session.execute(stmt)
         return [
             {
                 "category_id": str(row[0]) if row[0] else None,
-                "total": str(round(float(row[1]), 2)),
-                "transaction_count": row[2],
+                "category_name": row[1] if row[1] else None,
+                "total": str(round(float(row[2]), 2)),
+                "transaction_count": row[3],
             }
             for row in result.all()
         ]

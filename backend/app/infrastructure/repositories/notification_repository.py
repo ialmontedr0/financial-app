@@ -97,6 +97,52 @@ class NotificationRepository:
         await self._db.flush()
         return count
 
+    async def mark_all_read(self, user_id: UUID) -> int:
+        result = await self._db.execute(
+            select(NotificationModel).where(
+                and_(
+                    NotificationModel.user_id == user_id,
+                    NotificationModel.is_read == False,  # noqa: E712
+                )
+            )
+        )
+        count = 0
+        for n in result.scalars().all():
+            n.is_read = True
+            count += 1
+        await self._db.flush()
+        return count
+
+    async def bulk_delete(self, ids: list[UUID], user_id: UUID) -> int:
+        result = await self._db.execute(
+            select(NotificationModel).where(
+                and_(
+                    NotificationModel.id.in_(ids),
+                    NotificationModel.user_id == user_id,
+                )
+            )
+        )
+        notifs = result.scalars().all()
+        for n in notifs:
+            await self._db.delete(n)
+        await self._db.flush()
+        return len(notifs)
+
+    async def delete_read(self, user_id: UUID) -> int:
+        result = await self._db.execute(
+            select(NotificationModel).where(
+                and_(
+                    NotificationModel.user_id == user_id,
+                    NotificationModel.is_read == True,  # noqa: E712
+                )
+            )
+        )
+        notifs = result.scalars().all()
+        for n in notifs:
+            await self._db.delete(n)
+        await self._db.flush()
+        return len(notifs)
+
     async def delete(self, notification_id: UUID, user_id: UUID) -> bool:
         notif = await self.get_by_id(notification_id, user_id)
         if not notif:

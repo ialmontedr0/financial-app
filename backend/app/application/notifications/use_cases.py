@@ -135,3 +135,27 @@ class BulkMarkNotificationsReadUseCase:
 
     async def execute(self, notification_ids: list[UUID], user_id: UUID) -> int:
         return await self._repo.bulk_mark_read(notification_ids, user_id)
+
+
+class MarkAllNotificationsReadUseCase:
+    def __init__(self, db: AsyncSession) -> None:
+        self._repo = NotificationRepository(db)
+
+    async def execute(self, user_id: UUID) -> int:
+        return await self._repo.mark_all_read(user_id)
+
+
+class BulkDeleteNotificationsUseCase:
+    def __init__(self, db: AsyncSession) -> None:
+        self._repo = NotificationRepository(db)
+
+    async def execute(self, notification_ids: list[UUID], user_id: UUID) -> int:
+        return await self._repo.bulk_delete(notification_ids, user_id)
+
+
+class DeleteReadNotificationsUseCase:
+    def __init__(self, db: AsyncSession) -> None:
+        self._repo = NotificationRepository(db)
+
+    async def execute(self, user_id: UUID) -> int:
+        return await self._repo.delete_read(user_id)

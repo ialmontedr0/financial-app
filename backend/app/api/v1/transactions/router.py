@@ -63,6 +63,7 @@ async def list_transactions(
     category_id: str | None = Query(None),
     subcategory_id: str | None = Query(None),
     account_id: str | None = Query(None),
+    credit_card_id: str | None = Query(None),
     tag: str | None = Query(None),
     min_amount: float | None = Query(None),
     max_amount: float | None = Query(None),
@@ -83,7 +84,8 @@ async def list_transactions(
     d_to = date_type.fromisoformat(date_to) if date_to else None
     return await ListTransactionsUseCase(db).execute(
         uuid.UUID(current_user["sub"]), transaction_type=transaction_type, status=status, category_id=category_id,
-        subcategory_id=subcategory_id, account_id=account_id, tag=tag, min_amount=min_amount, max_amount=max_amount,
+        subcategory_id=subcategory_id, account_id=account_id, credit_card_id=uuid.UUID(credit_card_id) if credit_card_id else None,
+        tag=tag, min_amount=min_amount, max_amount=max_amount,
         date_from=d_from, date_to=d_to, source=source, search=search, sort_by=sort_by, sort_order=sort_order,
         page=page, page_size=page_size,
     )

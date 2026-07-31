@@ -22,10 +22,27 @@ class GetBudgetSummaryUseCase:
         self._repo = BudgetRepository(session)
 
     async def execute(self, user_id: uuid.UUID) -> dict:
+        from app.application.notifications.helpers import mirror_inapp_notifications
+
         summary = await self._repo.get_budget_summary(user_id)
 
         unread_count = await self._repo.get_unread_alert_count(user_id)
         new_alerts = await self._repo.check_and_create_alerts(user_id)
+
+        if new_alerts:
+            await mirror_inapp_notifications(
+                self._session,
+                user_id,
+                [
+                    {
+                        "type": "budget_warning" if a.severity == "critical" else "budget_alert",
+                        "title": a.title,
+                        "body": a.message,
+                        "data": {"alert_id": str(a.id), "budget_id": str(a.budget_id)},
+                    }
+                    for a in new_alerts
+                ],
+            )
 
         return {
             **summary,

@@ -49,7 +49,8 @@ class TransactionRepository:
     async def list_by_user(
         self, user_id: uuid.UUID, *, transaction_type: str | None = None, status: str | None = None,
         category_id: uuid.UUID | None = None, subcategory_id: uuid.UUID | None = None,
-        account_id: uuid.UUID | None = None, tag: str | None = None,
+        account_id: uuid.UUID | None = None, credit_card_id: uuid.UUID | None = None,
+        tag: str | None = None,
         min_amount: Decimal | None = None, max_amount: Decimal | None = None,
         date_from: date | None = None, date_to: date | None = None,
         source: str | None = None, search: str | None = None,
@@ -70,6 +71,8 @@ class TransactionRepository:
             base_stmt = base_stmt.where(TransactionModel.subcategory_id == subcategory_id)
         if account_id:
             base_stmt = base_stmt.where(TransactionModel.account_id == account_id)
+        if credit_card_id:
+            base_stmt = base_stmt.where(TransactionModel.credit_card_id == credit_card_id)
         if transfer_id:
             base_stmt = base_stmt.where(TransactionModel.transfer_id == transfer_id)
         if source:
@@ -168,13 +171,25 @@ class TransactionRepository:
 
         total_income = Decimal(by_type.get("income", {}).get("total", "0"))
         total_expenses = Decimal(by_type.get("expense", {}).get("total", "0"))
+
+        transfer_filter = and_(
+            TransactionModel.user_id == user_id,
+            TransactionModel.deleted_at.is_(None),
+            TransactionModel.transfer_id.is_not(None),
+            TransactionModel.effective_date >= date_from,
+            TransactionModel.effective_date <= date_to,
+        )
+        transfer_stmt = select(func.count(func.distinct(TransactionModel.transfer_id))).where(transfer_filter)
+        transfer_count_result = await self._session.execute(transfer_stmt)
+        total_transfer_count = transfer_count_result.scalar() or 0
+
         return {
             "period_start": date_from.isoformat(), "period_end": date_to.isoformat(),
             "total_income": str(total_income), "total_expenses": str(total_expenses),
             "net_flow": str(total_income - total_expenses),
             "total_income_count": by_type.get("income", {}).get("count", 0),
             "total_expense_count": by_type.get("expense", {}).get("count", 0),
-            "total_transfer_count": by_type.get("transfer", {}).get("count", 0),
+            "total_transfer_count": total_transfer_count,
             "total_adjustment_count": by_type.get("adjustment", {}).get("count", 0),
             "by_type": by_type,
         }

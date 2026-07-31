@@ -25,6 +25,7 @@ class ListTransactionsUseCase:
     async def execute(self, user_id: uuid.UUID, *, transaction_type: str | None = None,
         status: str | None = None, category_id: uuid.UUID | None = None,
         subcategory_id: uuid.UUID | None = None, account_id: uuid.UUID | None = None,
+        credit_card_id: uuid.UUID | None = None,
         tag: str | None = None, min_amount: float | None = None, max_amount: float | None = None,
         date_from: date | None = None, date_to: date | None = None, source: str | None = None,
         search: str | None = None, sort_by: str = "effective_date", sort_order: str = "desc",
@@ -36,7 +37,8 @@ class ListTransactionsUseCase:
         max_amt = Decimal(str(max_amount)) if max_amount is not None else None
 
         txs, total = await self._repo.list_by_user(user_id, transaction_type=transaction_type, status=status,
-            category_id=category_id, subcategory_id=subcategory_id, account_id=account_id, tag=tag,
+            category_id=category_id, subcategory_id=subcategory_id, account_id=account_id,
+            credit_card_id=credit_card_id, tag=tag,
             min_amount=min_amt, max_amount=max_amt, date_from=date_from, date_to=date_to,
             source=source, search=search, sort_by=sort_by, sort_order=sort_order, page=page, page_size=page_size,
         )

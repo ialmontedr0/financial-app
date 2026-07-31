@@ -8,12 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_active_user, get_db
 from app.api.v1.notifications import schemas as notif_schemas
 from app.application.notifications.use_cases import (
+    BulkDeleteNotificationsUseCase,
     BulkMarkNotificationsReadUseCase,
     DeleteNotificationUseCase,
+    DeleteReadNotificationsUseCase,
     GetNotificationPreferencesUseCase,
     GetNotificationStatsUseCase,
     GetNotificationsUseCase,
     GetNotificationUseCase,
+    MarkAllNotificationsReadUseCase,
     MarkNotificationReadUseCase,
     SendNotificationUseCase,
     SendTestNotificationUseCase,
@@ -147,6 +150,46 @@ async def bulk_mark_read(
 
     user_id = _UUID(current_user["sub"])
     use_case = BulkMarkNotificationsReadUseCase(db)
+    count = await use_case.execute(body.notification_ids, user_id)
+    return {"success": True, "count": count}
+
+
+@router.post("/read-all")
+async def mark_all_read(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = MarkAllNotificationsReadUseCase(db)
+    count = await use_case.execute(user_id)
+    return {"success": True, "count": count}
+
+
+@router.delete("/read", status_code=status.HTTP_200_OK)
+async def delete_read_notifications(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = DeleteReadNotificationsUseCase(db)
+    count = await use_case.execute(user_id)
+    return {"success": True, "count": count}
+
+
+@router.post("/bulk-delete")
+async def bulk_delete(
+    body: notif_schemas.BulkMarkReadRequest,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID as _UUID
+
+    user_id = _UUID(current_user["sub"])
+    use_case = BulkDeleteNotificationsUseCase(db)
     count = await use_case.execute(body.notification_ids, user_id)
     return {"success": True, "count": count}
 

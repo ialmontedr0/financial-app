@@ -22,6 +22,7 @@ class RefreshBudgetUseCase:
         self._repo = BudgetRepository(session)
 
     async def execute(self, user_id: uuid.UUID, budget_id: uuid.UUID) -> dict:
+        from app.application.notifications.helpers import mirror_inapp_notifications
         from app.middleware.error_handler import NotFoundError
 
         budget = await self._repo.recalculate_spent(budget_id, user_id)
@@ -29,6 +30,21 @@ class RefreshBudgetUseCase:
             raise NotFoundError("Budget")
 
         new_alerts = await self._repo.check_and_create_alerts(user_id)
+
+        if new_alerts:
+            await mirror_inapp_notifications(
+                self._session,
+                user_id,
+                [
+                    {
+                        "type": "budget_warning" if a.severity == "critical" else "budget_alert",
+                        "title": a.title,
+                        "body": a.message,
+                        "data": {"alert_id": str(a.id), "budget_id": str(a.budget_id)},
+                    }
+                    for a in new_alerts
+                ],
+            )
 
         pct_used = (float(budget.spent) / float(budget.amount) * 100) if float(budget.amount) > 0 else 0
 
