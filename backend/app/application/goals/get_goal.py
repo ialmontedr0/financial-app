@@ -26,9 +26,24 @@ class GetGoalUseCase:
         goal = await self._repo.get_goal_by_id(goal_id, user_id)
         if goal is None:
             raise NotFoundError("Goal")
+        previous_pct = goal.milestone_reached_pct
 
         progress = await self._repo.get_goal_progress(goal_id, user_id)
         milestones = await self._repo.list_milestones(goal_id, user_id)
+
+        from app.application.goals.notifications import emit_goal_milestone_notifications
+
+        if progress:
+            await emit_goal_milestone_notifications(
+                self._session,
+                user_id,
+                goal_id=goal.id,
+                goal_name=goal.name,
+                current_amount=float(goal.current_amount),
+                target_amount=float(goal.target_amount),
+                previous_pct=previous_pct,
+                current_pct=progress["pct_complete"],
+            )
 
         return {
             "id": str(goal.id), "name": goal.name, "description": goal.description,

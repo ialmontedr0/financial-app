@@ -57,6 +57,9 @@ class FinancialGoalModel(Base):
 
     # Financials
     target_amount: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False)
+    initial_amount: Mapped[Decimal] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=False, server_default="0"
+    )
     current_amount: Mapped[Decimal] = mapped_column(
         Numeric(precision=19, scale=4), nullable=False, server_default="0"
     )

@@ -37,6 +37,7 @@ class CreateGoalUseCase:
         category_id: uuid.UUID | None = None,
         priority: int = 1,
         auto_contribute: bool = False,
+        start_from_zero: bool = True,
         description: str | None = None,
         icon: str | None = None,
         color: str | None = None,
@@ -70,13 +71,18 @@ class CreateGoalUseCase:
         if interest_rate is not None and interest_rate < 0:
             raise ValidationError("interest_rate no puede ser negativo")
 
+        initial_amount = 0
+        if not start_from_zero:
+            initial_amount = await self._repo.get_total_assets(user_id)
+
         goal = await self._repo.create_goal(
             user_id,
             name=name.strip(),
             description=description,
             goal_type=goal_type,
             target_amount=target_amount,
-            current_amount=0,
+            initial_amount=initial_amount,
+            current_amount=initial_amount,
             start_date=start_date,
             target_date=target_date,
             status="active",
@@ -111,6 +117,7 @@ class CreateGoalUseCase:
             "description": goal.description,
             "goal_type": goal.goal_type,
             "target_amount": str(goal.target_amount),
+            "initial_amount": str(goal.initial_amount),
             "current_amount": str(goal.current_amount),
             "start_date": goal.start_date.isoformat(),
             "target_date": goal.target_date.isoformat(),

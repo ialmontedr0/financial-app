@@ -23,6 +23,11 @@ class RefreshGoalUseCase:
     async def execute(self, user_id: uuid.UUID, goal_id: uuid.UUID) -> dict:
         from app.middleware.error_handler import NotFoundError
 
+        goal = await self._repo.get_goal_by_id(goal_id, user_id)
+        if goal is None:
+            raise NotFoundError("Goal")
+        previous_pct = goal.milestone_reached_pct
+
         goal = await self._repo.recalculate_progress(goal_id, user_id)
         if goal is None:
             raise NotFoundError("Goal")
@@ -34,19 +39,25 @@ class RefreshGoalUseCase:
         prediction = await uc._predict(user_id, goal)
 
         pct = progress["pct_complete"] if progress else 0
-        for ms in [25, 50, 75, 90, 100]:
-            if pct >= ms and goal.milestone_reached_pct < ms:
-                event = "goal_completed" if ms == 100 else f"milestone_{ms}"
-                await self._repo.create_milestone(
-                    user_id, goal_id=goal.id, event_type=event,
-                    amount_at_event=goal.current_amount, target_amount=goal.target_amount,
-                    pct_complete=pct, notes=f"Milestone {ms}% reached",
-                )
 
-        logger.info("goal_refreshed", user_id=str(user_id), goal_id=str(goal_id), pct=pct)
+        from app.application.goals.notifications import emit_goal_milestone_notifications
+
+        emitted = await emit_goal_milestone_notifications(
+            self._session,
+            user_id,
+            goal_id=goal.id,
+            goal_name=goal.name,
+            current_amount=float(goal.current_amount),
+            target_amount=float(goal.target_amount),
+            previous_pct=previous_pct,
+            current_pct=pct,
+        )
+
+        logger.info("goal_refreshed", user_id=str(user_id), goal_id=str(goal_id), pct=pct, notifications=emitted)
 
         return {
             "id": str(goal.id), "name": goal.name,
             "target_amount": str(goal.target_amount), "current_amount": str(goal.current_amount),
             "status": goal.status, "progress": progress, "prediction": prediction,
+            "milestones_emitted": emitted,
         }

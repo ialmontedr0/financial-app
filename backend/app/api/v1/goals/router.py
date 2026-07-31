@@ -34,6 +34,7 @@ async def create_goal(
         account_id=uuid.UUID(body["account_id"]) if body.get("account_id") else None,
         category_id=uuid.UUID(body["category_id"]) if body.get("category_id") else None,
         priority=body.get("priority", 1), auto_contribute=body.get("auto_contribute", False),
+        start_from_zero=body.get("start_from_zero", True),
         description=body.get("description"), icon=body.get("icon"), color=body.get("color"), image_url=body.get("image_url"),
     )
 
@@ -146,6 +147,7 @@ async def create_simulation(
         expenses=body.get("expenses"),
         enable_monte_carlo=body.get("enable_monte_carlo", False),
         notes=body.get("notes"),
+        preview=body.get("preview", False),
     )
 
 

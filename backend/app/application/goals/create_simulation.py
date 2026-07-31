@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 from datetime import date as date_type, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import structlog
 
@@ -23,20 +23,34 @@ YEARLY_KEYS = {"yearly"}
 ONE_TIME_KEYS = {"one_time"}
 
 
-def _calc_monthly_amount(amount: float, frequency: str, growth_rate: float | None, months_elapsed: int) -> float:
+def _calc_monthly_amount(
+    amount: float,
+    frequency: str,
+    growth_rate: float | None,
+    months_elapsed: int,
+    start_month: int | None = None,
+) -> float:
+    """Monto del ingreso/gasto en un mes dado.
+
+    `amount` es el monto por ocurrencia (ej: bono anual 31,525), NO un monto
+    mensual equivalente. El periodo se ancla en ``start_month`` (mes relativo
+    1 = inicio del goal) para que un bono que cae en un mes arbitrario del
+    horizonte se acredite correctamente incluso en horizontes cortos.
+    """
     base = amount
     if growth_rate and months_elapsed > 0:
         base *= (1 + growth_rate / 100) ** (months_elapsed / 12)
+    anchor = start_month if start_month else 1
     if frequency in MONTHLY_KEYS:
         return base
     if frequency in QUARTERLY_KEYS:
-        return base / 3 if months_elapsed % 3 == 0 else 0.0
+        return base if (months_elapsed - anchor) % 3 == 0 else 0.0
     if frequency in QUADRIMESTRAL_KEYS:
-        return base / 4 if months_elapsed % 4 == 0 else 0.0
+        return base if (months_elapsed - anchor) % 4 == 0 else 0.0
     if frequency in YEARLY_KEYS:
-        return base / 12 if months_elapsed % 12 == 0 else 0.0
+        return base if (months_elapsed - anchor) % 12 == 0 else 0.0
     if frequency in ONE_TIME_KEYS:
-        return base if months_elapsed == 0 else 0.0
+        return base if months_elapsed == anchor else 0.0
     return 0.0
 
 
@@ -65,6 +79,7 @@ class CreateSimulationUseCase:
         expenses: list[dict] | None = None,
         enable_monte_carlo: bool = False,
         notes: str | None = None,
+        preview: bool = False,
     ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
@@ -80,11 +95,21 @@ class CreateSimulationUseCase:
         if remaining <= 0:
             raise ValidationError("Goal ya esta completada")
 
+        current_amount = float(goal.current_amount)
+
         # Parse income sources and expenses
         inc_sources = income_sources or []
         exp_items = expenses or []
         infl = float(inflation_rate) / 100 if inflation_rate else 0.0
         inc_pct = float(increase_pct) / 100 if increase_pct else 0.0
+
+        # Normalizar fecha de lump sum (acepta "YYYY-MM" o "YYYY-MM-DD")
+        ls_date: date_type | None = None
+        if lump_sum_date:
+            try:
+                ls_date = date_type.fromisoformat(lump_sum_date[:7] + "-01" if len(lump_sum_date) == 7 else lump_sum_date)
+            except ValueError:
+                ls_date = None
 
         # Run main projection
         projection, total_contrib, total_interest, months, final_prob = self._run_projection(
@@ -140,6 +165,38 @@ class CreateSimulationUseCase:
             sum(p.get("income_contribution", 0) for p in projection), 2
         ) if projection else 0
 
+        if preview:
+            logger.info(
+                "simulation_previewed",
+                user_id=str(user_id), goal_id=str(goal_id),
+                months=months, probability=predicted_prob,
+                income_sources=len(inc_sources), expenses=len(exp_items),
+            )
+            return {
+                "id": None, "saved": False, "name": name.strip(),
+                "goal_id": str(goal.id), "goal_name": goal.name,
+                "starting_amount": f"{current_amount:.2f}",
+                "monthly_contribution": str(monthly_contribution),
+                "lump_sum": str(lump_sum) if lump_sum else None,
+                "lump_sum_date": lump_sum_date,
+                "interest_rate": str(interest_rate) if interest_rate else None,
+                "increase_pct": str(increase_pct) if increase_pct else None,
+                "inflation_rate": str(inflation_rate) if inflation_rate else None,
+                "income_sources": inc_sources,
+                "expenses": exp_items,
+                "predicted_completion_date": predicted_date.isoformat(),
+                "predicted_probability": predicted_prob,
+                "total_contributions": str(total_contributions),
+                "total_interest": str(total_interest_val),
+                "total_income_used": str(total_income_used),
+                "months_to_complete": months,
+                "projection": projection,
+                "monte_carlo": mc_data,
+                "recommendations": recommendations,
+                "notes": notes,
+                "created_at": None,
+            }
+
         store_projection = {
             "months": projection,
             "params": {
@@ -158,7 +215,7 @@ class CreateSimulationUseCase:
             user_id, goal_id=goal.id, name=name.strip(),
             monthly_contribution=monthly_contribution,
             lump_sum=lump_sum,
-            lump_sum_date=date_type.fromisoformat(lump_sum_date) if lump_sum_date else None,
+            lump_sum_date=ls_date,
             interest_rate=interest_rate,
             increase_pct=increase_pct,
             predicted_completion_date=predicted_date,
@@ -178,8 +235,9 @@ class CreateSimulationUseCase:
         )
 
         return {
-            "id": str(sim.id), "name": sim.name,
+            "id": str(sim.id), "saved": True, "name": sim.name,
             "goal_id": str(goal.id), "goal_name": goal.name,
+            "starting_amount": f"{current_amount:.2f}",
             "monthly_contribution": str(sim.monthly_contribution),
             "lump_sum": str(sim.lump_sum) if sim.lump_sum else None,
             "lump_sum_date": sim.lump_sum_date.isoformat() if sim.lump_sum_date else None,
@@ -201,6 +259,13 @@ class CreateSimulationUseCase:
             "created_at": sim.created_at.isoformat() if sim.created_at else None,
         }
 
+    @staticmethod
+    def _current_month_relative(start_date: date_type) -> int:
+        """Mes relativo de hoy respecto al inicio del goal (mes 1 = inicio)."""
+        today = date_type.today()
+        rel = (today.year - start_date.year) * 12 + (today.month - start_date.month) + 1
+        return max(rel, 1)
+
     def _run_projection(
         self, target_amount: float, current_amount: float,
         monthly: float, rate: float,
@@ -209,14 +274,15 @@ class CreateSimulationUseCase:
         income_sources: list[dict], expenses: list[dict],
         start_date: date_type, target_date: date_type,
     ) -> tuple[list[dict], float, float, int, float]:
-        remaining = target_amount - current_amount
         monthly_rate = rate / 100 / 12
-        balance = 0.0
+        balance = current_amount
         months = 0
         projection = []
         total_contrib = 0.0
         total_interest = 0.0
         lump_applied = False
+
+        anchor_now = self._current_month_relative(start_date)
 
         ls_month: int | None = None
         if lump_sum_date:
@@ -230,7 +296,7 @@ class CreateSimulationUseCase:
 
         adj_target = target_amount
 
-        while balance < remaining and months < 600:
+        while balance < adj_target and months < 600:
             months += 1
 
             # Escalamiento de aportacion
@@ -246,23 +312,23 @@ class CreateSimulationUseCase:
             # Income sources
             income_amount = 0.0
             for src in income_sources:
-                sm = src.get("start_month")
+                sm = src.get("start_month") or anchor_now
                 em = src.get("end_month")
                 if _is_active(months, sm, em):
                     income_amount += _calc_monthly_amount(
                         float(src["amount"]), src["frequency"],
-                        src.get("growth_rate"), months,
+                        src.get("growth_rate"), months, sm,
                     )
 
             # Expenses
             expense_amount = 0.0
             for exp in expenses:
-                sm = exp.get("start_month")
+                sm = exp.get("start_month") or anchor_now
                 em = exp.get("end_month")
                 if _is_active(months, sm, em):
                     expense_amount += _calc_monthly_amount(
                         float(exp["amount"]), exp["frequency"],
-                        exp.get("growth_rate"), months,
+                        exp.get("growth_rate"), months, sm,
                     )
 
             # Net total for this month
@@ -289,9 +355,6 @@ class CreateSimulationUseCase:
                 "inflation_adjusted_target": round(adj_target, 2) if inflation_rate > 0 else 0,
                 "date": (start_date + timedelta(days=months * 30.44)).isoformat(),
             })
-
-            # Adjust remaining for inflation
-            remaining = adj_target - current_amount - balance
 
         # Probability
         predicted_date = start_date + timedelta(days=int(months * 30.44))
@@ -322,19 +385,44 @@ class CreateSimulationUseCase:
             perturbed_monthly = monthly * rng.uniform(0.85, 1.15)
             perturbed_rate = rate * rng.uniform(0.5, 1.5)
 
-            _balance = 0.0
+            _balance = current_amount
             _months = 0
-            _remaining = target_amount - current_amount
+            _target = target_amount
+            monthly_rate_p = perturbed_rate / 100 / 12
+            anchor_now = self._current_month_relative(start_date)
 
-            while _balance < _remaining and _months < 600:
+            while _balance < _target and _months < 600:
                 _months += 1
                 _contribution = perturbed_monthly
                 if increase_pct > 0 and _months > 1:
                     _contribution *= (1 + increase_pct * ((_months - 1) / 12))
 
-                monthly_rate_p = perturbed_rate / 100 / 12
+                _income_amount = 0.0
+                for src in income_sources:
+                    sm = src.get("start_month") or anchor_now
+                    em = src.get("end_month")
+                    if _is_active(_months, sm, em):
+                        _income_amount += _calc_monthly_amount(
+                            float(src["amount"]), src["frequency"],
+                            src.get("growth_rate"), _months, sm,
+                        )
+
+                _expense_amount = 0.0
+                for exp in expenses:
+                    sm = exp.get("start_month") or anchor_now
+                    em = exp.get("end_month")
+                    if _is_active(_months, sm, em):
+                        _expense_amount += _calc_monthly_amount(
+                            float(exp["amount"]), exp["frequency"],
+                            exp.get("growth_rate"), _months, sm,
+                        )
+
+                _net = _contribution + _income_amount - _expense_amount
+                if _net < 0:
+                    _net = 0
+
                 _interest = _balance * monthly_rate_p
-                _balance = _balance + _contribution + _interest
+                _balance = _balance + _net + _interest
 
                 if _months not in all_paths:
                     all_paths[_months] = []

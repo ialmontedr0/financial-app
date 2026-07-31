@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import structlog
 from sqlalchemy import func, select
 
+from app.infrastructure.models.financial_account import FinancialAccountModel
 from app.infrastructure.models.financial_goal import FinancialGoalModel
 from app.infrastructure.models.goal_milestone import GoalMilestoneModel
 from app.infrastructure.models.goal_simulation import GoalSimulationModel
@@ -36,6 +37,17 @@ class GoalRepository:
         await self._session.flush()
         logger.info("goal_created", user_id=str(user_id), goal_id=str(goal.id), name=goal.name)
         return goal
+
+    async def get_total_assets(self, user_id: uuid.UUID) -> float:
+        """Sum of account balances included in net worth (active accounts)."""
+        stmt = select(func.coalesce(func.sum(FinancialAccountModel.balance), 0)).where(
+            FinancialAccountModel.user_id == user_id,
+            FinancialAccountModel.deleted_at.is_(None),
+            FinancialAccountModel.include_in_net_worth.is_(True),
+            FinancialAccountModel.status == "active",
+        )
+        result = await self._session.execute(stmt)
+        return float(result.scalar_one())
 
     async def get_goal_by_id(self, goal_id: uuid.UUID, user_id: uuid.UUID) -> FinancialGoalModel | None:
         stmt = select(FinancialGoalModel).where(
@@ -112,7 +124,7 @@ class GoalRepository:
 
         result = await self._session.execute(stmt)
         total_income = result.scalar_one()
-        goal.current_amount = total_income
+        goal.current_amount = (goal.initial_amount or 0) + total_income
 
         target = float(goal.target_amount)
         current = float(goal.current_amount)

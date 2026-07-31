@@ -53,6 +53,7 @@ class GetSimulationUseCase:
             "goal_name": goal.name,
             "goal_target_amount": str(goal.target_amount),
             "goal_current_amount": str(goal.current_amount),
+            "starting_amount": str(goal.current_amount),
             "monthly_contribution": str(sim.monthly_contribution),
             "lump_sum": str(sim.lump_sum) if sim.lump_sum else None,
             "lump_sum_date": sim.lump_sum_date.isoformat() if sim.lump_sum_date else None,
