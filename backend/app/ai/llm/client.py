@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 import structlog
@@ -48,3 +49,32 @@ class LLMClient:
         except Exception as e:
             logger.error("llm_generation_failed", error=str(e))
             return None
+
+    async def stream_generate(
+        self, prompt: str, system_prompt: str | None = None, history: list[dict] | None = None
+    ) -> AsyncIterator[str]:
+        """Tokens stream desde el LLM asi como lleguen"""
+
+        try:
+            client = await self._ensure_client()
+            messages: list[dict] = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            if history:
+                messages.extend(history)
+            messages.append({"role": "user", "content": prompt})
+
+            stream = await client.chat.completions.create(
+                model=self._config.model,
+                messages=messages,
+                max_tokens=self._config.max_tokens,
+                temperature=self._config.temperature,
+                stream=True,
+            )
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+
+        except Exception as e:
+            logger.error("llm_stream_failed", error=str(e))
+            return

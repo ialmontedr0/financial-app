@@ -184,6 +184,25 @@ class CreateTransactionUseCase:
             # Classification is best-effort, never block transaction creation
             logger.info("classification_skipped", reason="model_error")
             pass
+
+        # Publish domain event (best-effort, never blocks creation)
+        from app.domain.events import EventType
+        from app.infrastructure.eventbus import publish_event
+
+        await publish_event(
+            event_type=EventType.TRANSACTION_CREATED,
+            aggregate_id=tx.id,
+            aggregate_type="transaction",
+            user_id=user_id,
+            data={
+                "transaction_id": str(tx.id),
+                "account_id": str(tx.account_id) if tx.account_id else None,
+                "category_id": str(tx.category_id) if tx.category_id else None,
+                "amount": str(tx.amount),
+                "transaction_type": tx.transaction_type,
+                "effective_date": tx.effective_date.isoformat() if tx.effective_date else None,
+            },
+        )
         return {
             "id": str(tx.id),
             "account_id": str(tx.account_id) if tx.account_id else None,

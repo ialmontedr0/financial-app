@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 import structlog
 from fastapi import APIRouter, Depends, Request
@@ -35,6 +34,7 @@ from app.application.auth.request_email_verification import RequestEmailVerifica
 from app.application.auth.request_password_reset import RequestPasswordResetUseCase
 from app.application.auth.reset_password import ResetPasswordUseCase
 from app.application.auth.verify_email import VerifyEmailUseCase
+from app.core.rate_limiter import rate_limit
 
 logger = structlog.get_logger()
 
@@ -129,6 +129,7 @@ async def login(
     "/mfa/verify",
     response_model=LoginResponse,
     summary="Complete MFA verification during login",
+    dependencies=[Depends(rate_limit("auth"))],
 )
 async def verify_mfa(
     body: MFAVerifyRequest,
@@ -199,10 +200,17 @@ async def logout(
     """
     use_case = LogoutUserUseCase(db)
 
+    access_jti = current_user.get("jti")
+    access_exp = current_user.get("exp")
+
     if body.refresh_token:
         jti = _extract_refresh_jti(body.refresh_token)
         if jti:
-            await use_case.execute_logout(jti)
+            await use_case.execute_logout(
+                jti,
+                access_token_jti=access_jti,
+                access_token_exp=access_exp,
+            )
     else:
         # Without a specific token, we can't revoke a specific session
         # The client should pass the refresh_token
@@ -230,7 +238,11 @@ async def logout_all(
     user_id = uuid.UUID(current_user["sub"])
 
     use_case = LogoutUserUseCase(db)
-    count = await use_case.execute_logout_all(user_id)
+    count = await use_case.execute_logout_all(
+        user_id,
+        access_token_jti=current_user.get("jti"),
+        access_token_exp=current_user.get("exp"),
+    )
 
     return {"message": f"All sessions revoked ({count} sessions)"}
 
@@ -262,6 +274,7 @@ async def verify_email(
     "/request-email-verification",
     response_model=MessageResponse,
     summary="Request new email verification",
+    dependencies=[Depends(rate_limit("auth"))],
 )
 async def request_email_verification(
     body: RequestEmailVerificationRequest,
@@ -282,6 +295,7 @@ async def request_email_verification(
     "/request-password-reset",
     response_model=MessageResponse,
     summary="Request password reset",
+    dependencies=[Depends(rate_limit("auth"))],
 )
 async def request_password_reset(
     body: RequestPasswordResetRequest,
@@ -302,6 +316,7 @@ async def request_password_reset(
     "/reset-password",
     response_model=MessageResponse,
     summary="Reset password with token",
+    dependencies=[Depends(rate_limit("auth"))],
 )
 async def reset_password(
     body: ResetPasswordRequest,
@@ -325,6 +340,7 @@ async def reset_password(
     "/mfa/enable",
     response_model=EnableMFAResponse,
     summary="Enable MFA",
+    dependencies=[Depends(rate_limit("auth"))],
 )
 async def enable_mfa(
     current_user: dict = Depends(get_current_active_user),
@@ -349,6 +365,7 @@ async def enable_mfa(
     "/mfa/disable",
     response_model=MessageResponse,
     summary="Disable MFA",
+    dependencies=[Depends(rate_limit("auth"))],
 )
 async def disable_mfa(
     body: DisableMFARequest,
@@ -401,21 +418,26 @@ async def list_sessions(
     user_id = uuid.UUID(current_user["sub"])
     session_repo = SessionRepository(db)
     sessions = await session_repo.get_active_sessions(user_id)
-    now = datetime.now(timezone.utc)
 
     result = []
     for s in sessions:
-        result.append({
-            "id": str(s.id),
-            "device_name": s.device_info.split(" - ")[0] if " - " in s.device_info else s.device_info,
-            "device_type": "mobile" if any(x in s.user_agent.lower() for x in ["mobile", "android", "iphone"]) else "web",
-            "device_info": s.device_info,
-            "ip_address": s.ip_address,
-            "user_agent": s.user_agent,
-            "is_current": False,
-            "last_active_at": s.created_at.isoformat() if s.created_at else None,
-            "created_at": s.created_at.isoformat() if s.created_at else None,
-            "expires_at": s.expires_at.isoformat() if s.expires_at else None,
-        })
+        result.append(
+            {
+                "id": str(s.id),
+                "device_name": s.device_info.split(" - ")[0]
+                if " - " in s.device_info
+                else s.device_info,
+                "device_type": "mobile"
+                if any(x in s.user_agent.lower() for x in ["mobile", "android", "iphone"])
+                else "web",
+                "device_info": s.device_info,
+                "ip_address": s.ip_address,
+                "user_agent": s.user_agent,
+                "is_current": False,
+                "last_active_at": s.created_at.isoformat() if s.created_at else None,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "expires_at": s.expires_at.isoformat() if s.expires_at else None,
+            }
+        )
 
     return {"sessions": result, "total": len(result)}

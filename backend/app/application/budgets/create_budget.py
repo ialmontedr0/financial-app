@@ -43,8 +43,9 @@ class CreateBudgetUseCase:
         icon: str | None = None,
         color: str | None = None,
     ) -> dict:
-        from datetime import date as date_type, timedelta
+        from datetime import date as date_type
 
+        from app.application.budgets.periods import resolve_period_end
         from app.middleware.error_handler import ValidationError
 
         if not name or not name.strip():
@@ -72,23 +73,7 @@ class CreateBudgetUseCase:
         if start_date is None:
             start_date = today.replace(day=1)
         if end_date is None:
-            if period == "weekly":
-                end_date = start_date + timedelta(days=6)
-            elif period == "biweekly":
-                end_date = start_date + timedelta(days=13)
-            elif period == "monthly":
-                if start_date.month == 12:
-                    end_date = start_date.replace(year=start_date.year + 1, month=1, day=1) - timedelta(days=1)
-                else:
-                    end_date = start_date.replace(month=start_date.month + 1, day=1) - timedelta(days=1)
-            elif period == "quarterly":
-                quarter_month = ((start_date.month - 1) // 3 + 1) * 3
-                if quarter_month >= 12:
-                    end_date = start_date.replace(year=start_date.year + 1, month=1, day=1) - timedelta(days=1)
-                else:
-                    end_date = start_date.replace(month=quarter_month + 1, day=1) - timedelta(days=1)
-            elif period == "yearly":
-                end_date = start_date.replace(year=start_date.year + 1, month=1, day=1) - timedelta(days=1)
+            end_date = resolve_period_end(period, start_date)
 
         valid_strategies = {None, "zero_based", "50_30_20", "envelope", "custom"}
         if strategy not in valid_strategies:

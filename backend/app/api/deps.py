@@ -40,6 +40,13 @@ async def get_current_user(
     if payload.get("mfa_pending"):
         raise UnauthorizedError("MFA verification required")
 
+    # Check access token is not blacklisted (e.g. after logout)
+    from app.infrastructure.security.token_blacklist_service import TokenBlacklistService
+
+    jti = payload.get("jti")
+    if jti and await TokenBlacklistService.is_blacklisted(jti, kind="access"):
+        raise UnauthorizedError("Token has been revoked")
+
     return payload
 
 

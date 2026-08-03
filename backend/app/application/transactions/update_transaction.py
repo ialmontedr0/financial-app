@@ -28,14 +28,21 @@ class UpdateTransactionUseCase:
         transaction_id: uuid.UUID,
         *,
         changes: dict[str, Any],
+        version: int | None = None,
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> dict:
-        from app.middleware.error_handler import NotFoundError
+        from app.middleware.error_handler import ConflictError, NotFoundError
 
         tx = await self._repo.get_by_id(transaction_id, user_id)
         if tx is None:
             raise NotFoundError("Transaction")
+
+        # Optimistic locking: reject stale writes only when the client sends a version
+        if version is not None and tx.version != version:
+            raise ConflictError(
+                "La transacción fue modificada por otro usuario. Recarga e intenta de nuevo."
+            )
 
         audit_changes: dict[str, dict[str, str | None]] = {}
         for field, new_value in changes.items():
@@ -82,6 +89,10 @@ class UpdateTransactionUseCase:
         if updated is None:
             raise NotFoundError("Transaction")
 
+        updated.version += 1
+        await self._session.flush()
+        await self._session.refresh(updated)
+
         await self._repo.create_audit_log(
             tx_id=transaction_id,
             user_id=user_id,
@@ -92,10 +103,32 @@ class UpdateTransactionUseCase:
         )
 
         tags = await self._repo.get_tags(tx.id)
+
+        # Publish domain event (best-effort, never blocks the update)
+        from app.domain.events import EventType
+        from app.infrastructure.eventbus import publish_event
+
+        await publish_event(
+            event_type=EventType.TRANSACTION_UPDATED,
+            aggregate_id=updated.id,
+            aggregate_type="transaction",
+            user_id=user_id,
+            data={
+                "transaction_id": str(updated.id),
+                "account_id": str(updated.account_id) if updated.account_id else None,
+                "category_id": str(updated.category_id) if updated.category_id else None,
+                "amount": str(updated.amount),
+                "transaction_type": updated.transaction_type,
+                "effective_date": updated.effective_date.isoformat()
+                if updated.effective_date
+                else None,
+            },
+        )
         return {
             "id": str(updated.id),
             "transaction_type": updated.transaction_type,
             "status": updated.status,
+            "version": updated.version,
             "amount": str(updated.amount),
             "currency_code": updated.currency_code,
             "description": updated.description,

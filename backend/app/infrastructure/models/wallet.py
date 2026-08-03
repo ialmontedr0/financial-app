@@ -82,13 +82,12 @@ class WalletModel(Base):
         default=None,
     )
 
-    user: Mapped[UserModel] = relationship(
-        "UserModel", back_populates="wallets", lazy="noload"
-    )
+    user: Mapped[UserModel] = relationship("UserModel", back_populates="wallets", lazy="noload")
     wallet_accounts: Mapped[list[WalletAccountModel]] = relationship(
         "WalletAccountModel",
         back_populates="wallet",
         lazy="selectin",
+        passive_deletes=True,
     )
 
     def __repr__(self) -> str:

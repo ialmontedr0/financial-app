@@ -36,30 +36,50 @@ class TransactionRepository:
         tx = TransactionModel(user_id=user_id, **kwargs)  # type: ignore[arg-type]
         self._session.add(tx)
         await self._session.flush()
-        logger.info("transaction_created", user_id=str(user_id), tx_id=str(tx.id), tx_type=tx.transaction_type, amount=str(tx.amount))
+        logger.info(
+            "transaction_created",
+            user_id=str(user_id),
+            tx_id=str(tx.id),
+            tx_type=tx.transaction_type,
+            amount=str(tx.amount),
+        )
         return tx
 
     async def get_by_id(self, tx_id: uuid.UUID, user_id: uuid.UUID) -> TransactionModel | None:
         stmt = select(TransactionModel).where(
-            TransactionModel.id == tx_id, TransactionModel.user_id == user_id, TransactionModel.deleted_at.is_(None),
+            TransactionModel.id == tx_id,
+            TransactionModel.user_id == user_id,
+            TransactionModel.deleted_at.is_(None),
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def list_by_user(
-        self, user_id: uuid.UUID, *, transaction_type: str | None = None, status: str | None = None,
-        category_id: uuid.UUID | None = None, subcategory_id: uuid.UUID | None = None,
-        account_id: uuid.UUID | None = None, credit_card_id: uuid.UUID | None = None,
+        self,
+        user_id: uuid.UUID,
+        *,
+        transaction_type: str | None = None,
+        status: str | None = None,
+        category_id: uuid.UUID | None = None,
+        subcategory_id: uuid.UUID | None = None,
+        account_id: uuid.UUID | None = None,
+        credit_card_id: uuid.UUID | None = None,
         tag: str | None = None,
-        min_amount: Decimal | None = None, max_amount: Decimal | None = None,
-        date_from: date | None = None, date_to: date | None = None,
-        source: str | None = None, search: str | None = None,
+        min_amount: Decimal | None = None,
+        max_amount: Decimal | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        source: str | None = None,
+        search: str | None = None,
         transfer_id: uuid.UUID | None = None,
-        sort_by: str = "effective_date", sort_order: str = "desc",
-        page: int = 1, page_size: int = 20,
+        sort_by: str = "effective_date",
+        sort_order: str = "desc",
+        page: int = 1,
+        page_size: int = 20,
     ) -> tuple[list[TransactionModel], int]:
         base_stmt = select(TransactionModel).where(
-            TransactionModel.user_id == user_id, TransactionModel.deleted_at.is_(None),
+            TransactionModel.user_id == user_id,
+            TransactionModel.deleted_at.is_(None),
         )
         if transaction_type:
             base_stmt = base_stmt.where(TransactionModel.transaction_type == transaction_type)
@@ -88,9 +108,14 @@ class TransactionRepository:
         if search:
             base_stmt = base_stmt.where(TransactionModel.description.ilike(f"%{search}%"))
         if tag:
-            tag_subq = select(TransactionTagModel.transaction_id).where(
-                TransactionTagModel.user_id == user_id, TransactionTagModel.tag_name == tag,
-            ).scalar_subquery()
+            tag_subq = (
+                select(TransactionTagModel.transaction_id)
+                .where(
+                    TransactionTagModel.user_id == user_id,
+                    TransactionTagModel.tag_name == tag,
+                )
+                .scalar_subquery()
+            )
             base_stmt = base_stmt.where(TransactionModel.id.in_(tag_subq))
 
         count_stmt = select(func.count()).select_from(base_stmt.subquery())
@@ -104,7 +129,9 @@ class TransactionRepository:
         result = await self._session.execute(base_stmt)
         return list(result.scalars().all()), total
 
-    async def update(self, tx_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object) -> TransactionModel | None:
+    async def update(
+        self, tx_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
+    ) -> TransactionModel | None:
         tx = await self.get_by_id(tx_id, user_id)
         if tx is None:
             return None
@@ -113,23 +140,34 @@ class TransactionRepository:
                 setattr(tx, key, value)
         await self._session.flush()
         await self._session.refresh(tx)
-        logger.info("transaction_updated", user_id=str(user_id), tx_id=str(tx_id), fields=list(kwargs.keys()))
+        logger.info(
+            "transaction_updated",
+            user_id=str(user_id),
+            tx_id=str(tx_id),
+            fields=list(kwargs.keys()),
+        )
         return tx
 
     async def soft_delete(self, tx_id: uuid.UUID, user_id: uuid.UUID) -> TransactionModel | None:
         from datetime import UTC, datetime
+
         return await self.update(tx_id, user_id, deleted_at=datetime.now(UTC), status="cancelled")
 
     # ==============================================================
     # Account Balance
     # ==============================================================
 
-    async def update_account_balance(self, account_id: uuid.UUID, amount: Decimal, operation: str) -> FinancialAccountModel | None:
+    async def update_account_balance(
+        self, account_id: uuid.UUID, amount: Decimal, operation: str
+    ) -> FinancialAccountModel | None:
+        from decimal import Decimal as _Decimal
+
         stmt = select(FinancialAccountModel).where(FinancialAccountModel.id == account_id)
         result = await self._session.execute(stmt)
         account = result.scalar_one_or_none()
         if account is None:
             return None
+        amount = _Decimal(str(amount))
         if operation == "add":
             account.balance = account.balance + amount  # type: ignore[assignment]
         elif operation == "subtract":
@@ -138,9 +176,12 @@ class TransactionRepository:
         await self._session.refresh(account)
         return account
 
-    async def get_account_by_id(self, account_id: uuid.UUID, user_id: uuid.UUID) -> FinancialAccountModel | None:
+    async def get_account_by_id(
+        self, account_id: uuid.UUID, user_id: uuid.UUID
+    ) -> FinancialAccountModel | None:
         stmt = select(FinancialAccountModel).where(
-            FinancialAccountModel.id == account_id, FinancialAccountModel.user_id == user_id,
+            FinancialAccountModel.id == account_id,
+            FinancialAccountModel.user_id == user_id,
             FinancialAccountModel.deleted_at.is_(None),
         )
         result = await self._session.execute(stmt)
@@ -154,14 +195,20 @@ class TransactionRepository:
         from decimal import Decimal
 
         base_filter = and_(
-            TransactionModel.user_id == user_id, TransactionModel.deleted_at.is_(None),
-            TransactionModel.effective_date >= date_from, TransactionModel.effective_date <= date_to,
+            TransactionModel.user_id == user_id,
+            TransactionModel.deleted_at.is_(None),
+            TransactionModel.effective_date >= date_from,
+            TransactionModel.effective_date <= date_to,
         )
-        stmt = select(
-            TransactionModel.transaction_type,
-            func.count(TransactionModel.id).label("count"),
-            func.sum(TransactionModel.amount).label("total"),
-        ).where(base_filter).group_by(TransactionModel.transaction_type)
+        stmt = (
+            select(
+                TransactionModel.transaction_type,
+                func.count(TransactionModel.id).label("count"),
+                func.sum(TransactionModel.amount).label("total"),
+            )
+            .where(base_filter)
+            .group_by(TransactionModel.transaction_type)
+        )
         result = await self._session.execute(stmt)
         rows = result.all()
 
@@ -179,13 +226,17 @@ class TransactionRepository:
             TransactionModel.effective_date >= date_from,
             TransactionModel.effective_date <= date_to,
         )
-        transfer_stmt = select(func.count(func.distinct(TransactionModel.transfer_id))).where(transfer_filter)
+        transfer_stmt = select(func.count(func.distinct(TransactionModel.transfer_id))).where(
+            transfer_filter
+        )
         transfer_count_result = await self._session.execute(transfer_stmt)
         total_transfer_count = transfer_count_result.scalar() or 0
 
         return {
-            "period_start": date_from.isoformat(), "period_end": date_to.isoformat(),
-            "total_income": str(total_income), "total_expenses": str(total_expenses),
+            "period_start": date_from.isoformat(),
+            "period_end": date_to.isoformat(),
+            "total_income": str(total_income),
+            "total_expenses": str(total_expenses),
             "net_flow": str(total_income - total_expenses),
             "total_income_count": by_type.get("income", {}).get("count", 0),
             "total_expense_count": by_type.get("expense", {}).get("count", 0),
@@ -198,9 +249,12 @@ class TransactionRepository:
     # Tags
     # ==============================================================
 
-    async def add_tags(self, tx_id: uuid.UUID, user_id: uuid.UUID, tag_names: list[str]) -> list[TransactionTagModel]:
+    async def add_tags(
+        self, tx_id: uuid.UUID, user_id: uuid.UUID, tag_names: list[str]
+    ) -> list[TransactionTagModel]:
         existing_stmt = select(TransactionTagModel.tag_name).where(
-            TransactionTagModel.transaction_id == tx_id, TransactionTagModel.tag_name.in_(tag_names),
+            TransactionTagModel.transaction_id == tx_id,
+            TransactionTagModel.tag_name.in_(tag_names),
         )
         existing_result = await self._session.execute(existing_stmt)
         existing = {row[0] for row in existing_result.all()}
@@ -208,7 +262,9 @@ class TransactionRepository:
         for tag in tag_names:
             tag_clean = tag.strip().lower()
             if tag_clean and tag_clean not in existing:
-                tag_model = TransactionTagModel(transaction_id=tx_id, user_id=user_id, tag_name=tag_clean)
+                tag_model = TransactionTagModel(
+                    transaction_id=tx_id, user_id=user_id, tag_name=tag_clean
+                )
                 self._session.add(tag_model)
                 added.append(tag_model)
         if added:
@@ -218,7 +274,8 @@ class TransactionRepository:
 
     async def remove_tag(self, tx_id: uuid.UUID, tag_name: str) -> bool:
         stmt = select(TransactionTagModel).where(
-            TransactionTagModel.transaction_id == tx_id, TransactionTagModel.tag_name == tag_name.strip().lower(),
+            TransactionTagModel.transaction_id == tx_id,
+            TransactionTagModel.tag_name == tag_name.strip().lower(),
         )
         result = await self._session.execute(stmt)
         tag = result.scalar_one_or_none()
@@ -229,9 +286,11 @@ class TransactionRepository:
         return True
 
     async def get_tags(self, tx_id: uuid.UUID) -> list[TransactionTagModel]:
-        stmt = select(TransactionTagModel).where(
-            TransactionTagModel.transaction_id == tx_id
-        ).order_by(TransactionTagModel.tag_name.asc())
+        stmt = (
+            select(TransactionTagModel)
+            .where(TransactionTagModel.transaction_id == tx_id)
+            .order_by(TransactionTagModel.tag_name.asc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
@@ -239,7 +298,9 @@ class TransactionRepository:
     # Attachments
     # ==============================================================
 
-    async def create_attachment(self, tx_id: uuid.UUID, user_id: uuid.UUID, **kwargs: str | int) -> TransactionAttachmentModel:
+    async def create_attachment(
+        self, tx_id: uuid.UUID, user_id: uuid.UUID, **kwargs: str | int
+    ) -> TransactionAttachmentModel:
         att = TransactionAttachmentModel(transaction_id=tx_id, user_id=user_id, **kwargs)  # type: ignore[arg-type]
         self._session.add(att)
         await self._session.flush()
@@ -247,21 +308,28 @@ class TransactionRepository:
         return att
 
     async def list_attachments(self, tx_id: uuid.UUID) -> list[TransactionAttachmentModel]:
-        stmt = select(TransactionAttachmentModel).where(
-            TransactionAttachmentModel.transaction_id == tx_id, TransactionAttachmentModel.deleted_at.is_(None),
-        ).order_by(TransactionAttachmentModel.created_at.asc())
+        stmt = (
+            select(TransactionAttachmentModel)
+            .where(
+                TransactionAttachmentModel.transaction_id == tx_id,
+                TransactionAttachmentModel.deleted_at.is_(None),
+            )
+            .order_by(TransactionAttachmentModel.created_at.asc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
     async def get_attachment(self, attachment_id: uuid.UUID) -> TransactionAttachmentModel | None:
         stmt = select(TransactionAttachmentModel).where(
-            TransactionAttachmentModel.id == attachment_id, TransactionAttachmentModel.deleted_at.is_(None),
+            TransactionAttachmentModel.id == attachment_id,
+            TransactionAttachmentModel.deleted_at.is_(None),
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def delete_attachment(self, attachment_id: uuid.UUID) -> bool:
         from datetime import UTC, datetime
+
         att = await self.get_attachment(attachment_id)
         if att is None:
             return False
@@ -273,24 +341,37 @@ class TransactionRepository:
     # Recurring
     # ==============================================================
 
-    async def create_recurring(self, user_id: uuid.UUID, **kwargs: object) -> TransactionRecurringModel:
+    async def create_recurring(
+        self, user_id: uuid.UUID, **kwargs: object
+    ) -> TransactionRecurringModel:
         rec = TransactionRecurringModel(user_id=user_id, **kwargs)  # type: ignore[arg-type]
         self._session.add(rec)
         await self._session.flush()
-        logger.info("recurring_created", user_id=str(user_id), recurring_id=str(rec.id), frequency=rec.frequency)
+        logger.info(
+            "recurring_created",
+            user_id=str(user_id),
+            recurring_id=str(rec.id),
+            frequency=rec.frequency,
+        )
         return rec
 
-    async def get_recurring_by_id(self, recurring_id: uuid.UUID, user_id: uuid.UUID) -> TransactionRecurringModel | None:
+    async def get_recurring_by_id(
+        self, recurring_id: uuid.UUID, user_id: uuid.UUID
+    ) -> TransactionRecurringModel | None:
         stmt = select(TransactionRecurringModel).where(
-            TransactionRecurringModel.id == recurring_id, TransactionRecurringModel.user_id == user_id,
+            TransactionRecurringModel.id == recurring_id,
+            TransactionRecurringModel.user_id == user_id,
             TransactionRecurringModel.deleted_at.is_(None),
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_recurring(self, user_id: uuid.UUID, *, is_active: bool | None = None) -> list[TransactionRecurringModel]:
+    async def list_recurring(
+        self, user_id: uuid.UUID, *, is_active: bool | None = None
+    ) -> list[TransactionRecurringModel]:
         stmt = select(TransactionRecurringModel).where(
-            TransactionRecurringModel.user_id == user_id, TransactionRecurringModel.deleted_at.is_(None),
+            TransactionRecurringModel.user_id == user_id,
+            TransactionRecurringModel.deleted_at.is_(None),
         )
         if is_active is not None:
             stmt = stmt.where(TransactionRecurringModel.is_active == is_active)
@@ -298,7 +379,9 @@ class TransactionRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update_recurring(self, recurring_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object) -> TransactionRecurringModel | None:
+    async def update_recurring(
+        self, recurring_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
+    ) -> TransactionRecurringModel | None:
         rec = await self.get_recurring_by_id(recurring_id, user_id)
         if rec is None:
             return None
@@ -311,6 +394,7 @@ class TransactionRepository:
 
     async def soft_delete_recurring(self, recurring_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         from datetime import UTC, datetime
+
         rec = await self.get_recurring_by_id(recurring_id, user_id)
         if rec is None:
             return False
@@ -321,9 +405,11 @@ class TransactionRepository:
 
     async def get_due_recurring(self) -> list[TransactionRecurringModel]:
         from datetime import date as date_type
+
         stmt = select(TransactionRecurringModel).where(
-            TransactionRecurringModel.is_active.is_(True), TransactionRecurringModel.deleted_at.is_(None),
-            TransactionRecurringModel.next_execution_date <= date_type.today(),
+            TransactionRecurringModel.is_active.is_(True),
+            TransactionRecurringModel.deleted_at.is_(None),
+            TransactionRecurringModel.next_execution_date <= date_type.today(),  # noqa: DTZ011
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
@@ -332,12 +418,22 @@ class TransactionRepository:
     # Audit Log
     # ==============================================================
 
-    async def create_audit_log(self, tx_id: uuid.UUID, user_id: uuid.UUID, action: str,
-        changes: dict | None = None, ip_address: str | None = None, user_agent: str | None = None,
+    async def create_audit_log(
+        self,
+        tx_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: str,
+        changes: dict | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> TransactionAuditLogModel:
         log = TransactionAuditLogModel(
-            transaction_id=tx_id, user_id=user_id, action=action, changes=changes,
-            ip_address=ip_address, user_agent=user_agent,
+            transaction_id=tx_id,
+            user_id=user_id,
+            action=action,
+            changes=changes,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
         self._session.add(log)
         await self._session.flush()
@@ -345,8 +441,10 @@ class TransactionRepository:
         return log
 
     async def get_audit_log(self, tx_id: uuid.UUID) -> list[TransactionAuditLogModel]:
-        stmt = select(TransactionAuditLogModel).where(
-            TransactionAuditLogModel.transaction_id == tx_id
-        ).order_by(TransactionAuditLogModel.created_at.asc())
+        stmt = (
+            select(TransactionAuditLogModel)
+            .where(TransactionAuditLogModel.transaction_id == tx_id)
+            .order_by(TransactionAuditLogModel.created_at.asc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())

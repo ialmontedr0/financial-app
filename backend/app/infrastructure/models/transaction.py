@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
+from app.infrastructure.models.mixins.version_mixin import VersionMixin
 
 if TYPE_CHECKING:
     from app.infrastructure.models.category import CategoryModel
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from app.infrastructure.models.user import UserModel
 
 
-class TransactionModel(Base):
+class TransactionModel(VersionMixin, Base):
     """Transaction - the fundamental financial event."""
 
     __tablename__ = "transaction"
@@ -37,19 +38,34 @@ class TransactionModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     account_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("financial_account.id", ondelete="SET NULL"), nullable=True, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("financial_account.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     category_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("category.id", ondelete="SET NULL"), nullable=True, default=None,
+        UUID(as_uuid=True),
+        ForeignKey("category.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
     subcategory_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("subcategory.id", ondelete="SET NULL"), nullable=True, default=None,
+        UUID(as_uuid=True),
+        ForeignKey("subcategory.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
     credit_card_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("credit_card.id", ondelete="SET NULL"), nullable=True, default=None,
+        UUID(as_uuid=True),
+        ForeignKey("credit_card.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
 
     transaction_type: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -63,45 +79,77 @@ class TransactionModel(Base):
 
     effective_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     created_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False,
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
 
-    transfer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, default=None)
+    transfer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, default=None
+    )
 
     source: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
 
     recurring_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("transaction_recurring.id", ondelete="SET NULL"), nullable=True, default=None,
+        UUID(as_uuid=True),
+        ForeignKey("transaction_recurring.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
 
     ai_category_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("category.id", ondelete="SET NULL"), nullable=True, default=None,
+        UUID(as_uuid=True),
+        ForeignKey("category.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
     ai_confidence: Mapped[Decimal | None] = mapped_column(
-        Numeric(precision=5, scale=4), nullable=True, default=None,
+        Numeric(precision=5, scale=4),
+        nullable=True,
+        default=None,
     )
     ai_model_version: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None)
     ai_reason: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False,
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
 
     user: Mapped[UserModel] = relationship("UserModel", foreign_keys=[user_id], lazy="noload")
     account: Mapped[FinancialAccountModel] = relationship("FinancialAccountModel", lazy="selectin")
-    category: Mapped[CategoryModel | None] = relationship("CategoryModel", foreign_keys=[category_id], lazy="selectin")
+    category: Mapped[CategoryModel | None] = relationship(
+        "CategoryModel", foreign_keys=[category_id], lazy="selectin"
+    )
     subcategory: Mapped[SubcategoryModel | None] = relationship("SubcategoryModel", lazy="selectin")
-    recurring: Mapped[TransactionRecurringModel | None] = relationship("TransactionRecurringModel", lazy="noload")
+    recurring: Mapped[TransactionRecurringModel | None] = relationship(
+        "TransactionRecurringModel", lazy="noload"
+    )
     tags: Mapped[list[TransactionTagModel]] = relationship(
-        "TransactionTagModel", back_populates="transaction", lazy="selectin", cascade="all, delete-orphan",
+        "TransactionTagModel",
+        back_populates="transaction",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )
     attachments: Mapped[list[TransactionAttachmentModel]] = relationship(
-        "TransactionAttachmentModel", back_populates="transaction", lazy="selectin", cascade="all, delete-orphan",
+        "TransactionAttachmentModel",
+        back_populates="transaction",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )
     audit_logs: Mapped[list[TransactionAuditLogModel]] = relationship(
-        "TransactionAuditLogModel", back_populates="transaction", lazy="noload",
+        "TransactionAuditLogModel",
+        back_populates="transaction",
+        lazy="noload",
+        passive_deletes=True,
     )
 
     def __repr__(self) -> str:

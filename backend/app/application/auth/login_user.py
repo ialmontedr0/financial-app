@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.auth.lockout_service import LockoutService
 from app.core.config import get_settings
 from app.domain.auth.events import UserLoggedInEvent
 from app.domain.auth.value_objects import TokenPair
@@ -30,6 +31,7 @@ class LoginUserUseCase:
         self._user_repo = UserRepository(session)
         self._session_repo = SessionRepository(session)
         self._session_store = SessionStore()
+        self._lockout_service = LockoutService(session)
 
     async def execute(
         self,
@@ -42,7 +44,7 @@ class LoginUserUseCase:
 
         Returns dict with tokens or requires_mfa flag.
         """
-        from app.middleware.error_handler import UnauthorizedError
+        from app.middleware.error_handler import TooManyAttemptsError, UnauthorizedError
 
         # Find user
         user = await self._user_repo.get_by_email(email)
@@ -52,9 +54,19 @@ class LoginUserUseCase:
         if not user.is_active:
             raise UnauthorizedError("Account is deactivated")
 
+        # Lockout: block after too many failed attempts
+        if await self._lockout_service.is_locked(user.id):
+            logger.warning("account_locked", user_id=str(user.id))
+            raise TooManyAttemptsError()
+
         # Verify password
         if not PasswordHasher.verify_password(password, user.password_hash):
+            await self._lockout_service.record_failed_attempt(user.id, ip_address)
             raise UnauthorizedError("Invalid email or password")
+
+        # Successful attempt clears failed counters
+        await self._lockout_service.reset(user.id)
+        await self._lockout_service.record_successful_attempt(user.id, ip_address)
 
         user_id_str = str(user.id)
 

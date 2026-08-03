@@ -9,9 +9,12 @@ from app.infrastructure.db.base import Base
 
 from .category import CategoryModel
 from .financial_account import FinancialAccountModel
+from .insurance import InsuranceModel
 from .loan import LoanModel
 from .notification import NotificationModel
 from .notification_preference import NotificationPreferenceModel
+from .tax_category import TaxCategoryModel
+from .tax_deduction import TaxDeductionModel
 from .user_preference import UserPreferenceModel
 from .user_profile import UserProfileModel
 from .wallet import WalletModel
@@ -56,43 +59,69 @@ class UserModel(Base):
         back_populates="user",
         uselist=False,
         lazy="selectin",
+        passive_deletes=True,
     )
     preferences: Mapped[UserPreferenceModel | None] = relationship(
         "UserPreferenceModel",
         back_populates="user",
         uselist=False,
         lazy="selectin",
+        passive_deletes=True,
     )
     accounts: Mapped[list[FinancialAccountModel]] = relationship(
         "FinancialAccountModel",
         back_populates="user",
         lazy="selectin",
+        passive_deletes=True,
     )
     wallets: Mapped[list[WalletModel]] = relationship(
         "WalletModel",
         back_populates="user",
         lazy="selectin",
+        passive_deletes=True,
     )
     categories: Mapped[list[CategoryModel]] = relationship(
         "CategoryModel",
         back_populates="user",
         lazy="selectin",
+        passive_deletes=True,
     )
     loans: Mapped[list[LoanModel]] = relationship(
         "LoanModel",
         back_populates="user",
         lazy="noload",
+        passive_deletes=True,
     )
     notifications: Mapped[list[NotificationModel]] = relationship(
         "NotificationModel",
         back_populates="user",
         lazy="noload",
+        passive_deletes=True,
     )
     notification_preferences: Mapped[NotificationPreferenceModel | None] = relationship(
         "NotificationPreferenceModel",
         back_populates="user",
         uselist=False,
         lazy="selectin",
+        passive_deletes=True,
+    )
+    tax_categories: Mapped[list[TaxCategoryModel]] = relationship(
+        "TaxCategoryModel",
+        back_populates="user",
+        lazy="noload",
+        passive_deletes=True,
+    )
+    tax_deductions: Mapped[list[TaxDeductionModel]] = relationship(
+        "TaxDeductionModel",
+        back_populates="user",
+        lazy="noload",
+        passive_deletes=True,
+    )
+    insurances: Mapped[list[InsuranceModel]] = relationship(
+        "InsuranceModel",
+        back_populates="user",
+        lazy="noload",
+        passive_deletes=True,
     )
 
     def __repr__(self) -> str:

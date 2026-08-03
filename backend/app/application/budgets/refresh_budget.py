@@ -22,8 +22,11 @@ class RefreshBudgetUseCase:
         self._repo = BudgetRepository(session)
 
     async def execute(self, user_id: uuid.UUID, budget_id: uuid.UUID) -> dict:
+        from app.application.budgets.rollover_expired_budgets import RolloverExpiredBudgetsUseCase
         from app.application.notifications.helpers import mirror_inapp_notifications
         from app.middleware.error_handler import NotFoundError
+
+        await RolloverExpiredBudgetsUseCase(self._session).execute(user_id)
 
         budget = await self._repo.recalculate_spent(budget_id, user_id)
         if budget is None:

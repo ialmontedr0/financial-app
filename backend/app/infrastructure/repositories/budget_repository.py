@@ -88,6 +88,17 @@ class BudgetRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
+    async def list_expired_active_budgets(self, user_id: uuid.UUID, today: date) -> list[BudgetModel]:
+        """List active, non-deleted budgets whose period has already ended."""
+        stmt = select(BudgetModel).where(
+            BudgetModel.user_id == user_id,
+            BudgetModel.deleted_at.is_(None),
+            BudgetModel.is_active.is_(True),
+            BudgetModel.end_date < today,
+        ).order_by(BudgetModel.end_date.asc())
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
     async def update_budget(
         self, budget_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
     ) -> BudgetModel | None:
@@ -175,7 +186,8 @@ class BudgetRepository:
         self, user_id: uuid.UUID, category_id: uuid.UUID | None = None
     ) -> list[dict]:
         """Get monthly spending totals for the last 3 months."""
-        from datetime import date as date_type, timedelta
+        from datetime import date as date_type
+        from datetime import timedelta
 
         today = date_type.today()  # noqa: DTZ011
         three_months_ago = today - timedelta(days=90)

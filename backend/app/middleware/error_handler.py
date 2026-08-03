@@ -29,6 +29,27 @@ class ForbiddenError(AppError):
         super().__init__(code="FORBIDDEN", message=message, status_code=403)
 
 
+class ConflictError(AppError):
+    def __init__(self, message: str = "Conflicto de concurrencia"):
+        super().__init__(code="CONFLICT", message=message, status_code=409)
+
+
+class TooManyAttemptsError(AppError):
+    def __init__(self, message: str = "Cuenta bloqueada temporalmente por intentos fallidos"):
+        super().__init__(code="TOO_MANY_ATTEMPTS", message=message, status_code=423)
+
+
+class CurrencyConversionError(AppError):
+    def __init__(self, message: str = "No se pudo resolver la tasa de cambio"):
+        super().__init__(code="CURRENCY_RATE_UNAVAILABLE", message=message, status_code=502)
+
+
+class RateLimitError(AppError):
+    def __init__(self, message: str = "Demasiadas solicitudes", retry_after_seconds: int = 60):
+        super().__init__(code="RATE_LIMIT_EXCEEDED", message=message, status_code=429)
+        self.retry_after_seconds = retry_after_seconds
+
+
 class ValidationError(AppError):
     def __init__(self, message: str = "Error de validacion", details: list[str] | None = None):
         super().__init__(code="VALIDATION_ERROR", message=message, status_code=422)
@@ -41,6 +62,10 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         logger.warning("App error", code=exc.code, message=exc.message, path=request.url.path)
+        headers: dict[str, str] | None = None
+        retry_after = getattr(exc, "retry_after_seconds", None)
+        if retry_after:
+            headers = {"Retry-After": str(retry_after)}
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -51,12 +76,18 @@ def register_error_handlers(app: FastAPI) -> None:
                     "details": getattr(exc, "details", []),
                 },
             },
+            headers=headers,
         )
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
         try:
-            logger.error("unhandled_error", path=request.url.path, error_type=type(exc).__name__, error_msg=str(exc)[:200])
+            logger.error(
+                "unhandled_error",
+                path=request.url.path,
+                error_type=type(exc).__name__,
+                error_msg=str(exc)[:200],
+            )
         except Exception:
             pass
         try:
@@ -72,4 +103,8 @@ def register_error_handlers(app: FastAPI) -> None:
             )
         except Exception:
             from starlette.responses import PlainTextResponse
-            return PlainTextResponse('{"success":false,"error":{"code":"INTERNAL_SERVER_ERROR","message":"error"}}', status_code=500)
+
+            return PlainTextResponse(
+                '{"success":false,"error":{"code":"INTERNAL_SERVER_ERROR","message":"error"}}',
+                status_code=500,
+            )

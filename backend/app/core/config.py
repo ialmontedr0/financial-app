@@ -78,8 +78,24 @@ class Settings(BaseSettings):
     MFA_ISSUER_NAME: str = "FIP"
 
     # --- Rate Limit -------------------------------------------------------------
-    RATE_LIMIT_MAX: int = 100
+    # Coarse per-IP safety net (the fine-grained per-user limits live in
+    # RATE_LIMIT_CONFIG in app/core/rate_limiter.py).
+    RATE_LIMIT_MAX: int = 300
     RATE_LIMIT_WINDOW: int = 60
+
+    # --- Idempotency ------------------------------------------------------------
+    IDEMPOTENCY_KEY_TTL_SECONDS: int = 86400
+
+    # --- Login Lockout ----------------------------------------------------------
+    LOGIN_MAX_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_MINUTES: int = 15
+
+    # --- Multi-Currency ---------------------------------------------------------
+    AUTO_CURRENCY_CONVERSION: bool = True
+    EXCHANGE_RATE_API_URL: str = "https://api.exchangerate.host/convert"
+    EXCHANGE_RATE_API_KEY: str = ""
+    EXCHANGE_RATE_FETCH_TIMEOUT_SECONDS: float = 5.0
+    EXCHANGE_RATE_NEAREST_LOOKBACK_DAYS: int = 30
 
     # --- CORS -------------------------------------------------------------------
     CORS_ORIGINS: str = '["http://localhost:3000","http://localhost:8000","http://localhost:8080","http://localhost:5173"]'
@@ -105,6 +121,21 @@ class Settings(BaseSettings):
     # --- OpenTelemetry ----------------------------------------------------------
     OTEL_SERVICE_NAME: str = "fip-api"
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
+
+    # --- OCR --------------------------------------------------------------------
+    # Si OCR_ENABLED=False o faltan los binarios de Tesseract/Poppler, el
+    # endpoint degrada a extraccion por regex sobre el texto del archivo.
+    OCR_ENABLED: bool = True
+    TESSERACT_CMD: str = "tesseract"  # ruta binario tesseract (Windows: C:\Program Files\Tesseract-OCR\tesseract.exe)
+    OCR_MAX_FILE_SIZE_MB: int = 10
+
+    # --- Plaid ------------------------------------------------------------------
+    # Sin credenciales los endpoints Plaid degradan con {enabled: False}.
+    PLAID_ENABLED: bool = True
+    PLAID_ENVIRONMENT: str = "sandbox"  # sandbox | development | production
+    PLAID_CLIENT_ID: str = ""
+    PLAID_SECRET: str = ""
+    PLAID_REDIRECT_URI: str = ""
 
     @property
     def is_production(self) -> bool:

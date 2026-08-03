@@ -83,7 +83,7 @@ class AutoAdjustBudgetUseCase:
                 "new_amount": suggested,
                 "avg_spending": avg,
                 "buffer_pct": buffer_pct,
-                "date": str(__import__("datetime").date.today()),  # noqa: DTZ011
+                "date": str(__import__("datetime").date.today()),
                 "reason": "auto_adjust",
             })
             await self._repo.update_budget(budget_id, user_id, adjustment_history=history)

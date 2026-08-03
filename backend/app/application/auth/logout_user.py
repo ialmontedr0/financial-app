@@ -18,8 +18,16 @@ class LogoutUserUseCase:
         self._session_repo = SessionRepository(session)
         self._session_store = SessionStore()
 
-    async def execute_logout(self, refresh_token_jti: str) -> None:
+    async def execute_logout(
+        self,
+        refresh_token_jti: str,
+        *,
+        access_token_jti: str | None = None,
+        access_token_exp: int | None = None,
+    ) -> None:
         """Revoke a single session."""
+        from app.infrastructure.security.token_blacklist_service import TokenBlacklistService
+
         # Remove from Redis
         await self._session_store.delete_refresh_token(refresh_token_jti)
         await self._session_store.delete_session(refresh_token_jti)
@@ -27,11 +35,23 @@ class LogoutUserUseCase:
         # Revoke in DB
         await self._session_repo.revoke(refresh_token_jti)
 
+        # Blacklist the current access token so it is rejected immediately
+        if access_token_jti and access_token_exp:
+            await TokenBlacklistService.blacklist_access_jti(access_token_jti, access_token_exp)
+
         event = UserSessionRevokedEvent(session_jti=refresh_token_jti, revoked_all=False)
         logger.info("session_revoked", event_type=event.event_type, jti=refresh_token_jti)
 
-    async def execute_logout_all(self, user_id: uuid.UUID) -> int:
+    async def execute_logout_all(
+        self,
+        user_id: uuid.UUID,
+        *,
+        access_token_jti: str | None = None,
+        access_token_exp: int | None = None,
+    ) -> int:
         """Revoke all sessions for a user."""
+        from app.infrastructure.security.token_blacklist_service import TokenBlacklistService
+
         user_id_str = str(user_id)
 
         # Remove from Redis
@@ -39,6 +59,10 @@ class LogoutUserUseCase:
 
         # Revoke in DB
         db_count = await self._session_repo.revoke_all_for_user(user_id)
+
+        # Blacklist the current access token as well
+        if access_token_jti and access_token_exp:
+            await TokenBlacklistService.blacklist_access_jti(access_token_jti, access_token_exp)
 
         event = UserSessionRevokedEvent(
             user_id=user_id,

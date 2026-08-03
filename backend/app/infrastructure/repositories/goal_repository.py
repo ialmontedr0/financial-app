@@ -16,6 +16,7 @@ from app.infrastructure.models.transaction import TransactionModel
 if TYPE_CHECKING:
     import uuid
     from datetime import date
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 
 from app.api.deps import get_current_active_user, get_db
+from app.core.rate_limiter import rate_limit
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 # Transaction CRUD
 # ======================================================================
 
+
 @router.post("", status_code=201)
 async def create_transaction(
     body: dict,
@@ -29,7 +31,11 @@ async def create_transaction(
 
     from app.application.transactions.create_transaction import CreateTransactionUseCase
 
-    effective_date = date_type.fromisoformat(body["effective_date"]) if isinstance(body.get("effective_date"), str) else body.get("effective_date")
+    effective_date = (
+        date_type.fromisoformat(body["effective_date"])
+        if isinstance(body.get("effective_date"), str)
+        else body.get("effective_date")
+    )
     tags = body.pop("tags", None)
     account_id = body.get("account_id")
     credit_card_id = body.get("credit_card_id")
@@ -54,7 +60,10 @@ async def create_transaction(
     )
 
 
-@router.get("")
+@router.get(
+    "",
+    dependencies=[Depends(rate_limit("default"))],
+)
 async def list_transactions(
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
@@ -83,11 +92,24 @@ async def list_transactions(
     d_from = date_type.fromisoformat(date_from) if date_from else None
     d_to = date_type.fromisoformat(date_to) if date_to else None
     return await ListTransactionsUseCase(db).execute(
-        uuid.UUID(current_user["sub"]), transaction_type=transaction_type, status=status, category_id=category_id,
-        subcategory_id=subcategory_id, account_id=account_id, credit_card_id=uuid.UUID(credit_card_id) if credit_card_id else None,
-        tag=tag, min_amount=min_amount, max_amount=max_amount,
-        date_from=d_from, date_to=d_to, source=source, search=search, sort_by=sort_by, sort_order=sort_order,
-        page=page, page_size=page_size,
+        uuid.UUID(current_user["sub"]),
+        transaction_type=transaction_type,
+        status=status,
+        category_id=category_id,
+        subcategory_id=subcategory_id,
+        account_id=account_id,
+        credit_card_id=uuid.UUID(credit_card_id) if credit_card_id else None,
+        tag=tag,
+        min_amount=min_amount,
+        max_amount=max_amount,
+        date_from=d_from,
+        date_to=d_to,
+        source=source,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page=page,
+        page_size=page_size,
     )
 
 
@@ -103,13 +125,16 @@ async def get_transaction_summary(
     from app.application.transactions.get_transaction_summary import GetTransactionSummaryUseCase
 
     return await GetTransactionSummaryUseCase(db).execute(
-        uuid.UUID(current_user["sub"]), date_type.fromisoformat(date_from), date_type.fromisoformat(date_to),
+        uuid.UUID(current_user["sub"]),
+        date_type.fromisoformat(date_from),
+        date_type.fromisoformat(date_to),
     )
 
 
 # ======================================================================
 # Transfer
 # ======================================================================
+
 
 @router.post("/transfer", status_code=201)
 async def create_transfer(
@@ -121,18 +146,28 @@ async def create_transfer(
 
     from app.application.transactions.create_transfer import CreateTransferUseCase
 
-    effective_date = date_type.fromisoformat(body["effective_date"]) if isinstance(body.get("effective_date"), str) else body.get("effective_date")
+    effective_date = (
+        date_type.fromisoformat(body["effective_date"])
+        if isinstance(body.get("effective_date"), str)
+        else body.get("effective_date")
+    )
     return await CreateTransferUseCase(db).execute(
-        user_id=uuid.UUID(current_user["sub"]), source_account_id=body["source_account_id"],
-        destination_account_id=body["destination_account_id"], amount=body["amount"],
-        currency_code=body.get("currency_code", "DOP"), description=body["description"],
-        effective_date=effective_date, notes=body.get("notes"), tags=body.get("tags"),
+        user_id=uuid.UUID(current_user["sub"]),
+        source_account_id=body["source_account_id"],
+        destination_account_id=body["destination_account_id"],
+        amount=body["amount"],
+        currency_code=body.get("currency_code", "DOP"),
+        description=body["description"],
+        effective_date=effective_date,
+        notes=body.get("notes"),
+        tags=body.get("tags"),
     )
 
 
 # ======================================================================
 # Recurring (MUST be before /{transaction_id} to avoid route shadowing)
 # ======================================================================
+
 
 @router.post("/recurring", status_code=201)
 async def create_recurring(
@@ -144,14 +179,31 @@ async def create_recurring(
 
     from app.application.transactions.create_recurring import CreateRecurringUseCase
 
-    start_date = date_type.fromisoformat(body["start_date"]) if isinstance(body.get("start_date"), str) else body.get("start_date")
-    end_date = date_type.fromisoformat(body["end_date"]) if isinstance(body.get("end_date"), str) else body.get("end_date")
+    start_date = (
+        date_type.fromisoformat(body["start_date"])
+        if isinstance(body.get("start_date"), str)
+        else body.get("start_date")
+    )
+    end_date = (
+        date_type.fromisoformat(body["end_date"])
+        if isinstance(body.get("end_date"), str)
+        else body.get("end_date")
+    )
     return await CreateRecurringUseCase(db).execute(
-        user_id=uuid.UUID(current_user["sub"]), account_id=body["account_id"], transaction_type=body["transaction_type"],
-        amount=body["amount"], currency_code=body.get("currency_code", "DOP"), description=body["description"],
-        frequency=body["frequency"], start_date=start_date, interval=body.get("interval", 1),
-        category_id=body.get("category_id"), subcategory_id=body.get("subcategory_id"),
-        notes=body.get("notes"), end_date=end_date, max_executions=body.get("max_executions"),
+        user_id=uuid.UUID(current_user["sub"]),
+        account_id=body["account_id"],
+        transaction_type=body["transaction_type"],
+        amount=body["amount"],
+        currency_code=body.get("currency_code", "DOP"),
+        description=body["description"],
+        frequency=body["frequency"],
+        start_date=start_date,
+        interval=body.get("interval", 1),
+        category_id=body.get("category_id"),
+        subcategory_id=body.get("subcategory_id"),
+        notes=body.get("notes"),
+        end_date=end_date,
+        max_executions=body.get("max_executions"),
     )
 
 
@@ -162,7 +214,10 @@ async def list_recurring(
     is_active: bool | None = Query(None),
 ) -> dict:
     from app.application.transactions.list_recurring import ListRecurringUseCase
-    return await ListRecurringUseCase(db).execute(uuid.UUID(current_user["sub"]), is_active=is_active)
+
+    return await ListRecurringUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), is_active=is_active
+    )
 
 
 @router.get("/recurring/{recurring_id}")
@@ -173,6 +228,7 @@ async def get_recurring(
 ) -> dict:
     from app.application.transactions.list_recurring import ListRecurringUseCase
     from app.middleware.error_handler import NotFoundError
+
     recs = await ListRecurringUseCase(db).execute(uuid.UUID(current_user["sub"]))
     for r in recs.get("recurring", []):
         if r["id"] == str(recurring_id):
@@ -188,7 +244,10 @@ async def update_recurring(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.update_recurring import UpdateRecurringUseCase
-    return await UpdateRecurringUseCase(db).execute(uuid.UUID(current_user["sub"]), recurring_id, **body)
+
+    return await UpdateRecurringUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), recurring_id, **body
+    )
 
 
 @router.delete("/recurring/{recurring_id}")
@@ -198,6 +257,7 @@ async def delete_recurring(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.delete_recurring import DeleteRecurringUseCase
+
     return await DeleteRecurringUseCase(db).execute(uuid.UUID(current_user["sub"]), recurring_id)
 
 
@@ -207,6 +267,7 @@ async def process_recurring(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.process_recurring import ProcessRecurringUseCase
+
     return await ProcessRecurringUseCase(db).execute()
 
 
@@ -214,18 +275,23 @@ async def process_recurring(
 # OCR (Stub)
 # ======================================================================
 
+
 @router.post("/ocr")
 async def ocr_receipt(
-    body: dict,
+    file: UploadFile = File(...),
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    return {"success": False, "message": "OCR no disponible aun. Estara disponible en Fase 20.", "data": None}
+    from app.application.ocr.extract_receipt import ExtractReceiptUseCase
+
+    data = await file.read()
+    return ExtractReceiptUseCase().execute(file.filename or "", file.content_type or "", data)
 
 
 # ======================================================================
 # Transaction by ID (MUST be AFTER /summary, /transfer, /recurring, /ocr)
 # ======================================================================
+
 
 @router.get("/{transaction_id}")
 async def get_transaction(
@@ -234,6 +300,7 @@ async def get_transaction(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.get_transaction import GetTransactionUseCase
+
     return await GetTransactionUseCase(db).execute(uuid.UUID(current_user["sub"]), transaction_id)
 
 
@@ -250,7 +317,13 @@ async def update_transaction(
 
     if "effective_date" in body and isinstance(body["effective_date"], str):
         body["effective_date"] = date_type.fromisoformat(body["effective_date"])
-    return await UpdateTransactionUseCase(db).execute(uuid.UUID(current_user["sub"]), transaction_id, changes=body)
+    version = int(body.pop("version")) if "version" in body else None
+    return await UpdateTransactionUseCase(db).execute(
+        uuid.UUID(current_user["sub"]),
+        transaction_id,
+        changes=body,
+        version=version,
+    )
 
 
 @router.delete("/{transaction_id}")
@@ -260,7 +333,10 @@ async def delete_transaction(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.delete_transaction import DeleteTransactionUseCase
-    return await DeleteTransactionUseCase(db).execute(uuid.UUID(current_user["sub"]), transaction_id)
+
+    return await DeleteTransactionUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), transaction_id
+    )
 
 
 @router.post("/{transaction_id}/tags", status_code=201)
@@ -271,7 +347,10 @@ async def add_tags(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.add_tags import AddTagsUseCase
-    return await AddTagsUseCase(db).execute(uuid.UUID(current_user["sub"]), transaction_id, body["tags"])
+
+    return await AddTagsUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), transaction_id, body["tags"]
+    )
 
 
 @router.delete("/{transaction_id}/tags/{tag_name}")
@@ -282,7 +361,10 @@ async def remove_tag(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.remove_tag import RemoveTagUseCase
-    return await RemoveTagUseCase(db).execute(uuid.UUID(current_user["sub"]), transaction_id, tag_name)
+
+    return await RemoveTagUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), transaction_id, tag_name
+    )
 
 
 @router.post("/{transaction_id}/attachments", status_code=201)
@@ -296,8 +378,11 @@ async def upload_attachment(
 
     content = await file.read()
     return await UploadAttachmentUseCase(db).execute(
-        uuid.UUID(current_user["sub"]), transaction_id, filename=file.filename or "unknown",
-        content_type=file.content_type or "application/octet-stream", content=content,
+        uuid.UUID(current_user["sub"]),
+        transaction_id,
+        filename=file.filename or "unknown",
+        content_type=file.content_type or "application/octet-stream",
+        content=content,
     )
 
 
@@ -308,6 +393,7 @@ async def list_attachments(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.list_attachments import ListAttachmentsUseCase
+
     return await ListAttachmentsUseCase(db).execute(uuid.UUID(current_user["sub"]), transaction_id)
 
 
@@ -319,6 +405,7 @@ async def delete_attachment(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.delete_attachment import DeleteAttachmentUseCase
+
     return await DeleteAttachmentUseCase(db).execute(uuid.UUID(current_user["sub"]), attachment_id)
 
 
@@ -329,4 +416,5 @@ async def get_audit_log(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     from app.application.transactions.get_audit_log import GetAuditLogUseCase
+
     return await GetAuditLogUseCase(db).execute(uuid.UUID(current_user["sub"]), transaction_id)

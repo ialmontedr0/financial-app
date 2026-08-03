@@ -29,6 +29,10 @@ class ListBudgetsUseCase:
         is_active: bool | None = None,
         period: str | None = None,
     ) -> dict:
+        from app.application.budgets.rollover_expired_budgets import RolloverExpiredBudgetsUseCase
+
+        await RolloverExpiredBudgetsUseCase(self._session).execute(user_id)
+
         budgets = await self._repo.list_budgets(
             user_id, budget_type=budget_type, is_active=is_active, period=period
         )

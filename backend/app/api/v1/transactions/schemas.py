@@ -27,6 +27,7 @@ class CreateTransactionRequest(BaseModel):
 class TransactionResponse(BaseModel):
     id: str
     account_id: str
+    version: int = 1
     category_id: str | None = None
     subcategory_id: str | None = None
     transaction_type: str
@@ -61,6 +62,7 @@ class TransactionDetailResponse(TransactionResponse):
 
 
 class UpdateTransactionRequest(BaseModel):
+    version: int = Field(default=1, ge=1, description="Version del recurso para optimistic locking")
     amount: float | None = Field(default=None, gt=0)
     description: str | None = Field(default=None, max_length=500)
     notes: str | None = None

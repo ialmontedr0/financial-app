@@ -57,6 +57,27 @@ class ProcessRecurringUseCase:
                     update_kwargs["is_active"] = False
 
                 await self._repo.update_recurring(rec.id, rec.user_id, **update_kwargs)
+
+                # Publish domain event (best-effort)
+                from app.domain.events import EventType
+                from app.infrastructure.eventbus import publish_event
+
+                await publish_event(
+                    event_type=EventType.TRANSACTION_CREATED,
+                    aggregate_id=tx.id,
+                    aggregate_type="transaction",
+                    user_id=rec.user_id,
+                    data={
+                        "transaction_id": str(tx.id),
+                        "account_id": str(rec.account_id) if rec.account_id else None,
+                        "category_id": str(rec.category_id) if rec.category_id else None,
+                        "amount": str(rec.amount),
+                        "transaction_type": rec.transaction_type,
+                        "effective_date": rec.next_execution_date.isoformat()
+                        if rec.next_execution_date
+                        else None,
+                    },
+                )
                 created_count += 1
 
             except Exception as e:

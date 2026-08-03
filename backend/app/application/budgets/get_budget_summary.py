@@ -22,7 +22,10 @@ class GetBudgetSummaryUseCase:
         self._repo = BudgetRepository(session)
 
     async def execute(self, user_id: uuid.UUID) -> dict:
+        from app.application.budgets.rollover_expired_budgets import RolloverExpiredBudgetsUseCase
         from app.application.notifications.helpers import mirror_inapp_notifications
+
+        await RolloverExpiredBudgetsUseCase(self._session).execute(user_id)
 
         summary = await self._repo.get_budget_summary(user_id)
 

@@ -49,4 +49,23 @@ class DeleteTransactionUseCase:
             ip_address=ip_address, user_agent=user_agent,
         )
 
+        # Publish domain event (best-effort, never blocks the deletion)
+        from app.domain.events import EventType
+        from app.infrastructure.eventbus import publish_event
+
+        await publish_event(
+            event_type=EventType.TRANSACTION_DELETED,
+            aggregate_id=transaction_id,
+            aggregate_type="transaction",
+            user_id=user_id,
+            data={
+                "transaction_id": str(transaction_id),
+                "account_id": str(tx.account_id) if tx.account_id else None,
+                "category_id": str(tx.category_id) if tx.category_id else None,
+                "amount": str(tx.amount),
+                "transaction_type": tx.transaction_type,
+                "effective_date": tx.effective_date.isoformat() if tx.effective_date else None,
+            },
+        )
+
         return {"id": str(deleted.id), "status": deleted.status, "message": "Transaccion eliminada exitosamente"}

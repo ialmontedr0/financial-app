@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -24,25 +25,37 @@ class UpdateBudgetUseCase:
     async def execute(
         self, user_id: uuid.UUID, budget_id: uuid.UUID, *, changes: dict[str, Any]
     ) -> dict:
+        from datetime import date as date_type
+
         from app.middleware.error_handler import NotFoundError, ValidationError
 
         allowed_fields = {
             "name", "description", "amount", "alert_threshold", "alert_enabled",
             "auto_adjust", "rollover", "strategy", "is_active", "icon", "color",
+            "start_date", "end_date",
         }
         filtered = {k: v for k, v in changes.items() if k in allowed_fields}
 
         if "amount" in filtered:
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 filtered["amount"] = float(filtered["amount"])
-            except (TypeError, ValueError):
-                pass
             if filtered["amount"] <= 0:
                 raise ValidationError("amount debe ser mayor a 0")
 
-        if "alert_threshold" in filtered:
-            if not (1 <= filtered["alert_threshold"] <= 100):
-                raise ValidationError("alert_threshold debe ser entre 1 y 100")
+        if "alert_threshold" in filtered and not (1 <= filtered["alert_threshold"] <= 100):
+            raise ValidationError("alert_threshold debe ser entre 1 y 100")
+
+        if "start_date" in filtered:
+            with contextlib.suppress(TypeError, ValueError):
+                filtered["start_date"] = date_type.fromisoformat(filtered["start_date"])
+            if not isinstance(filtered["start_date"], date_type):
+                raise ValidationError("start_date debe ser una fecha valida (YYYY-MM-DD)")
+
+        if "end_date" in filtered:
+            with contextlib.suppress(TypeError, ValueError):
+                filtered["end_date"] = date_type.fromisoformat(filtered["end_date"])
+            if not isinstance(filtered["end_date"], date_type):
+                raise ValidationError("end_date debe ser una fecha valida (YYYY-MM-DD)")
 
         if not filtered:
             return {"message": "No changes detected"}
@@ -50,6 +63,9 @@ class UpdateBudgetUseCase:
         updated = await self._repo.update_budget(budget_id, user_id, **filtered)
         if updated is None:
             raise NotFoundError("Budget")
+
+        if updated.start_date > updated.end_date:
+            raise ValidationError("start_date debe ser menor o igual a end_date")
 
         updated = await self._repo.recalculate_spent(budget_id, user_id) or updated
 

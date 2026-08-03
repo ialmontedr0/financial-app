@@ -33,6 +33,7 @@ class GetTransactionUseCase:
 
         return {
             "id": str(tx.id), "account_id": str(tx.account_id),
+            "version": tx.version,
             "category_id": str(tx.category_id) if tx.category_id else None,
             "subcategory_id": str(tx.subcategory_id) if tx.subcategory_id else None,
             "transaction_type": tx.transaction_type, "status": tx.status,

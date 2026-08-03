@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_v1_router
 from app.core.config import get_settings
-
+from app.middleware.currency_conversion import CurrencyConversionMiddleware
 from app.middleware.error_handler import register_error_handlers
+from app.middleware.idempotency import IdempotencyMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_logger import RequestLoggingMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
@@ -108,6 +109,8 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_MAX, window_seconds=settings.RATE_LIMIT_WINDOW)
     app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(IdempotencyMiddleware)
+    app.add_middleware(CurrencyConversionMiddleware)
 
     # --- Monitoring (middleware must be added before startup) ------------------
     configure_prometheus(app)
