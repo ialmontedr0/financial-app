@@ -47,6 +47,7 @@ class GetAccountUseCase:
             "include_in_net_worth": account.include_in_net_worth,
             "include_in_totals": account.include_in_totals,
             "sort_order": account.sort_order,
+            "version": account.version,
             "created_at": account.created_at.isoformat() if account.created_at else None,
             "updated_at": account.updated_at.isoformat() if account.updated_at else None,
         }

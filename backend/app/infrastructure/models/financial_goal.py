@@ -23,6 +23,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
+from app.infrastructure.models.mixins.version_mixin import VersionMixin
 
 if TYPE_CHECKING:
     from app.infrastructure.models.category import CategoryModel
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
     from app.infrastructure.models.user import UserModel
 
 
-class FinancialGoalModel(Base):
+class FinancialGoalModel(Base, VersionMixin):
     """Financial goal for tracking savings, debt payoff, investments, etc."""
 
     __tablename__ = "financial_goal"

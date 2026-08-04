@@ -10,6 +10,7 @@ from app.infrastructure.repositories.goal_repository import GoalRepository
 
 if TYPE_CHECKING:
     import uuid
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
@@ -60,6 +61,7 @@ class GetGoalUseCase:
             "category_id": str(goal.category_id) if goal.category_id else None,
             "icon": goal.icon, "color": goal.color, "image_url": goal.image_url,
             "milestone_reached_pct": goal.milestone_reached_pct,
+            "version": goal.version,
             "progress": progress,
             "milestones": [
                 {"id": str(m.id), "event_type": m.event_type, "amount_at_event": str(m.amount_at_event), "pct_complete": str(m.pct_complete), "contribution_amount": str(m.contribution_amount) if m.contribution_amount else None, "notes": m.notes, "created_at": m.created_at.isoformat() if m.created_at else None}

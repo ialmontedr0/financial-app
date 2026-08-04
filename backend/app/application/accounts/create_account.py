@@ -85,5 +85,6 @@ class CreateAccountUseCase:
             "institution": account.institution,
             "status": account.status,
             "include_in_net_worth": account.include_in_net_worth,
+            "version": account.version,
             "created_at": account.created_at.isoformat() if account.created_at else None,
         }

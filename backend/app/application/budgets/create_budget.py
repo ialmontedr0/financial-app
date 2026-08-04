@@ -121,6 +121,7 @@ class CreateBudgetUseCase:
             "rollover": budget.rollover,
             "strategy": budget.strategy,
             "is_active": budget.is_active,
+            "version": budget.version,
             "icon": budget.icon,
             "color": budget.color,
             "created_at": budget.created_at.isoformat() if budget.created_at else None,

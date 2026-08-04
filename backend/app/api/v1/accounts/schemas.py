@@ -65,6 +65,7 @@ class AccountResponse(BaseModel):
     include_in_net_worth: bool = True
     include_in_totals: bool = True
     sort_order: int = 0
+    version: int = 1
     created_at: str | None = None
     updated_at: str | None = None
 
@@ -85,12 +86,16 @@ class UpdateAccountRequest(BaseModel):
     include_in_totals: bool | None = None
     sort_order: int | None = None
     status: str | None = Field(None, description="active, inactive, archived, frozen")
+    version: int | None = Field(
+        None, ge=1, description="Version del recurso para optimistic locking"
+    )
 
 
 class UpdateAccountResponse(BaseModel):
     """Updated account response."""
 
     message: str = "Account updated successfully"
+    version: int | None = None
 
 
 # ============================================================

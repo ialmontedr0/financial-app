@@ -55,6 +55,7 @@ class GetBudgetUseCase:
             "strategy": budget.strategy,
             "adjustment_history": budget.adjustment_history,
             "is_active": budget.is_active,
+            "version": budget.version,
             "pct_used": round(pct_used, 1),
             "status": "exceeded" if pct_used > 100 else "warning" if pct_used >= budget.alert_threshold else "ok",
             "icon": budget.icon,

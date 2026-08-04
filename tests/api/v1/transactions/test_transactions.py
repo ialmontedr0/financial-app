@@ -243,14 +243,28 @@ class TestOCR:
         login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
         return login_resp.json()["tokens"]["access_token"]
 
-    async def test_ocr_stub(self, client: AsyncClient, test_password: str):
+    async def test_ocr_with_file(self, client: AsyncClient, test_password: str):
+        from io import BytesIO
+        from reportlab.pdfgen import canvas
+
         email = "txocr@test.com"
         token = await self._register_and_login(client, email, test_password)
-        response = await client.post("/api/v1/transactions/ocr", headers={"Authorization": f"Bearer {token}"},
-            json={"image_url": "https://example.com/receipt.jpg"})
+
+        buf = BytesIO()
+        pdf = canvas.Canvas(buf)
+        pdf.drawString(72, 720, "Tienda ABC")
+        pdf.drawString(72, 700, "Total: $45.50")
+        pdf.drawString(72, 680, "Fecha: 01/08/2026")
+        pdf.save()
+
+        response = await client.post("/api/v1/transactions/ocr",
+            files={"file": ("recibo.pdf", buf.getvalue(), "application/pdf")},
+            headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 200
-        assert response.json()["success"] is False
-        assert "Fase 20" in response.json()["message"]
+        data = response.json()
+        assert data["success"] is True
+        assert data["suggestions"]["amount"] == 45.50
+        assert data["suggestions"]["merchant"] == "Tienda ABC"
 
 
 @pytest.mark.api

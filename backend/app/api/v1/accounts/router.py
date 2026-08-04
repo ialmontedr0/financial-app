@@ -150,8 +150,8 @@ async def update_account(
     user_id = uuid.UUID(current_user["sub"])
     fields = body.model_dump(exclude_unset=True, exclude_none=True)
     use_case = UpdateAccountUseCase(db)
-    await use_case.execute(user_id, account_id, **fields)
-    return {"message": "Account updated successfully"}
+    result = await use_case.execute(user_id, account_id, **fields)
+    return {"message": "Account updated successfully", "version": result.get("version")}
 
 
 # ============================================================

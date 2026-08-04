@@ -12,12 +12,13 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
+from app.infrastructure.models.mixins import VersionMixin
 
 if TYPE_CHECKING:
     from app.infrastructure.models.user import UserModel
 
 
-class FinancialAccountModel(Base):
+class FinancialAccountModel(Base, VersionMixin):
     """Financial account — one per bank/cash/wallet/crypto instance."""
 
     __tablename__ = "financial_account"

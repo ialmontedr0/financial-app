@@ -9,7 +9,7 @@ import structlog
 from app.infrastructure.repositories.goal_repository import GoalRepository
 
 if TYPE_CHECKING:
-    import uuid
+    import uuid  # noqa: I001
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
@@ -23,7 +23,7 @@ class UpdateGoalUseCase:
     async def execute(self, user_id: uuid.UUID, goal_id: uuid.UUID, *, changes: dict) -> dict:
         from datetime import date as date_type
 
-        from app.middleware.error_handler import NotFoundError, ValidationError
+        from app.middleware.error_handler import ConflictError, NotFoundError, ValidationError
 
         goal = await self._repo.get_goal_by_id(goal_id, user_id)
         if goal is None:
@@ -31,7 +31,31 @@ class UpdateGoalUseCase:
         if goal.status == "completed":
             raise ValidationError("Cannot modify a completed goal")
 
-        allowed = {"name", "description", "target_amount", "target_date", "start_date", "completed_date", "monthly_contribution", "interest_rate", "compound_frequency", "priority", "auto_contribute", "icon", "color", "image_url", "status", "account_id", "category_id"}
+        # Optimistic locking: reject stale writes only when the client sends a version
+        if changes.get("version") is not None and goal.version != int(changes["version"]):
+            raise ConflictError(
+                "Registro modificado por otro usuario, recargue e intentelo de nuevo"
+            )
+
+        allowed = {
+            "name",
+            "description",
+            "target_amount",
+            "target_date",
+            "start_date",
+            "completed_date",
+            "monthly_contribution",
+            "interest_rate",
+            "compound_frequency",
+            "priority",
+            "auto_contribute",
+            "icon",
+            "color",
+            "image_url",
+            "status",
+            "account_id",
+            "category_id",
+        }
         updates = {k: v for k, v in changes.items() if k in allowed}
 
         date_fields = {"target_date", "start_date", "completed_date"}
@@ -50,29 +74,56 @@ class UpdateGoalUseCase:
         if updated is None:
             raise NotFoundError("Goal")
 
-        financial_keys = {"target_amount", "monthly_contribution", "interest_rate", "compound_frequency", "target_date"}
+        financial_keys = {
+            "target_amount",
+            "monthly_contribution",
+            "interest_rate",
+            "compound_frequency",
+            "target_date",
+        }
         if financial_keys & set(updates.keys()):
             from app.application.goals.create_goal import CreateGoalUseCase
+
             uc = CreateGoalUseCase(self._session)
             await uc._predict(user_id, updated)
+
+        updated.version += 1
+        await self._session.flush()
+        await self._session.refresh(updated)
 
         logger.info("goal_updated", user_id=str(user_id), goal_id=str(goal_id))
 
         return {
-            "id": str(updated.id), "name": updated.name, "description": updated.description,
-            "goal_type": updated.goal_type, "target_amount": str(updated.target_amount),
+            "id": str(updated.id),
+            "name": updated.name,
+            "description": updated.description,
+            "goal_type": updated.goal_type,
+            "target_amount": str(updated.target_amount),
             "current_amount": str(updated.current_amount),
-            "start_date": updated.start_date.isoformat(), "target_date": updated.target_date.isoformat(),
-            "status": updated.status, "priority": updated.priority,
-            "monthly_contribution": str(updated.monthly_contribution) if updated.monthly_contribution else None,
+            "start_date": updated.start_date.isoformat(),
+            "target_date": updated.target_date.isoformat(),
+            "status": updated.status,
+            "priority": updated.priority,
+            "version": updated.version,
+            "monthly_contribution": str(updated.monthly_contribution)
+            if updated.monthly_contribution
+            else None,
             "auto_contribute": updated.auto_contribute,
             "interest_rate": str(updated.interest_rate) if updated.interest_rate else None,
             "compound_frequency": updated.compound_frequency,
             "account_id": str(updated.account_id) if updated.account_id else None,
             "category_id": str(updated.category_id) if updated.category_id else None,
-            "icon": updated.icon, "color": updated.color, "image_url": updated.image_url,
-            "predicted_completion_date": updated.predicted_completion_date.isoformat() if updated.predicted_completion_date else None,
-            "predicted_probability": float(updated.predicted_probability) if updated.predicted_probability else None,
-            "recommended_monthly": str(updated.recommended_monthly) if updated.recommended_monthly else None,
+            "icon": updated.icon,
+            "color": updated.color,
+            "image_url": updated.image_url,
+            "predicted_completion_date": updated.predicted_completion_date.isoformat()
+            if updated.predicted_completion_date
+            else None,
+            "predicted_probability": float(updated.predicted_probability)
+            if updated.predicted_probability
+            else None,
+            "recommended_monthly": str(updated.recommended_monthly)
+            if updated.recommended_monthly
+            else None,
             "updated_at": updated.updated_at.isoformat() if updated.updated_at else None,
         }

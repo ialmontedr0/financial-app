@@ -110,7 +110,7 @@ class TestNotificationsAPI:
             client, "notif_prefs@test.com", test_password
         )
         resp = await client.get(
-            "/api/v1/notifications/preferences/",
+            "/api/v1/notifications/preferences",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 200
@@ -123,7 +123,7 @@ class TestNotificationsAPI:
             client, "notif_upref@test.com", test_password
         )
         resp = await client.put(
-            "/api/v1/notifications/preferences/",
+            "/api/v1/notifications/preferences",
             json={
                 "email_enabled": True,
                 "push_enabled": False,
@@ -144,6 +144,7 @@ class TestNotificationsAPI:
         )
         resp = await client.post(
             "/api/v1/notifications/test",
+            json={"channel": "email"},
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 200
@@ -155,7 +156,7 @@ class TestNotificationsAPI:
             client, "notif_stats@test.com", test_password
         )
         resp = await client.get(
-            "/api/v1/notifications/stats/",
+            "/api/v1/notifications/stats",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 200

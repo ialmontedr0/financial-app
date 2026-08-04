@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime  # noqa: TC003
-from decimal import Decimal  # noqa: TC003
+from datetime import date, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -22,6 +22,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
+from app.infrastructure.models.mixins import VersionMixin
 
 if TYPE_CHECKING:
     from app.infrastructure.models.category import CategoryModel
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
     from app.infrastructure.models.user import UserModel
 
 
-class BudgetModel(Base):
+class BudgetModel(Base, VersionMixin):
     """Budget for tracking spending limits.
 
     Supports multiple budget types:

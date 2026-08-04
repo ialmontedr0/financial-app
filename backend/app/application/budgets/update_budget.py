@@ -27,12 +27,22 @@ class UpdateBudgetUseCase:
     ) -> dict:
         from datetime import date as date_type
 
-        from app.middleware.error_handler import NotFoundError, ValidationError
+        from app.middleware.error_handler import ConflictError, NotFoundError, ValidationError
 
         allowed_fields = {
-            "name", "description", "amount", "alert_threshold", "alert_enabled",
-            "auto_adjust", "rollover", "strategy", "is_active", "icon", "color",
-            "start_date", "end_date",
+            "name",
+            "description",
+            "amount",
+            "alert_threshold",
+            "alert_enabled",
+            "auto_adjust",
+            "rollover",
+            "strategy",
+            "is_active",
+            "icon",
+            "color",
+            "start_date",
+            "end_date",
         }
         filtered = {k: v for k, v in changes.items() if k in allowed_fields}
 
@@ -60,6 +70,16 @@ class UpdateBudgetUseCase:
         if not filtered:
             return {"message": "No changes detected"}
 
+        budget = await self._repo.get_budget_by_id(budget_id, user_id)
+        if budget is None:
+            raise NotFoundError("Budget")
+
+        # Optimistic locking: reject stale writes only when the client sends a version
+        if changes.get("version") is not None and budget.version != int(changes["version"]):
+            raise ConflictError(
+                "Registro modificado por otro usuario, recargue e intentelo de nuevo"
+            )
+
         updated = await self._repo.update_budget(budget_id, user_id, **filtered)
         if updated is None:
             raise NotFoundError("Budget")
@@ -69,7 +89,13 @@ class UpdateBudgetUseCase:
 
         updated = await self._repo.recalculate_spent(budget_id, user_id) or updated
 
-        pct_used = (float(updated.spent) / float(updated.amount) * 100) if float(updated.amount) > 0 else 0
+        updated.version += 1
+        await self._session.flush()
+        await self._session.refresh(updated)
+
+        pct_used = (
+            (float(updated.spent) / float(updated.amount) * 100) if float(updated.amount) > 0 else 0
+        )
 
         return {
             "id": str(updated.id),
@@ -90,6 +116,7 @@ class UpdateBudgetUseCase:
             "rollover": updated.rollover,
             "strategy": updated.strategy,
             "is_active": updated.is_active,
+            "version": updated.version,
             "pct_used": round(pct_used, 1),
             "icon": updated.icon,
             "color": updated.color,

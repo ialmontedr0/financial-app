@@ -43,7 +43,9 @@ class UpdateAccountUseCase:
         **fields: Any,
     ) -> dict:
         """Update account fields."""
-        from app.middleware.error_handler import NotFoundError, ValidationError
+        from app.middleware.error_handler import ConflictError, NotFoundError, ValidationError
+
+        expected_version = fields.pop("version", None)
 
         invalid = set(fields.keys()) - ALLOWED_UPDATE_FIELDS
         if invalid:
@@ -75,24 +77,39 @@ class UpdateAccountUseCase:
                 raise ValidationError("color debe ser en formato #RRGGBB")
             fields["color"] = color
 
-        account = await self._repo.update(account_id, user_id, **fields)
+        account = await self._repo.get_by_id(account_id, user_id)
         if account is None:
             raise NotFoundError("Account")
 
+        # Optimistic locking: reject stale writes only when the client sends a version
+        if expected_version is not None and account.version != int(expected_version):
+            raise ConflictError(
+                "Registro modificado por otro usuario, recargue e intentelo de nuevo"
+            )
+
+        updated = await self._repo.update(account_id, user_id, **fields)
+        if updated is None:
+            raise NotFoundError("Account")
+
+        updated.version += 1
+        await self._session.flush()
+        await self._session.refresh(updated)
+
         return {
-            "id": str(account.id),
-            "name": account.name,
-            "account_type": account.account_type,
-            "status": account.status,
-            "currency_code": account.currency_code,
-            "balance": str(account.balance),
-            "institution": account.institution,
-            "account_number_last4": account.account_number_last4,
-            "icon": account.icon,
-            "color": account.color,
-            "notes": account.notes,
-            "include_in_net_worth": account.include_in_net_worth,
-            "include_in_totals": account.include_in_totals,
-            "sort_order": account.sort_order,
-            "updated_at": account.updated_at.isoformat() if account.updated_at else None,
+            "id": str(updated.id),
+            "name": updated.name,
+            "account_type": updated.account_type,
+            "status": updated.status,
+            "currency_code": updated.currency_code,
+            "balance": str(updated.balance),
+            "institution": updated.institution,
+            "account_number_last4": updated.account_number_last4,
+            "icon": updated.icon,
+            "color": updated.color,
+            "notes": updated.notes,
+            "include_in_net_worth": updated.include_in_net_worth,
+            "include_in_totals": updated.include_in_totals,
+            "sort_order": updated.sort_order,
+            "version": updated.version,
+            "updated_at": updated.updated_at.isoformat() if updated.updated_at else None,
         }

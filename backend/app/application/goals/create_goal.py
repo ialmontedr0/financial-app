@@ -11,6 +11,7 @@ from app.infrastructure.repositories.goal_repository import GoalRepository
 if TYPE_CHECKING:
     import uuid
     from datetime import date
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
@@ -43,7 +44,8 @@ class CreateGoalUseCase:
         color: str | None = None,
         image_url: str | None = None,
     ) -> dict:
-        from datetime import date as date_type, timedelta
+        from datetime import date as date_type
+        from datetime import timedelta
 
         from app.middleware.error_handler import ValidationError
 
@@ -132,6 +134,7 @@ class CreateGoalUseCase:
             "icon": goal.icon,
             "color": goal.color,
             "image_url": goal.image_url,
+            "version": goal.version,
             "prediction": prediction,
             "created_at": goal.created_at.isoformat() if goal.created_at else None,
         }
@@ -151,7 +154,7 @@ class CreateGoalUseCase:
         else:
             months = max(int(remaining / monthly), 1)
 
-        from datetime import date as date_type, timedelta
+        from datetime import timedelta
 
         predicted_date = goal.start_date + timedelta(days=int(months * 30.44))
         if predicted_date > goal.target_date:
