@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class CreateBudgetRequest(BaseModel):
@@ -22,6 +22,13 @@ class CreateBudgetRequest(BaseModel):
     strategy: str | None = None
     icon: str | None = None
     color: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _normalize(cls, v: str) -> str:
+        from app.schemas.validators import normalize_name
+
+        return normalize_name(v)
 
 
 class BudgetResponse(BaseModel):

@@ -1,5 +1,6 @@
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from pydantic import BaseModel, EmailStr, Field
+from app.schemas.validators import validate_password_strength
 
 
 # ============================================================
@@ -15,6 +16,11 @@ class RegisterRequest(BaseModel):
         max_length=128,
         description="Password (min 8 characters)",
     )
+
+    @field_validator("password")
+    @classmethod
+    def _strong_password(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 class UserResponse(BaseModel):

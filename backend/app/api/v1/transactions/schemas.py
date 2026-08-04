@@ -5,9 +5,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # === Transaction ===
+
 
 class CreateTransactionRequest(BaseModel):
     account_id: str
@@ -22,6 +23,13 @@ class CreateTransactionRequest(BaseModel):
     notes: str | None = None
     source: str = Field(default="manual")
     tags: list[str] | None = None
+
+    @field_validator("currency_code")
+    @classmethod
+    def _normalize(cls, v: str) -> str:
+        from app.schemas.validators import validate_currency
+
+        return validate_currency(v)
 
 
 class TransactionResponse(BaseModel):
@@ -105,6 +113,7 @@ class ListTransactionsResponse(BaseModel):
 
 # === Transfer ===
 
+
 class TransferCreateRequest(BaseModel):
     source_account_id: str
     destination_account_id: str
@@ -135,6 +144,7 @@ class TransferResponse(BaseModel):
 
 # === Summary ===
 
+
 class TransactionSummaryResponse(BaseModel):
     period_start: str
     period_end: str
@@ -149,6 +159,7 @@ class TransactionSummaryResponse(BaseModel):
 
 
 # === Tags ===
+
 
 class AddTagsRequest(BaseModel):
     tags: list[str] = Field(..., min_length=1)
@@ -168,6 +179,7 @@ class RemoveTagResponse(BaseModel):
 
 
 # === Attachments ===
+
 
 class UploadAttachmentResponse(BaseModel):
     id: str
@@ -190,6 +202,7 @@ class DeleteAttachmentResponse(BaseModel):
 
 
 # === Recurring ===
+
 
 class CreateRecurringRequest(BaseModel):
     account_id: str
@@ -269,6 +282,7 @@ class ProcessRecurringResponse(BaseModel):
 
 # === OCR ===
 
+
 class OCRRequest(BaseModel):
     image_url: str | None = None
 
@@ -280,6 +294,7 @@ class OCRResponse(BaseModel):
 
 
 # === Audit ===
+
 
 class AuditLogEntry(BaseModel):
     id: str
