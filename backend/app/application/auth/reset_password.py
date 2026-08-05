@@ -41,6 +41,17 @@ class ResetPasswordUseCase:
         # Update password
         await self._user_repo.update_password(user_id, new_hash)
 
+        from app.application.auth.notifications import emit_security_notification
+
+        await emit_security_notification(
+            self._session,
+            user_id,
+            event="password_changed",
+            title="Contrasena actualizada",
+            body="Tu contrasena fue cambiada. Si no fuiste tu, contacta soporte de inmediato.",
+            data={"link": "/settings/security"},
+        )
+
         # Delete the token
         await self._session_store.delete_email_verification(token)
 

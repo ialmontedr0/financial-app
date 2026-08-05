@@ -256,8 +256,7 @@ class CategoryRepository:
         stmt = select(CategoryRuleModel)
         if user_id is not None:
             stmt = stmt.where(
-                (CategoryRuleModel.is_system.is_(True))
-                | (CategoryRuleModel.user_id == user_id)
+                (CategoryRuleModel.is_system.is_(True)) | (CategoryRuleModel.user_id == user_id)
             )
         if active_only:
             stmt = stmt.where(CategoryRuleModel.is_active.is_(True))

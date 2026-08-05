@@ -17,15 +17,11 @@ class RoleRepository:
         self._db = db
 
     async def get_by_name(self, name: str) -> RoleModel | None:
-        result = await self._db.execute(
-            select(RoleModel).where(RoleModel.name == name)
-        )
+        result = await self._db.execute(select(RoleModel).where(RoleModel.name == name))
         return result.scalar_one_or_none()
 
     async def get_by_id(self, role_id: UUID) -> RoleModel | None:
-        result = await self._db.execute(
-            select(RoleModel).where(RoleModel.id == role_id)
-        )
+        result = await self._db.execute(select(RoleModel).where(RoleModel.id == role_id))
         return result.scalar_one_or_none()
 
     async def list_all(self, *, include_inactive: bool = False) -> list[RoleModel]:

@@ -20,14 +20,22 @@ class UpdateCardBillUseCase:
         self._session = session
         self._repo = CardRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, card_id: uuid.UUID, bill_id: uuid.UUID, *, changes: dict[str, Any]) -> dict:
+    async def execute(
+        self, user_id: uuid.UUID, card_id: uuid.UUID, bill_id: uuid.UUID, *, changes: dict[str, Any]
+    ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
         card = await self._repo.get_card_by_id(card_id, user_id)
         if card is None:
             raise NotFoundError("CreditCard")
 
-        allowed_fields = {"total_amount", "minimum_payment", "interest_charged", "payment_status", "notes"}
+        allowed_fields = {
+            "total_amount",
+            "minimum_payment",
+            "interest_charged",
+            "payment_status",
+            "notes",
+        }
         filtered = {k: v for k, v in changes.items() if k in allowed_fields}
 
         if "payment_status" in filtered:

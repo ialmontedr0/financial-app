@@ -57,6 +57,23 @@ class LoginUserUseCase:
         # Lockout: block after too many failed attempts
         if await self._lockout_service.is_locked(user.id):
             logger.warning("account_locked", user_id=str(user.id))
+            from app.application.auth.notifications import emit_security_notification
+            from app.infrastructure.repositories.notification_repository import (
+                NotificationRepository,
+            )
+
+            if not await NotificationRepository(self._session).exists_with_data(
+                user.id, "security_alert", "event", "account_locket"
+            ):
+                await emit_security_notification(
+                    self._session,
+                    user.id,
+                    event="account_locked",
+                    title="Cuenta bloqueada temporalmente",
+                    body="Se detectaron multiples intentos fallidos de inicio de sesion y tu cuenta fue bloqueada temporalmente.",
+                    ip_address=ip_address,
+                    data={"link": "/settings/security"},
+                )
             raise TooManyAttemptsError()
 
         # Verify password
@@ -84,6 +101,23 @@ class LoginUserUseCase:
                 "message": "MFA verification required",
             }
 
+        from sqlalchemy import select
+
+        from app.infrastructure.models.user_session import UserSessionModel
+
+        device_fp = f"{user_agent[:50]}|{ip_address}"
+        existing_session = await self._session.execute(
+            select(UserSessionModel.id)
+            .where(
+                UserSessionModel.user_id == user.id,
+                UserSessionModel.device_info == device_fp,
+                UserSessionModel.is_revoked.is_(False),
+                UserSessionModel.expires_at > datetime.now(UTC),
+            )
+            .limit(1)
+        )
+        is_new_device = existing_session.first() is None
+
         # No MFA — issue full tokens
         tokens = await self._issue_tokens(user_id_str, ip_address, user_agent)
 
@@ -98,6 +132,20 @@ class LoginUserUseCase:
             user_agent=user_agent,
         )
         logger.info("user_logged_in", event_type=event.event_type, user_id=user_id_str)
+
+        if is_new_device:
+            from app.application.auth.notifications import emit_security_notification
+
+            await emit_security_notification(
+                self._session,
+                user.id,
+                event="new_device_login",
+                title="Nuevo inicio de sesion",
+                body=f"Se inicio de sesion en tu cuenta desde un dispositivo nuevo (IP {ip_address}).",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                data={"link": "/settings/security"},
+            )
 
         return {
             "requires_mfa": False,

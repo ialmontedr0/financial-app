@@ -21,9 +21,7 @@ class UpdateDebitCardUseCase:
         self._session = session
         self._repo = DebitCardRepository(session)
 
-    async def execute(
-        self, user_id: uuid.UUID, card_id: uuid.UUID, changes: dict
-    ) -> dict:
+    async def execute(self, user_id: uuid.UUID, card_id: uuid.UUID, changes: dict) -> dict:
         from app.middleware.error_handler import NotFoundError
 
         card = await self._repo.update(card_id, user_id, **changes)

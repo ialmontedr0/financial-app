@@ -30,12 +30,12 @@ class SimulateCreditPurchaseUseCase:
         if installment_amount is not None and installment_amount > 0:
             inst_amt = Decimal(str(installment_amount))
         else:
-            inst_amt = calculate_installment(financed, rate, installment_count, installment_frequency)
+            inst_amt = calculate_installment(
+                financed, rate, installment_count, installment_frequency
+            )
 
         total_paid = inst_amt * Decimal(installment_count)
-        total_interest = (total_paid - financed).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        total_interest = (total_paid - financed).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         if total_interest < 0:
             total_interest = Decimal("0")
 
@@ -52,9 +52,7 @@ class SimulateCreditPurchaseUseCase:
         current_date = first_due
 
         for i in range(1, installment_count + 1):
-            interest = (balance * rate_per_period).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
+            interest = (balance * rate_per_period).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             principal_portion = (inst_amt - interest).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
@@ -70,14 +68,16 @@ class SimulateCreditPurchaseUseCase:
             if balance < 0:
                 balance = Decimal("0")
 
-            schedule.append({
-                "installment_number": i,
-                "due_date": current_date.isoformat(),
-                "amount": float(payment_amount),
-                "principal_portion": float(principal_portion),
-                "interest_portion": float(interest),
-                "balance_after": float(balance),
-            })
+            schedule.append(
+                {
+                    "installment_number": i,
+                    "due_date": current_date.isoformat(),
+                    "amount": float(payment_amount),
+                    "principal_portion": float(principal_portion),
+                    "interest_portion": float(interest),
+                    "balance_after": float(balance),
+                }
+            )
 
             months_to_add = int(freq_months)
             month = current_date.month + months_to_add

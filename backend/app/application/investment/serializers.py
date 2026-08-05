@@ -42,9 +42,7 @@ def serialize_portfolio(portfolio: PortfolioModel, asset_count: int = 0) -> dict
     }
 
 
-def serialize_portfolio_asset(
-    pa: PortfolioAssetModel, asset: AssetModel | None
-) -> dict[str, Any]:
+def serialize_portfolio_asset(pa: PortfolioAssetModel, asset: AssetModel | None) -> dict[str, Any]:
     return {
         "asset_id": str(pa.asset_id),
         "name": asset.name if asset else "",

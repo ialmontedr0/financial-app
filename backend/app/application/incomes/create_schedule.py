@@ -51,7 +51,9 @@ class CreateScheduleUseCase:
 
         valid_statuses = {"projected", "expected", "received", "overdue", "cancelled"}
         if status not in valid_statuses:
-            raise ValidationError(f"status no valido: {status}. Soportado: {', '.join(sorted(valid_statuses))}")
+            raise ValidationError(
+                f"status no valido: {status}. Soportado: {', '.join(sorted(valid_statuses))}"
+            )
 
         schedule = await self._repo.create_schedule(
             user_id,
@@ -99,9 +101,13 @@ class CreateScheduleUseCase:
                 notes=notes,
             )
 
-            await self._repo.update_schedule(schedule.id, user_id,
-                status="received", received_transaction_id=tx.id,
-                received_at=datetime.now(UTC))
+            await self._repo.update_schedule(
+                schedule.id,
+                user_id,
+                status="received",
+                received_transaction_id=tx.id,
+                received_at=datetime.now(UTC),
+            )
 
             if schedule.income_source_id:
                 await self._repo.increment_source_stats(schedule.income_source_id, final_amount)
@@ -110,7 +116,11 @@ class CreateScheduleUseCase:
                 tx_id=tx.id,
                 user_id=user_id,
                 action="auto_received_scheduled",
-                changes={"schedule_id": str(schedule.id), "amount": str(final_amount), "reason": "past_expected_date"},
+                changes={
+                    "schedule_id": str(schedule.id),
+                    "amount": str(final_amount),
+                    "reason": "past_expected_date",
+                },
                 ip_address=None,
                 user_agent=None,
             )
@@ -136,7 +146,9 @@ class CreateScheduleUseCase:
                 "expected_date": schedule.expected_date.isoformat(),
                 "status": "received",
                 "frequency": schedule.frequency,
-                "income_source_id": str(schedule.income_source_id) if schedule.income_source_id else None,
+                "income_source_id": str(schedule.income_source_id)
+                if schedule.income_source_id
+                else None,
                 "projection_method": schedule.projection_method,
                 "notes": schedule.notes,
                 "created_at": schedule.created_at.isoformat() if schedule.created_at else None,
@@ -152,7 +164,9 @@ class CreateScheduleUseCase:
             "expected_date": schedule.expected_date.isoformat(),
             "status": schedule.status,
             "frequency": schedule.frequency,
-            "income_source_id": str(schedule.income_source_id) if schedule.income_source_id else None,
+            "income_source_id": str(schedule.income_source_id)
+            if schedule.income_source_id
+            else None,
             "projection_method": schedule.projection_method,
             "notes": schedule.notes,
             "created_at": schedule.created_at.isoformat() if schedule.created_at else None,

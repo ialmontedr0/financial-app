@@ -18,7 +18,7 @@ class DetectAnomaliesUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, user_id: uuid.UUID, *, engine: str = "isolation_forest") -> dict:
+    async def execute(self, user_id: uuid.UUID, *, engine: str = "isolation_forest") -> dict:  # noqa: ARG002
         from app.ai.anomaly.isolation_forest_detector import anomaly_detector
         from app.infrastructure.repositories.ai_repository import AIRepository
 
@@ -39,7 +39,12 @@ class DetectAnomaliesUseCase:
 
         # Log anomalies as predictions
         for anomaly in anomalies:
-            severity_map = {"low": Decimal("0.25"), "medium": Decimal("0.5"), "high": Decimal("0.75"), "critical": Decimal("1.0")}
+            severity_map = {
+                "low": Decimal("0.25"),
+                "medium": Decimal("0.5"),
+                "high": Decimal("0.75"),
+                "critical": Decimal("1.0"),
+            }
             await repo.create_prediction(
                 user_id,
                 prediction_type="anomaly",
@@ -50,6 +55,10 @@ class DetectAnomaliesUseCase:
                 features_used=anomaly,
                 transaction_id=uuid.UUID(anomaly["transaction_id"]),
             )
+
+        from app.application.ai.notifications import emit_anomaly_notifications
+
+        await emit_anomaly_notifications(self._session, user_id, anomalies)
 
         return {
             "anomalies": anomalies,

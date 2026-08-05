@@ -121,8 +121,12 @@ class PortfolioAssetModel(Base):
         nullable=False,
         index=True,
     )
-    quantity: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=8), nullable=False, default=Decimal("0"))
-    cost_basis: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False, default=Decimal("0"))
+    quantity: Mapped[Decimal] = mapped_column(
+        Numeric(precision=19, scale=8), nullable=False, default=Decimal("0")
+    )
+    cost_basis: Mapped[Decimal] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=False, default=Decimal("0")
+    )
     average_price: Mapped[Decimal | None] = mapped_column(
         Numeric(precision=19, scale=4), nullable=True, default=None
     )
@@ -174,7 +178,9 @@ class InvestmentTransactionModel(Base):
     quantity: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=8), nullable=False)
     price_per_unit: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False)
     total_amount: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False)
-    fees: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False, default=Decimal("0"))
+    fees: Mapped[Decimal] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=False, default=Decimal("0")
+    )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 

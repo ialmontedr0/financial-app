@@ -44,14 +44,16 @@ class GetWalletUseCase:
             )
             result = await self._session.execute(stmt)
             for a in result.scalars().all():
-                accounts.append({
-                    "id": str(a.id),
-                    "name": a.name,
-                    "account_type": a.account_type,
-                    "currency_code": a.currency_code,
-                    "balance": str(a.balance),
-                    "status": a.status,
-                })
+                accounts.append(
+                    {
+                        "id": str(a.id),
+                        "name": a.name,
+                        "account_type": a.account_type,
+                        "currency_code": a.currency_code,
+                        "balance": str(a.balance),
+                        "status": a.status,
+                    }
+                )
 
         return {
             "id": str(wallet.id),

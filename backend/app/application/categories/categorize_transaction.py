@@ -57,7 +57,9 @@ class CategorizeTransactionUseCase:
 
             result = {
                 "category_id": str(best_rule.target_category_id),
-                "subcategory_id": str(best_rule.target_subcategory_id) if best_rule.target_subcategory_id else None,
+                "subcategory_id": str(best_rule.target_subcategory_id)
+                if best_rule.target_subcategory_id
+                else None,
                 "method": "rule",
                 "confidence": 1.0,
                 "rule_id": str(best_rule.id),

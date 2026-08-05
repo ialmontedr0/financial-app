@@ -1,4 +1,3 @@
-
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 

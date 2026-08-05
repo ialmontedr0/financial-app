@@ -57,11 +57,13 @@ async def process_import(
                     try:
                         effective_date = datetime.strptime(tx_data["date"], "%d/%m/%Y").date()  # noqa: DTZ007
                     except (ValueError, TypeError):
-                        errors.append({
-                            "row": idx + 1,
-                            "field": "date",
-                            "message": f"Cannot parse date: {tx_data['date']}",
-                        })
+                        errors.append(
+                            {
+                                "row": idx + 1,
+                                "field": "date",
+                                "message": f"Cannot parse date: {tx_data['date']}",
+                            }
+                        )
                         error_count += 1
                         continue
 
@@ -98,7 +100,9 @@ async def process_import(
                     account_id = next(iter(accounts.values())).id
                     transaction.account_id = account_id
                 else:
-                    errors.append({"row": idx + 1, "field": "account", "message": "No account found"})
+                    errors.append(
+                        {"row": idx + 1, "field": "account", "message": "No account found"}
+                    )
                     error_count += 1
                     continue
 

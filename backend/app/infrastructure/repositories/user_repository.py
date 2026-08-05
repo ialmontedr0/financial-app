@@ -110,3 +110,14 @@ class UserRepository:
             stmt = stmt.where(UserModel.role == role)
         result = await self._session.execute(stmt)
         return result.scalar() or 0
+
+    async def list_active_ids(self) -> list[uuid.UUID]:
+        """Lista los IDs de todos los usuarios activos (no soft-deleted.)
+
+        Returns:
+            list[uuid.UUID]: [IDs]
+        """
+        result = await self._session.execute(
+            select(UserModel.id).where(UserModel.deleted_at.is_(None))
+        )
+        return list(result.scalars().all())

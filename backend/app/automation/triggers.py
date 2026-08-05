@@ -157,9 +157,7 @@ class TriggerEvaluator:
         if not goal_id:
             return False
 
-        stmt = select(FinancialGoalModel).where(
-            FinancialGoalModel.id == uuid.UUID(goal_id)
-        )
+        stmt = select(FinancialGoalModel).where(FinancialGoalModel.id == uuid.UUID(goal_id))
         result = await self._session.execute(stmt)
         goal = result.scalar_one_or_none()
 

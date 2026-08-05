@@ -27,9 +27,7 @@ class AutomationExecutionLogModel(Base):
         Index("ix_auto_exec_log_user", "user_id", "executed_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     rule_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("automation_rule.id", ondelete="CASCADE"),
@@ -53,12 +51,8 @@ class AutomationExecutionLogModel(Base):
         Numeric(precision=19, scale=4), nullable=True
     )
 
-    source_account_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
-    target_account_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
+    source_account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    target_account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
     is_dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 

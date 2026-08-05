@@ -8,9 +8,7 @@ from httpx import AsyncClient
 
 @pytest.mark.api
 class TestImports:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": password},
@@ -34,9 +32,7 @@ class TestImports:
         assert data["total_rows"] == 2
         assert "job_id" in data
 
-    async def test_upload_invalid_extension(
-        self, client: AsyncClient, test_password: str
-    ):
+    async def test_upload_invalid_extension(self, client: AsyncClient, test_password: str):
         token = await self._register_and_login(client, "import_invalid@test.com", test_password)
         resp = await client.post(
             "/api/v1/imports/transactions",

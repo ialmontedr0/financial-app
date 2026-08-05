@@ -49,7 +49,9 @@ class TestSearch:
         await self._create_transaction(client, token, acc_id, "Supermercado La Colonia")
         await self._create_transaction(client, token, acc_id, "Farmacia Cruz Verde")
 
-        resp = await client.get("/api/v1/search/transactions", headers=headers, params={"q": "supermercado"})
+        resp = await client.get(
+            "/api/v1/search/transactions", headers=headers, params={"q": "supermercado"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
@@ -62,12 +64,16 @@ class TestSearch:
         await self._create_transaction(client, token_a, acc_a, "Pago Netflix")
 
         resp_a = await client.get(
-            "/api/v1/search/transactions", headers={"Authorization": f"Bearer {token_a}"}, params={"q": "netflix"}
+            "/api/v1/search/transactions",
+            headers={"Authorization": f"Bearer {token_a}"},
+            params={"q": "netflix"},
         )
         assert resp_a.json()["total"] == 1
 
         resp_b = await client.get(
-            "/api/v1/search/transactions", headers={"Authorization": f"Bearer {token_b}"}, params={"q": "netflix"}
+            "/api/v1/search/transactions",
+            headers={"Authorization": f"Bearer {token_b}"},
+            params={"q": "netflix"},
         )
         assert resp_b.json()["total"] == 0
 

@@ -25,16 +25,27 @@ class TransactionRecurringModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     account_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("financial_account.id", ondelete="CASCADE"), nullable=False,
+        UUID(as_uuid=True),
+        ForeignKey("financial_account.id", ondelete="CASCADE"),
+        nullable=False,
     )
     category_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("category.id", ondelete="SET NULL"), nullable=True, default=None,
+        UUID(as_uuid=True),
+        ForeignKey("category.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
     subcategory_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("subcategory.id", ondelete="SET NULL"), nullable=True, default=None,
+        UUID(as_uuid=True),
+        ForeignKey("subcategory.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
 
     transaction_type: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -52,13 +63,22 @@ class TransactionRecurringModel(Base):
     max_executions: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     execution_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    last_executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False,
+    last_executed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
 
     user: Mapped[UserModel] = relationship("UserModel", lazy="noload")
     account: Mapped[FinancialAccountModel] = relationship("FinancialAccountModel", lazy="selectin")

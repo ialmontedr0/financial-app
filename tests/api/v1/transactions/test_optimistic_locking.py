@@ -17,7 +17,9 @@ class TestOptimisticLocking:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def _create_account(self, client: AsyncClient, token: str) -> dict:
@@ -28,7 +30,9 @@ class TestOptimisticLocking:
         )
         return resp.json()
 
-    async def test_update_without_version_always_succeeds(self, client: AsyncClient, test_password: str):
+    async def test_update_without_version_always_succeeds(
+        self, client: AsyncClient, test_password: str
+    ):
         token = await self._register_and_login(client, "noversion@test.com", test_password)
         acc = await self._create_account(client, token)
 
@@ -45,7 +49,9 @@ class TestOptimisticLocking:
         )
         assert get_resp.json()["name"] == "Updated No Version"
 
-    async def test_update_with_correct_version_succeeds(self, client: AsyncClient, test_password: str):
+    async def test_update_with_correct_version_succeeds(
+        self, client: AsyncClient, test_password: str
+    ):
         token = await self._register_and_login(client, "correctver@test.com", test_password)
         acc = await self._create_account(client, token)
         initial_version = acc["version"]
@@ -59,7 +65,9 @@ class TestOptimisticLocking:
         assert resp.status_code == 200
         assert resp.json()["version"] == initial_version + 1
 
-    async def test_update_with_stale_version_returns_409(self, client: AsyncClient, test_password: str):
+    async def test_update_with_stale_version_returns_409(
+        self, client: AsyncClient, test_password: str
+    ):
         token = await self._register_and_login(client, "stalever@test.com", test_password)
         acc = await self._create_account(client, token)
         stale_version = acc["version"]  # version 1
@@ -83,7 +91,9 @@ class TestOptimisticLocking:
         assert data["error"]["code"] == "CONFLICT"
         assert "otro usuario" in data["error"]["message"]
 
-    async def test_after_conflict_re_read_and_retry_succeeds(self, client: AsyncClient, test_password: str):
+    async def test_after_conflict_re_read_and_retry_succeeds(
+        self, client: AsyncClient, test_password: str
+    ):
         token = await self._register_and_login(client, "retry@test.com", test_password)
         acc = await self._create_account(client, token)
 

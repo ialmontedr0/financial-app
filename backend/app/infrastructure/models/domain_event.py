@@ -17,15 +17,11 @@ class DomainEventModel(Base):
     """Durable record of domain events processed by the event bus worker."""
 
     __tablename__ = "domain_event"
-    __table_args__ = (
-        Index("ix_domain_event_type_status", "event_type", "status"),
-    )
+    __table_args__ = (Index("ix_domain_event_type_status", "event_type", "status"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     event_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
-    aggregate_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
+    aggregate_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False)
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True, index=True, default=None
@@ -41,7 +37,4 @@ class DomainEventModel(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<DomainEvent(id={self.id}, event_type={self.event_type}, "
-            f"status={self.status})>"
-        )
+        return f"<DomainEvent(id={self.id}, event_type={self.event_type}, status={self.status})>"

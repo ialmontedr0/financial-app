@@ -33,12 +33,14 @@ class TelegramLinkRepository:
     async def get_active_by_user(self, user_id: UUID) -> TelegramLinkCodeModel | None:
         now = datetime.utcnow()
         result = await self._db.execute(
-            select(TelegramLinkCodeModel).where(
+            select(TelegramLinkCodeModel)
+            .where(
                 and_(
                     TelegramLinkCodeModel.user_id == user_id,
                     TelegramLinkCodeModel.is_used == False,
                     TelegramLinkCodeModel.expires_at > now,
                 )
-            ).order_by(TelegramLinkCodeModel.created_at.desc())
+            )
+            .order_by(TelegramLinkCodeModel.created_at.desc())
         )
         return result.scalar_one_or_none()

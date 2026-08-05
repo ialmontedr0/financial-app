@@ -33,4 +33,7 @@ class ListTransactionsUseCase:
             transactions = await self._repo.list_user_transactions(user_id)
 
         logger.info("investment_transactions_listed", user_id=str(user_id), count=len(transactions))
-        return {"transactions": [serialize_transaction(tx) for tx in transactions], "total": len(transactions)}
+        return {
+            "transactions": [serialize_transaction(tx) for tx in transactions],
+            "total": len(transactions),
+        }

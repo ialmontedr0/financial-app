@@ -41,7 +41,9 @@ class GetIncomeUseCase:
 
         source_name = None
         if income.income_source_id:
-            source_model = await self._income_repo.get_source_by_id(income.income_source_id, user_id)
+            source_model = await self._income_repo.get_source_by_id(
+                income.income_source_id, user_id
+            )
             source_name = source_model.name if source_model else None
 
         return {

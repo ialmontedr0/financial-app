@@ -35,13 +35,9 @@ class FinancialGoalModel(Base, VersionMixin):
     """Financial goal for tracking savings, debt payoff, investments, etc."""
 
     __tablename__ = "financial_goal"
-    __table_args__ = (
-        Index("ix_financial_goal_user_status", "user_id", "status"),
-    )
+    __table_args__ = (Index("ix_financial_goal_user_status", "user_id", "status"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("user.id", ondelete="CASCADE"),

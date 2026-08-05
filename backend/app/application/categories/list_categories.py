@@ -40,27 +40,29 @@ class ListCategoriesUseCase:
         result: list[dict] = []
         for cat in categories:
             subs = await self._repo.list_subcategories(cat.id)
-            result.append({
-                "id": str(cat.id),
-                "name": cat.name,
-                "description": cat.description,
-                "category_type": cat.category_type,
-                "is_system": cat.is_system,
-                "is_active": cat.is_active,
-                "icon": cat.icon,
-                "color": cat.color,
-                "sort_order": cat.sort_order,
-                "subcategories": [
-                    {
-                        "id": str(s.id),
-                        "name": s.name,
-                        "icon": s.icon,
-                        "color": s.color,
-                        "sort_order": s.sort_order,
-                    }
-                    for s in subs
-                ],
-                "created_at": cat.created_at.isoformat() if cat.created_at else None,
-            })
+            result.append(
+                {
+                    "id": str(cat.id),
+                    "name": cat.name,
+                    "description": cat.description,
+                    "category_type": cat.category_type,
+                    "is_system": cat.is_system,
+                    "is_active": cat.is_active,
+                    "icon": cat.icon,
+                    "color": cat.color,
+                    "sort_order": cat.sort_order,
+                    "subcategories": [
+                        {
+                            "id": str(s.id),
+                            "name": s.name,
+                            "icon": s.icon,
+                            "color": s.color,
+                            "sort_order": s.sort_order,
+                        }
+                        for s in subs
+                    ],
+                    "created_at": cat.created_at.isoformat() if cat.created_at else None,
+                }
+            )
 
         return result

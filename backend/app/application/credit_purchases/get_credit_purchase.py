@@ -53,7 +53,9 @@ class GetCreditPurchaseUseCase:
             "status": purchase.status,
             "notes": purchase.notes,
             "paid_installments": paid,
-            "progress_pct": round(paid / purchase.installment_count * 100, 1) if purchase.installment_count > 0 else 0,
+            "progress_pct": round(paid / purchase.installment_count * 100, 1)
+            if purchase.installment_count > 0
+            else 0,
             "installments": installments,
             "created_at": purchase.created_at.isoformat() if purchase.created_at else None,
             "updated_at": purchase.updated_at.isoformat() if purchase.updated_at else None,

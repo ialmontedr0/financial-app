@@ -19,6 +19,7 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 # ─── Roles ──────────────────────────────────────────────
 
+
 @router.get("/roles", response_model=admin_schemas.RoleListResponse)
 async def list_roles(
     include_inactive: bool = Query(False),
@@ -193,6 +194,7 @@ async def remove_permission(
 
 # ─── Permisos ──────────────────────────────────────────
 
+
 @router.get("/permissions", response_model=admin_schemas.PermissionListResponse)
 async def list_permissions(
     current_user: dict = Depends(require_admin()),
@@ -218,6 +220,7 @@ async def get_permission(
 
 # ─── User Management ───────────────────────────────────
 
+
 @router.get("/users", response_model=admin_schemas.UserListAdminResponse)
 async def list_users(
     skip: int = Query(0, ge=0),
@@ -231,8 +234,11 @@ async def list_users(
     total = await user_repo.count_users(role=role)
     items = [
         admin_schemas.UserListResponse(
-            id=u.id, email=u.email, role=u.role,
-            is_active=u.is_active, is_verified=u.is_verified,
+            id=u.id,
+            email=u.email,
+            role=u.role,
+            is_active=u.is_active,
+            is_verified=u.is_verified,
             created_at=u.created_at,
         )
         for u in users
@@ -392,6 +398,7 @@ async def update_user(
 
 # ─── Audit Log ─────────────────────────────────────────
 
+
 @router.get("/audit", response_model=admin_schemas.AuditLogListResponse)
 async def list_audit_logs(
     user_id: UUID | None = Query(None),
@@ -405,8 +412,12 @@ async def list_audit_logs(
 ):
     repo = AuditRepository(db)
     logs = await repo.list_logs(
-        user_id=user_id, action=action, resource=resource,
-        status=status, skip=skip, limit=limit,
+        user_id=user_id,
+        action=action,
+        resource=resource,
+        status=status,
+        skip=skip,
+        limit=limit,
     )
     total = await repo.count_logs(user_id=user_id, action=action, resource=resource)
     return admin_schemas.AuditLogListResponse(logs=logs, total=total)
@@ -436,6 +447,7 @@ async def get_audit_log(
 
 # ─── System Stats ──────────────────────────────────────
 
+
 @router.get("/stats", response_model=admin_schemas.SystemStatsResponse)
 async def system_stats(
     current_user: dict = Depends(require_admin()),
@@ -452,16 +464,20 @@ async def system_stats(
     from app.infrastructure.models.user_session import UserSessionModel
 
     users_total = (await db.execute(select(func.count(UserModel.id)))).scalar() or 0
-    users_active = (await db.execute(
-        select(func.count(UserModel.id)).where(UserModel.is_active == True)  # noqa: E712
-    )).scalar() or 0
+    users_active = (
+        await db.execute(
+            select(func.count(UserModel.id)).where(UserModel.is_active == True)  # noqa: E712
+        )
+    ).scalar() or 0
     roles_total = (await db.execute(select(func.count(RoleModel.id)))).scalar() or 0
     perms_total = (await db.execute(select(func.count(PermissionModel.id)))).scalar() or 0
     audit_total = (await db.execute(select(func.count(SystemAuditLogModel.id)))).scalar() or 0
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    recent_logins = (await db.execute(
-        select(func.count(UserSessionModel.id)).where(UserSessionModel.created_at >= week_ago)
-    )).scalar() or 0
+    recent_logins = (
+        await db.execute(
+            select(func.count(UserSessionModel.id)).where(UserSessionModel.created_at >= week_ago)
+        )
+    ).scalar() or 0
 
     return admin_schemas.SystemStatsResponse(
         total_users=users_total,

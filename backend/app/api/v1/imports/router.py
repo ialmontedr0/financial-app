@@ -30,7 +30,9 @@ async def upload_transactions(
     if file.filename:
         file_ext = "." + file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if file_ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"File type not allowed. Use: {ALLOWED_EXTENSIONS}")
+        raise HTTPException(
+            status_code=400, detail=f"File type not allowed. Use: {ALLOWED_EXTENSIONS}"
+        )
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:

@@ -29,8 +29,18 @@ class GetAuditLogUseCase:
             raise NotFoundError("Transaction")
 
         logs = await self._repo.get_audit_log(transaction_id)
-        return {"transaction_id": str(transaction_id), "audit_logs": [
-            {"id": str(log.id), "action": log.action, "changes": log.changes,
-             "ip_address": log.ip_address, "user_agent": log.user_agent,
-             "created_at": log.created_at.isoformat() if log.created_at else None}
-            for log in logs], "total": len(logs)}
+        return {
+            "transaction_id": str(transaction_id),
+            "audit_logs": [
+                {
+                    "id": str(log.id),
+                    "action": log.action,
+                    "changes": log.changes,
+                    "ip_address": log.ip_address,
+                    "user_agent": log.user_agent,
+                    "created_at": log.created_at.isoformat() if log.created_at else None,
+                }
+                for log in logs
+            ],
+            "total": len(logs),
+        }

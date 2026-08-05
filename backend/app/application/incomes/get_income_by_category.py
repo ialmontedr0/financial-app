@@ -64,15 +64,23 @@ class GetIncomeByCategoryUseCase:
         for r in rows:
             total = Decimal(str(r.total or 0))
             grand_total += total
-            items.append({
-                "category_id": str(r.category_id) if r.category_id else None,
-                "category_name": r.category_name or "Sin categoria",
-                "count": r.count,
-                "total": str(total),
-            })
+            items.append(
+                {
+                    "category_id": str(r.category_id) if r.category_id else None,
+                    "category_name": r.category_name or "Sin categoria",
+                    "count": r.count,
+                    "total": str(total),
+                }
+            )
 
         for item in items:
             t = Decimal(item["total"])
-            item["percentage"] = str(round(float(t / grand_total * 100), 2)) if grand_total > 0 else "0"
+            item["percentage"] = (
+                str(round(float(t / grand_total * 100), 2)) if grand_total > 0 else "0"
+            )
 
-        return {"categories": items, "grand_total": str(grand_total), "total_categories": len(items)}
+        return {
+            "categories": items,
+            "grand_total": str(grand_total),
+            "total_categories": len(items),
+        }

@@ -50,7 +50,9 @@ class GoalRepository:
         result = await self._session.execute(stmt)
         return float(result.scalar_one())
 
-    async def get_goal_by_id(self, goal_id: uuid.UUID, user_id: uuid.UUID) -> FinancialGoalModel | None:
+    async def get_goal_by_id(
+        self, goal_id: uuid.UUID, user_id: uuid.UUID
+    ) -> FinancialGoalModel | None:
         stmt = select(FinancialGoalModel).where(
             FinancialGoalModel.id == goal_id,
             FinancialGoalModel.user_id == user_id,
@@ -77,11 +79,15 @@ class GoalRepository:
             stmt = stmt.where(FinancialGoalModel.status == status)
         if priority is not None:
             stmt = stmt.where(FinancialGoalModel.priority == priority)
-        stmt = stmt.order_by(FinancialGoalModel.priority.asc(), FinancialGoalModel.created_at.desc())
+        stmt = stmt.order_by(
+            FinancialGoalModel.priority.asc(), FinancialGoalModel.created_at.desc()
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update_goal(self, goal_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object) -> FinancialGoalModel | None:
+    async def update_goal(
+        self, goal_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
+    ) -> FinancialGoalModel | None:
         goal = await self.get_goal_by_id(goal_id, user_id)
         if goal is None:
             return None
@@ -106,7 +112,9 @@ class GoalRepository:
     # Progress & Recalculation
     # ==================================================================
 
-    async def recalculate_progress(self, goal_id: uuid.UUID, user_id: uuid.UUID) -> FinancialGoalModel | None:
+    async def recalculate_progress(
+        self, goal_id: uuid.UUID, user_id: uuid.UUID
+    ) -> FinancialGoalModel | None:
         goal = await self.get_goal_by_id(goal_id, user_id)
         if goal is None:
             return None
@@ -199,11 +207,17 @@ class GoalRepository:
         await self._session.flush()
         return milestone
 
-    async def list_milestones(self, goal_id: uuid.UUID, user_id: uuid.UUID) -> list[GoalMilestoneModel]:
-        stmt = select(GoalMilestoneModel).where(
-            GoalMilestoneModel.goal_id == goal_id,
-            GoalMilestoneModel.user_id == user_id,
-        ).order_by(GoalMilestoneModel.created_at.desc())
+    async def list_milestones(
+        self, goal_id: uuid.UUID, user_id: uuid.UUID
+    ) -> list[GoalMilestoneModel]:
+        stmt = (
+            select(GoalMilestoneModel)
+            .where(
+                GoalMilestoneModel.goal_id == goal_id,
+                GoalMilestoneModel.user_id == user_id,
+            )
+            .order_by(GoalMilestoneModel.created_at.desc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
@@ -218,15 +232,23 @@ class GoalRepository:
         logger.info("goal_simulation_created", user_id=str(user_id), simulation_id=str(sim.id))
         return sim
 
-    async def list_simulations(self, goal_id: uuid.UUID, user_id: uuid.UUID) -> list[GoalSimulationModel]:
-        stmt = select(GoalSimulationModel).where(
-            GoalSimulationModel.goal_id == goal_id,
-            GoalSimulationModel.user_id == user_id,
-        ).order_by(GoalSimulationModel.created_at.desc())
+    async def list_simulations(
+        self, goal_id: uuid.UUID, user_id: uuid.UUID
+    ) -> list[GoalSimulationModel]:
+        stmt = (
+            select(GoalSimulationModel)
+            .where(
+                GoalSimulationModel.goal_id == goal_id,
+                GoalSimulationModel.user_id == user_id,
+            )
+            .order_by(GoalSimulationModel.created_at.desc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_simulation_by_id(self, simulation_id: uuid.UUID, user_id: uuid.UUID) -> GoalSimulationModel | None:
+    async def get_simulation_by_id(
+        self, simulation_id: uuid.UUID, user_id: uuid.UUID
+    ) -> GoalSimulationModel | None:
         stmt = select(GoalSimulationModel).where(
             GoalSimulationModel.id == simulation_id,
             GoalSimulationModel.user_id == user_id,
@@ -254,25 +276,37 @@ class GoalRepository:
 
         month_expr = func.date_trunc("month", TransactionModel.effective_date).label("month")
 
-        income_stmt = select(month_expr, func.coalesce(func.sum(TransactionModel.amount), 0).label("total")).where(
-            TransactionModel.user_id == user_id,
-            TransactionModel.transaction_type == "income",
-            TransactionModel.status == "completed",
-            TransactionModel.effective_date >= start,
-            TransactionModel.deleted_at.is_(None),
-        ).group_by(month_expr).order_by(month_expr)
+        income_stmt = (
+            select(month_expr, func.coalesce(func.sum(TransactionModel.amount), 0).label("total"))
+            .where(
+                TransactionModel.user_id == user_id,
+                TransactionModel.transaction_type == "income",
+                TransactionModel.status == "completed",
+                TransactionModel.effective_date >= start,
+                TransactionModel.deleted_at.is_(None),
+            )
+            .group_by(month_expr)
+            .order_by(month_expr)
+        )
         income_result = await self._session.execute(income_stmt)
         income_data = [{"month": str(row[0]), "total": str(row[1])} for row in income_result.all()]
 
-        expense_stmt = select(month_expr, func.coalesce(func.sum(TransactionModel.amount), 0).label("total")).where(
-            TransactionModel.user_id == user_id,
-            TransactionModel.transaction_type == "expense",
-            TransactionModel.status == "completed",
-            TransactionModel.effective_date >= start,
-            TransactionModel.deleted_at.is_(None),
-        ).group_by(month_expr).order_by(month_expr)
+        expense_stmt = (
+            select(month_expr, func.coalesce(func.sum(TransactionModel.amount), 0).label("total"))
+            .where(
+                TransactionModel.user_id == user_id,
+                TransactionModel.transaction_type == "expense",
+                TransactionModel.status == "completed",
+                TransactionModel.effective_date >= start,
+                TransactionModel.deleted_at.is_(None),
+            )
+            .group_by(month_expr)
+            .order_by(month_expr)
+        )
         expense_result = await self._session.execute(expense_stmt)
-        expense_data = [{"month": str(row[0]), "total": str(row[1])} for row in expense_result.all()]
+        expense_data = [
+            {"month": str(row[0]), "total": str(row[1])} for row in expense_result.all()
+        ]
 
         total_income = sum(float(d["total"]) for d in income_data)
         total_expense = sum(float(d["total"]) for d in expense_data)
@@ -298,7 +332,11 @@ class GoalRepository:
 
         total_target_active = sum(float(g.target_amount) for g in active)
         total_current = sum(float(g.current_amount) for g in active)
-        pct_overall = round((total_current / total_target_active * 100), 1) if total_target_active > 0 else 0.0
+        pct_overall = (
+            round((total_current / total_target_active * 100), 1)
+            if total_target_active > 0
+            else 0.0
+        )
 
         behind_count = 0
         for g in active:
@@ -308,7 +346,11 @@ class GoalRepository:
             days_total = max((g.target_date - g.start_date).days, 1)
             days_elapsed = max((today - g.start_date).days, 0)
             time_pct = days_elapsed / days_total * 100
-            current_pct = float(g.current_amount) / float(g.target_amount) * 100 if float(g.target_amount) > 0 else 0
+            current_pct = (
+                float(g.current_amount) / float(g.target_amount) * 100
+                if float(g.target_amount) > 0
+                else 0
+            )
             if current_pct < time_pct:
                 behind_count += 1
 

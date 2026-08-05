@@ -196,7 +196,6 @@ async def detect_recurring_candidates(
     return await DetectRecurringUseCase(db).execute(uuid.UUID(current_user["sub"]))
 
 
-
 # ======================================================================
 # Templates
 # ======================================================================

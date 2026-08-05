@@ -25,7 +25,9 @@ if TYPE_CHECKING:
 logger = structlog.get_logger()
 
 _MONEY_RE = re.compile(r"\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})")
-_DATE_SEPARATOR_RE = re.compile(r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b")
+_DATE_SEPARATOR_RE = re.compile(
+    r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b"
+)
 
 _TOTAL_KEYWORDS = r"total|importe|monto|amount|a pagar|balance|grand total|total due"
 
@@ -57,7 +59,9 @@ _MONTH_SHORT_EN = r"jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec"
 
 _DATE_KEYWORDS = r"fecha|date|issued|emitted|emitido|comprado|purchase date"
 
-_MERCHANT_KEYWORDS = r"establecimiento|merchant|comercio|empresa|razon social|razón social|store|vendedor"
+_MERCHANT_KEYWORDS = (
+    r"establecimiento|merchant|comercio|empresa|razon social|razón social|store|vendedor"
+)
 
 _MAX_TEXT_SNIPPET_LENGTH = 120
 
@@ -133,7 +137,9 @@ class OcrEngine:
             return self._ocr_images(images, warnings)
         except Exception as exc:
             logger.debug("pdf2image_unavailable", error=str(exc))
-            warnings.append("No se pudo convertir el PDF a imagen; se intentó con texto incrustado.")
+            warnings.append(
+                "No se pudo convertir el PDF a imagen; se intentó con texto incrustado."
+            )
             return self._extract_pdf_text_via_pypdf(data, warnings)
 
     def _extract_pdf_text_via_pypdf(self, data: bytes, warnings: list[str]) -> str:
@@ -276,7 +282,8 @@ class OcrEngine:
         keyword_lines = [
             line
             for line in text.splitlines()
-            if re.search(_DATE_KEYWORDS, line, re.IGNORECASE) and re.search(_DATE_SEPARATOR_RE, line)
+            if re.search(_DATE_KEYWORDS, line, re.IGNORECASE)
+            and re.search(_DATE_SEPARATOR_RE, line)
         ]
         for line in keyword_lines:
             parsed = self._first_date_in(line)
@@ -313,14 +320,42 @@ class OcrEngine:
     @staticmethod
     def _parse_month_name_date(text: str) -> date | None:
         month_map = {
-            "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
-            "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
-            "noviembre": 11, "diciembre": 12,
-            "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-            "july": 7, "august": 8, "september": 9, "october": 10, "november": 11,
+            "enero": 1,
+            "febrero": 2,
+            "marzo": 3,
+            "abril": 4,
+            "mayo": 5,
+            "junio": 6,
+            "julio": 7,
+            "agosto": 8,
+            "septiembre": 9,
+            "setiembre": 9,
+            "octubre": 10,
+            "noviembre": 11,
+            "diciembre": 12,
+            "january": 1,
+            "february": 2,
+            "march": 3,
+            "april": 4,
+            "may": 5,
+            "june": 6,
+            "july": 7,
+            "august": 8,
+            "september": 9,
+            "october": 10,
+            "november": 11,
             "december": 12,
-            "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7, "aug": 8,
-            "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+            "jan": 1,
+            "feb": 2,
+            "mar": 3,
+            "apr": 4,
+            "jun": 6,
+            "jul": 7,
+            "aug": 8,
+            "sep": 9,
+            "oct": 10,
+            "nov": 11,
+            "dec": 12,
         }
         month_re = r"(?:" + _MONTHS_ES + r"|" + _MONTHS_EN + r"|" + _MONTH_SHORT_EN + r")"
         day_first = re.compile(
@@ -354,7 +389,11 @@ class OcrEngine:
 
         for line in lines:
             if re.search(_MERCHANT_KEYWORDS, line, re.IGNORECASE):
-                cleaned = re.sub(r"(?i)\b(?:establecimiento|merchant|comercio|empresa|razon social|razón social|store|vendedor)\b[\s:]*", "", line).strip(" :;")
+                cleaned = re.sub(
+                    r"(?i)\b(?:establecimiento|merchant|comercio|empresa|razon social|razón social|store|vendedor)\b[\s:]*",
+                    "",
+                    line,
+                ).strip(" :;")
                 cleaned = self._clean_merchant(cleaned)
                 if cleaned:
                     return cleaned

@@ -57,11 +57,24 @@ class ProcessRecurringIncomeUseCase:
                     effective_date=date_type.today(),
                 )
 
-                frequency_days = {"daily": 1, "weekly": 7, "biweekly": 14, "monthly": 30, "quarterly": 90, "cuatrimestral": 120, "yearly": 365}
+                frequency_days = {
+                    "daily": 1,
+                    "weekly": 7,
+                    "biweekly": 14,
+                    "monthly": 30,
+                    "quarterly": 90,
+                    "cuatrimestral": 120,
+                    "yearly": 365,
+                }
                 days = frequency_days.get(rec.frequency, 30)
                 next_date = date_type.today() + timedelta(days=days)
 
-                await self._tx_repo.update_recurring(rec.id, rec.user_id, last_execution_date=date_type.today(), next_execution_date=next_date)
+                await self._tx_repo.update_recurring(
+                    rec.id,
+                    rec.user_id,
+                    last_execution_date=date_type.today(),
+                    next_execution_date=next_date,
+                )
 
                 from app.application.transactions.notifications import emit_transaction_notification
 
@@ -75,7 +88,13 @@ class ProcessRecurringIncomeUseCase:
                     action="created",
                 )
 
-                processed.append({"recurring_id": str(rec.id), "transaction_id": str(tx.id), "amount": str(tx.amount)})
+                processed.append(
+                    {
+                        "recurring_id": str(rec.id),
+                        "transaction_id": str(tx.id),
+                        "amount": str(tx.amount),
+                    }
+                )
             except Exception as e:
                 errors.append({"recurring_id": str(rec.id), "error": str(e)})
 

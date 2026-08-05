@@ -20,7 +20,9 @@ class GetAssetPriceHistoryUseCase:
         self._session = session
         self._repo = InvestmentRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, asset_id: uuid.UUID, limit: int = 90) -> dict[str, Any]:
+    async def execute(
+        self, user_id: uuid.UUID, asset_id: uuid.UUID, limit: int = 90
+    ) -> dict[str, Any]:
         asset = await self._repo.get_asset(asset_id, user_id)
         if asset is None:
             raise NotFoundError("Activo")

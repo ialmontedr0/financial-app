@@ -79,7 +79,10 @@ class TransactionModel(VersionMixin, Base):
 
     search_vector: Mapped[str] = mapped_column(
         TSVECTOR,
-        Computed("to_tsvector('spanish', coalesce(description, '') || ' ' || coalesce(notes, ''))", persisted=True),
+        Computed(
+            "to_tsvector('spanish', coalesce(description, '') || ' ' || coalesce(notes, ''))",
+            persisted=True,
+        ),
         nullable=False,
     )
 

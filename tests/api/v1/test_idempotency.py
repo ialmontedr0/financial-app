@@ -55,7 +55,9 @@ class TestIdempotencyPassThrough:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_get_bypasses_idempotency(self, client: AsyncClient, test_password: str):
@@ -84,10 +86,14 @@ class TestIdempotencyReplay:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
-    async def test_first_request_stores_and_returns_201(self, client: AsyncClient, test_password: str):
+    async def test_first_request_stores_and_returns_201(
+        self, client: AsyncClient, test_password: str
+    ):
         token = await self._register_and_login(client, "idem_first@test.com", test_password)
         key = _unique_key("first")
         resp = await client.post(
@@ -130,7 +136,9 @@ class TestIdempotencyReplay:
         assert resp2.headers.get("Idempotency-Replay") == "true"
         assert resp2.json()["id"] == first_id
 
-    async def test_same_key_produces_same_account_not_duplicate(self, client: AsyncClient, test_password: str):
+    async def test_same_key_produces_same_account_not_duplicate(
+        self, client: AsyncClient, test_password: str
+    ):
         token = await self._register_and_login(client, "idem_dedup@test.com", test_password)
         key = _unique_key("dedup")
 
@@ -159,7 +167,9 @@ class TestIdempotencyConcurrent:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_second_concurrent_returns_409(self, client: AsyncClient, test_password: str):
@@ -191,7 +201,9 @@ class TestIdempotencyDBFallback:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_bd_fallback_after_redis_flush(self, client: AsyncClient, test_password: str):

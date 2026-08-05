@@ -94,23 +94,20 @@ class CategoryRuleModel(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
         nullable=False,
     )
 
     # --- Relationships ---
-    user: Mapped[UserModel | None] = relationship(
-        "UserModel", lazy="noload"
-    )
-    target_category: Mapped[CategoryModel] = relationship(
-        "CategoryModel", lazy="selectin"
-    )
+    user: Mapped[UserModel | None] = relationship("UserModel", lazy="noload")
+    target_category: Mapped[CategoryModel] = relationship("CategoryModel", lazy="selectin")
     target_subcategory: Mapped[SubcategoryModel | None] = relationship(
         "SubcategoryModel", lazy="selectin"
     )
 
     def __repr__(self) -> str:
         return (
-            f"<CategoryRuleModel(id={self.id}, name={self.rule_name}, "
-            f"pattern={self.pattern_type})>"
+            f"<CategoryRuleModel(id={self.id}, name={self.rule_name}, pattern={self.pattern_type})>"
         )

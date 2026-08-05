@@ -54,9 +54,7 @@ class PlaidRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update_item(
-        self, item: PlaidItemModel, **kwargs: object
-    ) -> PlaidItemModel:
+    async def update_item(self, item: PlaidItemModel, **kwargs: object) -> PlaidItemModel:
         for key, value in kwargs.items():
             if value is not None or key in {"status"}:
                 setattr(item, key, value)

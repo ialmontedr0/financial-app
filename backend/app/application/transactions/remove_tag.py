@@ -33,5 +33,8 @@ class RemoveTagUseCase:
             raise NotFoundError("Tag")
 
         all_tags = await self._repo.get_tags(transaction_id)
-        return {"transaction_id": str(transaction_id), "removed_tag": tag_name.strip().lower(),
-            "remaining_tags": [t.tag_name for t in all_tags]}
+        return {
+            "transaction_id": str(transaction_id),
+            "removed_tag": tag_name.strip().lower(),
+            "remaining_tags": [t.tag_name for t in all_tags],
+        }

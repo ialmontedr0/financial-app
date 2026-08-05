@@ -31,9 +31,7 @@ class SendNotificationUseCase:
             data=data,
             channels=channels,
         )
-        return [
-            {"success": r.success, "channel": r.channel, "error": r.error} for r in results
-        ]
+        return [{"success": r.success, "channel": r.channel, "error": r.error} for r in results]
 
 
 class GetNotificationsUseCase:
@@ -104,7 +102,13 @@ class SendTestNotificationUseCase:
     def __init__(self, db: AsyncSession) -> None:
         self._service = NotificationService(db)
 
-    async def execute(self, user_id: UUID, email: str, channel: str = "telegram", telegram_chat_id: str | None = None) -> list[dict[str, Any]]:
+    async def execute(
+        self,
+        user_id: UUID,
+        email: str,
+        channel: str = "telegram",
+        telegram_chat_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         data: dict[str, Any] = {"email": email}
         if telegram_chat_id:
             data["telegram_chat_id"] = telegram_chat_id
@@ -116,9 +120,7 @@ class SendTestNotificationUseCase:
             data=data,
             channels=[channel],
         )
-        return [
-            {"success": r.success, "channel": r.channel, "error": r.error} for r in results
-        ]
+        return [{"success": r.success, "channel": r.channel, "error": r.error} for r in results]
 
 
 class GetNotificationStatsUseCase:

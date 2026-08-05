@@ -43,13 +43,28 @@ class CreateSourceUseCase:
         if not name or not name.strip():
             raise ValidationError("name es requerido")
 
-        valid_types = {"salary", "freelance", "business", "investment", "rental", "refund", "gift", "bonus", "commission", "other"}
+        valid_types = {
+            "salary",
+            "freelance",
+            "business",
+            "investment",
+            "rental",
+            "refund",
+            "gift",
+            "bonus",
+            "commission",
+            "other",
+        }
         if income_type not in valid_types:
-            raise ValidationError(f"income_type no valido: {income_type}. Soportado: {', '.join(sorted(valid_types))}")
+            raise ValidationError(
+                f"income_type no valido: {income_type}. Soportado: {', '.join(sorted(valid_types))}"
+            )
 
         valid_stability = {"fixed", "variable", "irregular", "one_time"}
         if stability not in valid_stability:
-            raise ValidationError(f"stability no valido: {stability}. Soportado: {', '.join(sorted(valid_stability))}")
+            raise ValidationError(
+                f"stability no valido: {stability}. Soportado: {', '.join(sorted(valid_stability))}"
+            )
 
         source = await self._repo.create_source(
             user_id,
@@ -80,14 +95,20 @@ class CreateSourceUseCase:
             "pay_month": source.pay_month,
             "pay_weekday": source.pay_weekday,
             "default_amount": str(source.default_amount) if source.default_amount else None,
-            "default_account_id": str(source.default_account_id) if source.default_account_id else None,
-            "default_category_id": str(source.default_category_id) if source.default_category_id else None,
+            "default_account_id": str(source.default_account_id)
+            if source.default_account_id
+            else None,
+            "default_category_id": str(source.default_category_id)
+            if source.default_category_id
+            else None,
             "default_currency": source.default_currency,
             "icon": source.icon,
             "color": source.color,
             "is_active": source.is_active,
             "total_received": str(source.total_received) if source.total_received else "0",
             "income_count": source.income_count,
-            "last_received_at": source.last_received_at.isoformat() if source.last_received_at else None,
+            "last_received_at": source.last_received_at.isoformat()
+            if source.last_received_at
+            else None,
             "created_at": source.created_at.isoformat() if source.created_at else None,
         }

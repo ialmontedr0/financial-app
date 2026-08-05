@@ -21,8 +21,13 @@ class DeleteTransactionUseCase:
         self._session = session
         self._repo = TransactionRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, transaction_id: uuid.UUID, *,
-        ip_address: str | None = None, user_agent: str | None = None,
+    async def execute(
+        self,
+        user_id: uuid.UUID,
+        transaction_id: uuid.UUID,
+        *,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
@@ -44,9 +49,13 @@ class DeleteTransactionUseCase:
         if deleted is None:
             raise NotFoundError("Transaction")
 
-        await self._repo.create_audit_log(tx_id=transaction_id, user_id=user_id, action="deleted",
+        await self._repo.create_audit_log(
+            tx_id=transaction_id,
+            user_id=user_id,
+            action="deleted",
             changes={"deleted": {"amount": str(tx.amount), "type": tx.transaction_type}},
-            ip_address=ip_address, user_agent=user_agent,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         # Publish domain event (best-effort, never blocks the deletion)
@@ -81,4 +90,8 @@ class DeleteTransactionUseCase:
             action="deleted",
         )
 
-        return {"id": str(deleted.id), "status": deleted.status, "message": "Transaccion eliminada exitosamente"}
+        return {
+            "id": str(deleted.id),
+            "status": deleted.status,
+            "message": "Transaccion eliminada exitosamente",
+        }

@@ -33,8 +33,12 @@ class CreateCardUseCase:
             "currency_code": card.currency_code,
             "is_multicurrency": card.is_multicurrency,
             "secondary_currency_code": card.secondary_currency_code,
-            "secondary_credit_limit": str(card.secondary_credit_limit) if card.secondary_credit_limit else None,
-            "secondary_available_credit": str(card.secondary_available_credit) if card.secondary_available_credit else None,
+            "secondary_credit_limit": str(card.secondary_credit_limit)
+            if card.secondary_credit_limit
+            else None,
+            "secondary_available_credit": str(card.secondary_available_credit)
+            if card.secondary_available_credit
+            else None,
             "credit_limit": str(card.credit_limit) if card.credit_limit else None,
             "available_credit": str(card.available_credit) if card.available_credit else None,
             "statement_day": card.statement_day,

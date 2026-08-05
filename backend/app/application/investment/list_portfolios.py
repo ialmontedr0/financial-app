@@ -28,8 +28,6 @@ class ListPortfoliosUseCase:
             for pa in portfolio_assets:
                 counts[pa.portfolio_id] = counts.get(pa.portfolio_id, 0) + 1
 
-        result = [
-            serialize_portfolio(p, asset_count=counts.get(p.id, 0)) for p in portfolios
-        ]
+        result = [serialize_portfolio(p, asset_count=counts.get(p.id, 0)) for p in portfolios]
         logger.info("investment_portfolios_listed", user_id=str(user_id), count=len(result))
         return {"portfolios": result, "total": len(result)}

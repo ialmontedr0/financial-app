@@ -94,9 +94,7 @@ async def update_asset_price(
     session=Depends(get_db),
 ):
     user_id = uuid.UUID(current_user["sub"])
-    return await UpdateAssetPriceUseCase(session).execute(
-        user_id, asset_id, body.current_price
-    )
+    return await UpdateAssetPriceUseCase(session).execute(user_id, asset_id, body.current_price)
 
 
 @router.delete("/assets/{asset_id}")

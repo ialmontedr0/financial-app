@@ -29,7 +29,17 @@ class ListAttachmentsUseCase:
             raise NotFoundError("Transaction")
 
         attachments = await self._repo.list_attachments(transaction_id)
-        return {"transaction_id": str(transaction_id), "attachments": [
-            {"id": str(a.id), "original_filename": a.original_filename, "mime_type": a.mime_type,
-             "file_size": a.file_size, "created_at": a.created_at.isoformat() if a.created_at else None}
-            for a in attachments], "total": len(attachments)}
+        return {
+            "transaction_id": str(transaction_id),
+            "attachments": [
+                {
+                    "id": str(a.id),
+                    "original_filename": a.original_filename,
+                    "mime_type": a.mime_type,
+                    "file_size": a.file_size,
+                    "created_at": a.created_at.isoformat() if a.created_at else None,
+                }
+                for a in attachments
+            ],
+            "total": len(attachments),
+        }

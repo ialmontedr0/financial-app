@@ -68,7 +68,9 @@ async def update_card(
 ) -> dict:
     from app.application.cards.update_card import UpdateCardUseCase
 
-    return await UpdateCardUseCase(db).execute(uuid.UUID(current_user["sub"]), card_id, changes=body)
+    return await UpdateCardUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), card_id, changes=body
+    )
 
 
 @router.delete("/{card_id}")
@@ -99,6 +101,7 @@ async def get_card_utilization(
     util = await repo.calculate_utilization(card_id, uuid.UUID(current_user["sub"]))
     if util is None:
         from app.middleware.error_handler import NotFoundError
+
         raise NotFoundError("CreditCard")
     return util
 
@@ -112,7 +115,9 @@ async def get_utilization_history(
 ) -> dict:
     from app.application.cards.get_utilization_history import GetUtilizationHistoryUseCase
 
-    return await GetUtilizationHistoryUseCase(db).execute(uuid.UUID(current_user["sub"]), card_id, months)
+    return await GetUtilizationHistoryUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), card_id, months
+    )
 
 
 @router.get("/{card_id}/spending")
@@ -291,7 +296,9 @@ async def delete_spending_limit(
 ) -> dict:
     from app.application.cards.delete_spending_limit import DeleteSpendingLimitUseCase
 
-    return await DeleteSpendingLimitUseCase(db).execute(uuid.UUID(current_user["sub"]), card_id, limit_id)
+    return await DeleteSpendingLimitUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), card_id, limit_id
+    )
 
 
 # ======================================================================

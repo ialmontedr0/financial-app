@@ -49,13 +49,10 @@ class WalletRepository:
         user_id: uuid.UUID,
     ) -> WalletModel | None:
         """Get wallet by ID, scoped to user. Excludes soft-deleted."""
-        stmt = (
-            select(WalletModel)
-            .where(
-                WalletModel.id == wallet_id,
-                WalletModel.user_id == user_id,
-                WalletModel.deleted_at.is_(None),
-            )
+        stmt = select(WalletModel).where(
+            WalletModel.id == wallet_id,
+            WalletModel.user_id == user_id,
+            WalletModel.deleted_at.is_(None),
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
@@ -186,9 +183,8 @@ class WalletRepository:
         wallet_id: uuid.UUID,
     ) -> list[uuid.UUID]:
         """Get all account IDs linked to a wallet."""
-        stmt = (
-            select(WalletAccountModel.account_id)
-            .where(WalletAccountModel.wallet_id == wallet_id)
+        stmt = select(WalletAccountModel.account_id).where(
+            WalletAccountModel.wallet_id == wallet_id
         )
         result = await self._session.execute(stmt)
         return [row[0] for row in result.all()]
@@ -221,14 +217,11 @@ class WalletRepository:
         result = await self._session.execute(stmt)
         rows = result.all()
 
-        count_stmt = (
-            select(func.count(FinancialAccountModel.id))
-            .where(
-                FinancialAccountModel.id.in_(account_ids),
-                FinancialAccountModel.user_id == user_id,
-                FinancialAccountModel.deleted_at.is_(None),
-                FinancialAccountModel.status == "active",
-            )
+        count_stmt = select(func.count(FinancialAccountModel.id)).where(
+            FinancialAccountModel.id.in_(account_ids),
+            FinancialAccountModel.user_id == user_id,
+            FinancialAccountModel.deleted_at.is_(None),
+            FinancialAccountModel.status == "active",
         )
         total_count = (await self._session.execute(count_stmt)).scalar() or 0
 
@@ -259,16 +252,20 @@ class WalletRepository:
                 "total_accounts": 0,
             }
 
-        stmt = select(
-            FinancialAccountModel.account_type,
-            func.count(FinancialAccountModel.id).label("count"),
-            func.sum(FinancialAccountModel.balance).label("total"),
-        ).where(
-            FinancialAccountModel.id.in_(account_ids),
-            FinancialAccountModel.user_id == user_id,
-            FinancialAccountModel.deleted_at.is_(None),
-            FinancialAccountModel.status == "active",
-        ).group_by(FinancialAccountModel.account_type)
+        stmt = (
+            select(
+                FinancialAccountModel.account_type,
+                func.count(FinancialAccountModel.id).label("count"),
+                func.sum(FinancialAccountModel.balance).label("total"),
+            )
+            .where(
+                FinancialAccountModel.id.in_(account_ids),
+                FinancialAccountModel.user_id == user_id,
+                FinancialAccountModel.deleted_at.is_(None),
+                FinancialAccountModel.status == "active",
+            )
+            .group_by(FinancialAccountModel.account_type)
+        )
 
         result = await self._session.execute(stmt)
         rows = result.all()

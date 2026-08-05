@@ -104,9 +104,7 @@ class NotificationService:
         return tuple(enabled)
 
     @staticmethod
-    def _type_enabled(
-        prefs: NotificationPreferenceModel, channel: str, type_: str
-    ) -> bool:
+    def _type_enabled(prefs: NotificationPreferenceModel, channel: str, type_: str) -> bool:
         types_dict = getattr(prefs, f"{channel}_types", None)
         if types_dict is None:
             return True

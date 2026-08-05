@@ -58,7 +58,9 @@ class CreateIncomeUseCase:
 
         valid_sources = {"manual", "import", "recurring", "auto", "bank_sync", "template"}
         if source not in valid_sources:
-            raise ValidationError(f"source no valido: {source}. Soportado: {', '.join(sorted(valid_sources))}")
+            raise ValidationError(
+                f"source no valido: {source}. Soportado: {', '.join(sorted(valid_sources))}"
+            )
 
         if amount <= 0:
             raise ValidationError("amount debe ser mayor que 0")
@@ -106,7 +108,9 @@ class CreateIncomeUseCase:
         if income_source_id:
             await self._income_repo.increment_source_stats(income_source_id, Decimal(str(amount)))
 
-        changes: dict = {"initial": {"amount": str(amount), "source": source, "income_type": income_type}}
+        changes: dict = {
+            "initial": {"amount": str(amount), "source": source, "income_type": income_type}
+        }
         await self._tx_repo.create_audit_log(
             tx_id=tx.id,
             user_id=user_id,

@@ -77,6 +77,7 @@ async def list_notifications(
 # Specific routes MUST be defined BEFORE the parameterized /{notification_id} route
 # to prevent FastAPI from trying to parse "preferences", "stats", etc. as UUIDs.
 
+
 @router.get("/preferences", response_model=notif_schemas.NotificationPreferenceResponse)
 async def get_preferences(
     current_user: dict = Depends(get_current_active_user),
@@ -136,7 +137,9 @@ async def send_test(
     user_id = _UUID(current_user["sub"])
     use_case = SendTestNotificationUseCase(db)
     email = current_user.get("email", "")
-    results = await use_case.execute(user_id, email, channel=body.channel, telegram_chat_id=body.telegram_chat_id)
+    results = await use_case.execute(
+        user_id, email, channel=body.channel, telegram_chat_id=body.telegram_chat_id
+    )
     return notif_schemas.NotificationSendResponse(success=True, results=results)
 
 
@@ -226,9 +229,7 @@ async def mark_read(
     return {"success": True}
 
 
-@router.delete(
-    "/{notification_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_notification(
     notification_id: UUID,
     current_user: dict = Depends(get_current_active_user),

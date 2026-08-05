@@ -78,14 +78,16 @@ class AutoAdjustBudgetUseCase:
             budget = await self._repo.get_budget_by_id(budget_id, user_id)
             history = budget.adjustment_history if budget and budget.adjustment_history else []
             history = list(history) if history else []
-            history.append({
-                "old_amount": old_amount,
-                "new_amount": suggested,
-                "avg_spending": avg,
-                "buffer_pct": buffer_pct,
-                "date": str(__import__("datetime").date.today()),
-                "reason": "auto_adjust",
-            })
+            history.append(
+                {
+                    "old_amount": old_amount,
+                    "new_amount": suggested,
+                    "avg_spending": avg,
+                    "buffer_pct": buffer_pct,
+                    "date": str(__import__("datetime").date.today()),
+                    "reason": "auto_adjust",
+                }
+            )
             await self._repo.update_budget(budget_id, user_id, adjustment_history=history)
             result["applied"] = True
             result["new_amount"] = str(round(suggested, 2))

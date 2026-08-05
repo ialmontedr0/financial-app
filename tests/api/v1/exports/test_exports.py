@@ -6,9 +6,7 @@ from httpx import AsyncClient
 
 @pytest.mark.api
 class TestExports:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": password},

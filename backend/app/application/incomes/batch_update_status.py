@@ -32,7 +32,9 @@ class BatchUpdateStatusUseCase:
 
         valid_statuses = {"pending", "confirmed", "received", "projected", "cancelled"}
         if status not in valid_statuses:
-            raise ValidationError(f"status no valido: {status}. Soportado: {', '.join(sorted(valid_statuses))}")
+            raise ValidationError(
+                f"status no valido: {status}. Soportado: {', '.join(sorted(valid_statuses))}"
+            )
 
         if not income_ids:
             raise ValidationError("income_ids no puede estar vacio")

@@ -28,6 +28,11 @@ class UpdateRecurringUseCase:
         if rec is None:
             raise NotFoundError("Recurring Pattern")
 
-        return {"id": str(rec.id), "transaction_type": rec.transaction_type, "amount": str(rec.amount),
-            "frequency": rec.frequency, "next_execution_date": rec.next_execution_date.isoformat(),
-            "is_active": rec.is_active}
+        return {
+            "id": str(rec.id),
+            "transaction_type": rec.transaction_type,
+            "amount": str(rec.amount),
+            "frequency": rec.frequency,
+            "next_execution_date": rec.next_execution_date.isoformat(),
+            "is_active": rec.is_active,
+        }

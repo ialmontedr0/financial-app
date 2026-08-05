@@ -28,9 +28,7 @@ class CreateAutomationRuleUseCase:
         }
         trigger_type = kwargs.get("trigger_type", "")
         if trigger_type not in valid_triggers:
-            return {
-                "error": f"Invalid trigger_type: {trigger_type}. Valid: {valid_triggers}"
-            }
+            return {"error": f"Invalid trigger_type: {trigger_type}. Valid: {valid_triggers}"}
 
         valid_actions = {
             "transfer",
@@ -41,9 +39,7 @@ class CreateAutomationRuleUseCase:
         }
         action_type = kwargs.get("action_type", "")
         if action_type not in valid_actions:
-            return {
-                "error": f"Invalid action_type: {action_type}. Valid: {valid_actions}"
-            }
+            return {"error": f"Invalid action_type: {action_type}. Valid: {valid_actions}"}
 
         repo = AutomationRepository(self._session)
         rule = await repo.create_rule(

@@ -34,9 +34,7 @@ class GetAutomationRuleUseCase:
             "is_active": rule.is_active,
             "max_executions_per_month": rule.max_executions_per_month,
             "min_balance_required": (
-                float(rule.min_balance_required)
-                if rule.min_balance_required
-                else None
+                float(rule.min_balance_required) if rule.min_balance_required else None
             ),
             "execution_count": rule.execution_count,
             "last_executed_at": (

@@ -54,9 +54,20 @@ class CreateGoalUseCase:
         if target_amount <= 0:
             raise ValidationError("target_amount debe ser mayor a 0")
 
-        valid_types = {"savings", "debt_payoff", "investment", "emergency_fund", "purchase", "education", "travel", "custom"}
+        valid_types = {
+            "savings",
+            "debt_payoff",
+            "investment",
+            "emergency_fund",
+            "purchase",
+            "education",
+            "travel",
+            "custom",
+        }
         if goal_type not in valid_types:
-            raise ValidationError(f"goal_type no valido: {goal_type}. Soportado: {', '.join(sorted(valid_types))}")
+            raise ValidationError(
+                f"goal_type no valido: {goal_type}. Soportado: {', '.join(sorted(valid_types))}"
+            )
 
         if not start_date:
             start_date = date_type.today()
@@ -125,7 +136,9 @@ class CreateGoalUseCase:
             "target_date": goal.target_date.isoformat(),
             "status": goal.status,
             "priority": goal.priority,
-            "monthly_contribution": str(goal.monthly_contribution) if goal.monthly_contribution else None,
+            "monthly_contribution": str(goal.monthly_contribution)
+            if goal.monthly_contribution
+            else None,
             "auto_contribute": goal.auto_contribute,
             "interest_rate": str(goal.interest_rate) if goal.interest_rate else None,
             "compound_frequency": goal.compound_frequency,
@@ -143,14 +156,30 @@ class CreateGoalUseCase:
         history = await self._repo.get_user_spending_history(user_id)
         remaining = float(goal.target_amount) - float(goal.current_amount)
         if remaining <= 0:
-            return {"predicted_completion_date": None, "predicted_probability": 1.0, "recommended_monthly": "0", "message": "Goal already reached"}
+            return {
+                "predicted_completion_date": None,
+                "predicted_probability": 1.0,
+                "recommended_monthly": "0",
+                "message": "Goal already reached",
+            }
 
-        monthly = float(goal.monthly_contribution) if goal.monthly_contribution else history["avg_monthly_savings"]
+        monthly = (
+            float(goal.monthly_contribution)
+            if goal.monthly_contribution
+            else history["avg_monthly_savings"]
+        )
         if monthly <= 0:
-            return {"predicted_completion_date": None, "predicted_probability": 0.0, "recommended_monthly": str(round(remaining / 12, 2)), "message": "No savings capacity detected"}
+            return {
+                "predicted_completion_date": None,
+                "predicted_probability": 0.0,
+                "recommended_monthly": str(round(remaining / 12, 2)),
+                "message": "No savings capacity detected",
+            }
 
         if goal.interest_rate and float(goal.interest_rate) > 0:
-            months = self._calc_compound_months(remaining, monthly, float(goal.interest_rate), goal.compound_frequency or "monthly")
+            months = self._calc_compound_months(
+                remaining, monthly, float(goal.interest_rate), goal.compound_frequency or "monthly"
+            )
         else:
             months = max(int(remaining / monthly), 1)
 
@@ -168,7 +197,8 @@ class CreateGoalUseCase:
         recommended = remaining / max((goal.target_date - goal.start_date).days / 30.44, 1)
 
         await self._repo.update_goal(
-            goal.id, user_id,
+            goal.id,
+            user_id,
             predicted_completion_date=predicted_date,
             predicted_probability=round(probability, 4),
             recommended_monthly=round(recommended, 2),
@@ -179,12 +209,19 @@ class CreateGoalUseCase:
             "predicted_probability": round(probability, 4),
             "recommended_monthly": str(round(recommended, 2)),
             "months_to_complete": months,
-            "features_used": {"avg_monthly_savings": history["avg_monthly_savings"], "months_analyzed": history["months_analyzed"], "monthly_contribution": monthly, "interest_rate": str(goal.interest_rate) if goal.interest_rate else None},
+            "features_used": {
+                "avg_monthly_savings": history["avg_monthly_savings"],
+                "months_analyzed": history["months_analyzed"],
+                "monthly_contribution": monthly,
+                "interest_rate": str(goal.interest_rate) if goal.interest_rate else None,
+            },
             "model_version": "goal_predictor_v1.0",
         }
 
     @staticmethod
-    def _calc_compound_months(principal: float, monthly: float, annual_rate: float, freq: str) -> int:
+    def _calc_compound_months(
+        principal: float, monthly: float, annual_rate: float, freq: str
+    ) -> int:
         monthly_rate = annual_rate / 100 / 12
         months = 0
         balance = 0.0

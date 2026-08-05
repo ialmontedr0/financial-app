@@ -43,7 +43,8 @@ class TestEventBus:
         await _clear_stream()
         try:
             user = await UserRepository(db_session).create(
-                email="event-bus@test.com", password_hash=PasswordHasher.hash_password(test_password)
+                email="event-bus@test.com",
+                password_hash=PasswordHasher.hash_password(test_password),
             )
             await db_session.commit()
 

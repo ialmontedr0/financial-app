@@ -35,9 +35,7 @@ class DeletePlaidItemUseCase:
             except PlaidNotConfiguredError:
                 pass
             except Exception as exc:
-                logger.warning(
-                    "plaid_remote_remove_failed", user_id=str(user_id), error=str(exc)
-                )
+                logger.warning("plaid_remote_remove_failed", user_id=str(user_id), error=str(exc))
 
         await self._repo.delete_item(item)
         logger.info("plaid_item_unlinked", user_id=str(user_id), item_id=str(item.id))

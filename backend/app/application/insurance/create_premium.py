@@ -50,7 +50,11 @@ class CreatePremiumUseCase:
         else:
             validated_method = None
 
-        status = "paid" if paid_date else ("overdue" if due_date < datetime.now(UTC).date() else "pending")
+        status = (
+            "paid"
+            if paid_date
+            else ("overdue" if due_date < datetime.now(UTC).date() else "pending")
+        )
 
         premium = await self._repo.create_premium(
             insurance_id=insurance_id,

@@ -22,11 +22,23 @@ class CreateRecurringUseCase:
         self._session = session
         self._repo = TransactionRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, *, account_id: uuid.UUID, transaction_type: str,
-        amount: float, currency_code: str, description: str, frequency: str,
-        start_date: date, interval: int = 1, category_id: uuid.UUID | None = None,
-        subcategory_id: uuid.UUID | None = None, notes: str | None = None,
-        end_date: date | None = None, max_executions: int | None = None,
+    async def execute(
+        self,
+        user_id: uuid.UUID,
+        *,
+        account_id: uuid.UUID,
+        transaction_type: str,
+        amount: float,
+        currency_code: str,
+        description: str,
+        frequency: str,
+        start_date: date,
+        interval: int = 1,
+        category_id: uuid.UUID | None = None,
+        subcategory_id: uuid.UUID | None = None,
+        notes: str | None = None,
+        end_date: date | None = None,
+        max_executions: int | None = None,
     ) -> dict:
         from decimal import Decimal
 
@@ -59,17 +71,38 @@ class CreateRecurringUseCase:
         freq = RecurrenceFrequency(frequency)
         next_date = freq.calculate_next_date(start_date, interval)
 
-        rec = await self._repo.create_recurring(user_id, account_id=account_id, category_id=category_id,
-            subcategory_id=subcategory_id, transaction_type=transaction_type, amount=amount_decimal,
-            currency_code=currency_code, description=str(description).strip(), notes=notes,
-            frequency=frequency, interval=interval, start_date=start_date, end_date=end_date,
-            next_execution_date=next_date, max_executions=max_executions, is_active=True,
+        rec = await self._repo.create_recurring(
+            user_id,
+            account_id=account_id,
+            category_id=category_id,
+            subcategory_id=subcategory_id,
+            transaction_type=transaction_type,
+            amount=amount_decimal,
+            currency_code=currency_code,
+            description=str(description).strip(),
+            notes=notes,
+            frequency=frequency,
+            interval=interval,
+            start_date=start_date,
+            end_date=end_date,
+            next_execution_date=next_date,
+            max_executions=max_executions,
+            is_active=True,
         )
 
-        return {"id": str(rec.id), "transaction_type": rec.transaction_type, "amount": str(rec.amount),
-            "currency_code": rec.currency_code, "description": rec.description, "frequency": rec.frequency,
-            "interval": rec.interval, "start_date": rec.start_date.isoformat(),
+        return {
+            "id": str(rec.id),
+            "transaction_type": rec.transaction_type,
+            "amount": str(rec.amount),
+            "currency_code": rec.currency_code,
+            "description": rec.description,
+            "frequency": rec.frequency,
+            "interval": rec.interval,
+            "start_date": rec.start_date.isoformat(),
             "end_date": rec.end_date.isoformat() if rec.end_date else None,
-            "next_execution_date": rec.next_execution_date.isoformat(), "max_executions": rec.max_executions,
-            "execution_count": rec.execution_count, "is_active": rec.is_active,
-            "created_at": rec.created_at.isoformat() if rec.created_at else None}
+            "next_execution_date": rec.next_execution_date.isoformat(),
+            "max_executions": rec.max_executions,
+            "execution_count": rec.execution_count,
+            "is_active": rec.is_active,
+            "created_at": rec.created_at.isoformat() if rec.created_at else None,
+        }

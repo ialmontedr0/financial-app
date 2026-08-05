@@ -20,7 +20,9 @@ class DeleteSimulationUseCase:
         self._session = session
         self._repo = GoalRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, goal_id: uuid.UUID, simulation_id: uuid.UUID) -> dict:
+    async def execute(
+        self, user_id: uuid.UUID, goal_id: uuid.UUID, simulation_id: uuid.UUID
+    ) -> dict:
         from app.middleware.error_handler import NotFoundError
 
         goal = await self._repo.get_goal_by_id(goal_id, user_id)

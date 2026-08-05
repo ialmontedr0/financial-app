@@ -45,9 +45,7 @@ class UpdateWalletUseCase:
 
         invalid = set(fields.keys()) - ALLOWED_UPDATE_FIELDS
         if invalid:
-            raise ValidationError(
-                f"Campos no permitidos para actualizacion: {', '.join(invalid)}"
-            )
+            raise ValidationError(f"Campos no permitidos para actualizacion: {', '.join(invalid)}")
 
         if "name" in fields:
             name = str(fields["name"]).strip()

@@ -20,7 +20,9 @@ class GetSimulationUseCase:
         self._session = session
         self._repo = GoalRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, goal_id: uuid.UUID, simulation_id: uuid.UUID) -> dict:
+    async def execute(
+        self, user_id: uuid.UUID, goal_id: uuid.UUID, simulation_id: uuid.UUID
+    ) -> dict:
         from app.middleware.error_handler import NotFoundError
 
         goal = await self._repo.get_goal_by_id(goal_id, user_id)
@@ -59,12 +61,20 @@ class GetSimulationUseCase:
             "lump_sum_date": sim.lump_sum_date.isoformat() if sim.lump_sum_date else None,
             "interest_rate": str(sim.interest_rate) if sim.interest_rate else None,
             "increase_pct": str(sim.increase_pct) if sim.increase_pct else None,
-            "inflation_rate": str(params.get("inflation_rate")) if params.get("inflation_rate") else None,
+            "inflation_rate": str(params.get("inflation_rate"))
+            if params.get("inflation_rate")
+            else None,
             "income_sources": params.get("income_sources", []),
             "expenses": params.get("expenses", []),
-            "predicted_completion_date": sim.predicted_completion_date.isoformat() if sim.predicted_completion_date else None,
-            "predicted_probability": float(sim.predicted_probability) if sim.predicted_probability else None,
-            "total_contributions": str(sim.total_contributions) if sim.total_contributions else None,
+            "predicted_completion_date": sim.predicted_completion_date.isoformat()
+            if sim.predicted_completion_date
+            else None,
+            "predicted_probability": float(sim.predicted_probability)
+            if sim.predicted_probability
+            else None,
+            "total_contributions": str(sim.total_contributions)
+            if sim.total_contributions
+            else None,
             "total_interest": str(sim.total_interest) if sim.total_interest else None,
             "total_income_used": str(total_income_used) if total_income_used else None,
             "months_to_complete": months,

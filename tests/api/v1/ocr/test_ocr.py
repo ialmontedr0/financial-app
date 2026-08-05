@@ -31,9 +31,7 @@ class TestOcrAPI:
 
     async def test_status(self, client: AsyncClient, test_password: str):
         token = await self._register_and_login(client, "ocr_status@test.com", test_password)
-        resp = await client.get(
-            "/api/v1/ocr/status", headers={"Authorization": f"Bearer {token}"}
-        )
+        resp = await client.get("/api/v1/ocr/status", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 200
         data = resp.json()
         assert "enabled" in data

@@ -25,8 +25,14 @@ class UploadAttachmentUseCase:
         self._session = session
         self._repo = TransactionRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, transaction_id: uuid.UUID, *,
-        filename: str, content_type: str, content: bytes,
+    async def execute(
+        self,
+        user_id: uuid.UUID,
+        transaction_id: uuid.UUID,
+        *,
+        filename: str,
+        content_type: str,
+        content: bytes,
     ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
@@ -35,9 +41,13 @@ class UploadAttachmentUseCase:
             raise NotFoundError("Transaction")
 
         if content_type not in ALLOWED_TYPES:
-            raise ValidationError(f"Tipo de archivo no permitido: {content_type}. Permitidos: {', '.join(sorted(ALLOWED_TYPES))}")
+            raise ValidationError(
+                f"Tipo de archivo no permitido: {content_type}. Permitidos: {', '.join(sorted(ALLOWED_TYPES))}"
+            )
         if len(content) > MAX_FILE_SIZE:
-            raise ValidationError(f"Archivo excede el limite de {MAX_FILE_SIZE // (1024 * 1024)} MB")
+            raise ValidationError(
+                f"Archivo excede el limite de {MAX_FILE_SIZE // (1024 * 1024)} MB"
+            )
 
         backend = get_storage_backend()
         file_info = backend.store_file(
@@ -49,6 +59,11 @@ class UploadAttachmentUseCase:
         )
         att = await self._repo.create_attachment(transaction_id, user_id, **file_info)
 
-        return {"id": str(att.id), "transaction_id": str(att.transaction_id),
-            "original_filename": att.original_filename, "mime_type": att.mime_type,
-            "file_size": att.file_size, "created_at": att.created_at.isoformat() if att.created_at else None}
+        return {
+            "id": str(att.id),
+            "transaction_id": str(att.transaction_id),
+            "original_filename": att.original_filename,
+            "mime_type": att.mime_type,
+            "file_size": att.file_size,
+            "created_at": att.created_at.isoformat() if att.created_at else None,
+        }

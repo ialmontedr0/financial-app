@@ -31,9 +31,7 @@ class CreditPurchaseModel(Base):
     down_payment: Mapped[Decimal] = mapped_column(
         Numeric(precision=19, scale=4), nullable=False, default=0
     )
-    financed_amount: Mapped[Decimal] = mapped_column(
-        Numeric(precision=19, scale=4), nullable=False
-    )
+    financed_amount: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False)
 
     annual_interest_rate: Mapped[Decimal] = mapped_column(
         Numeric(precision=8, scale=4), nullable=False, default=0
@@ -41,18 +39,23 @@ class CreditPurchaseModel(Base):
     installment_count: Mapped[int] = mapped_column(nullable=False)
     installment_frequency: Mapped[str] = mapped_column(
         Enum(
-            "weekly", "biweekly", "monthly", "quarterly",
-            "quadrimensual", "semestral", "annual",
-            name="installment_frequency_enum", create_type=False,
+            "weekly",
+            "biweekly",
+            "monthly",
+            "quarterly",
+            "quadrimensual",
+            "semestral",
+            "annual",
+            name="installment_frequency_enum",
+            create_type=False,
         ),
-        nullable=False, default="monthly",
+        nullable=False,
+        default="monthly",
     )
     installment_amount: Mapped[Decimal] = mapped_column(
         Numeric(precision=19, scale=4), nullable=False
     )
-    calculation_method: Mapped[str] = mapped_column(
-        String(10), nullable=False, default="auto"
-    )
+    calculation_method: Mapped[str] = mapped_column(String(10), nullable=False, default="auto")
 
     total_interest: Mapped[Decimal] = mapped_column(
         Numeric(precision=19, scale=4), nullable=False, default=0
@@ -66,10 +69,15 @@ class CreditPurchaseModel(Base):
 
     status: Mapped[str] = mapped_column(
         Enum(
-            "active", "completed", "cancelled", "defaulted",
-            name="credit_purchase_status_enum", create_type=False,
+            "active",
+            "completed",
+            "cancelled",
+            "defaulted",
+            name="credit_purchase_status_enum",
+            create_type=False,
         ),
-        nullable=False, default="active",
+        nullable=False,
+        default="active",
     )
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -86,7 +94,9 @@ class CreditPurchaseModel(Base):
     )
 
     installments: Mapped[list[CreditPurchaseInstallmentModel]] = relationship(
-        back_populates="purchase", lazy="selectin", cascade="all, delete-orphan",
+        back_populates="purchase",
+        lazy="selectin",
+        cascade="all, delete-orphan",
         order_by="CreditPurchaseInstallmentModel.installment_number",
     )
 

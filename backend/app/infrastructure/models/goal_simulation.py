@@ -22,9 +22,7 @@ class GoalSimulationModel(Base):
 
     __tablename__ = "goal_simulation"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     goal_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("financial_goal.id", ondelete="CASCADE"),
@@ -86,4 +84,6 @@ class GoalSimulationModel(Base):
     goal: Mapped[FinancialGoalModel] = relationship("FinancialGoalModel", lazy="noload")
 
     def __repr__(self) -> str:
-        return f"<GoalSimulation(id={self.id}, name={self.name}, monthly={self.monthly_contribution})>"
+        return (
+            f"<GoalSimulation(id={self.id}, name={self.name}, monthly={self.monthly_contribution})>"
+        )

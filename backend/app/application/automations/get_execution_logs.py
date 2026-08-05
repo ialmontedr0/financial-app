@@ -39,19 +39,13 @@ class GetExecutionLogsUseCase:
                         float(log.amount_involved) if log.amount_involved else None
                     ),
                     "source_account_id": (
-                        str(log.source_account_id)
-                        if log.source_account_id
-                        else None
+                        str(log.source_account_id) if log.source_account_id else None
                     ),
                     "target_account_id": (
-                        str(log.target_account_id)
-                        if log.target_account_id
-                        else None
+                        str(log.target_account_id) if log.target_account_id else None
                     ),
                     "is_dry_run": log.is_dry_run,
-                    "executed_at": (
-                        log.executed_at.isoformat() if log.executed_at else None
-                    ),
+                    "executed_at": (log.executed_at.isoformat() if log.executed_at else None),
                 }
                 for log in logs
             ],

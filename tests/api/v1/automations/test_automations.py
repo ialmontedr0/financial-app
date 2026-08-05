@@ -6,9 +6,7 @@ from httpx import AsyncClient
 
 @pytest.mark.api
 class TestAutomationCRUD:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": password},
@@ -56,9 +54,7 @@ class TestAutomationCRUD:
         assert "id" in data
         assert data["name"] == "Ahorro automatico"
 
-    async def test_create_rule_invalid_trigger(
-        self, client: AsyncClient, test_password: str
-    ):
+    async def test_create_rule_invalid_trigger(self, client: AsyncClient, test_password: str):
         token = await self._register_and_login(client, "auto_create2@test.com", test_password)
         resp = await client.post(
             "/api/v1/automations",
@@ -89,9 +85,7 @@ class TestAutomationCRUD:
 
 @pytest.mark.api
 class TestAutomationExecution:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": password},
@@ -127,9 +121,7 @@ class TestAutomationExecution:
 
 @pytest.mark.api
 class TestAutomationExecutionLog:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": password},

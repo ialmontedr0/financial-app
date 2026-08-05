@@ -10,9 +10,7 @@ from app.infrastructure.models.user import UserModel
 
 @pytest.mark.api
 class TestAdminRoles:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": password},
@@ -23,13 +21,9 @@ class TestAdminRoles:
         )
         return login_resp.json()["tokens"]["access_token"]
 
-    async def _promote_to_admin(
-        self, db: AsyncSession, email: str
-    ) -> None:
+    async def _promote_to_admin(self, db: AsyncSession, email: str) -> None:
         """Promote a user to admin role directly in the DB."""
-        await db.execute(
-            update(UserModel).where(UserModel.email == email).values(role="admin")
-        )
+        await db.execute(update(UserModel).where(UserModel.email == email).values(role="admin"))
         await db.commit()
 
     async def test_list_roles(
@@ -125,9 +119,7 @@ class TestAdminRoles:
         assert "total_roles" in data
 
     async def test_non_admin_cannot_access(self, client: AsyncClient, test_password: str):
-        token = await self._register_and_login(
-            client, "regular_user@test.com", test_password
-        )
+        token = await self._register_and_login(client, "regular_user@test.com", test_password)
         resp = await client.get(
             "/api/v1/admin/roles",
             headers={"Authorization": f"Bearer {token}"},

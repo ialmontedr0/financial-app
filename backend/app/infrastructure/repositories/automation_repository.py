@@ -59,9 +59,7 @@ class AutomationRepository:
         )
         return rule
 
-    async def get_rule(
-        self, rule_id: uuid.UUID, user_id: uuid.UUID
-    ) -> AutomationRuleModel | None:
+    async def get_rule(self, rule_id: uuid.UUID, user_id: uuid.UUID) -> AutomationRuleModel | None:
         """Get a specific rule by ID (must belong to user)."""
         stmt = select(AutomationRuleModel).where(
             and_(
@@ -89,8 +87,10 @@ class AutomationRepository:
         if trigger_type is not None:
             conditions.append(AutomationRuleModel.trigger_type == trigger_type)
 
-        stmt = select(AutomationRuleModel).where(and_(*conditions)).order_by(
-            AutomationRuleModel.created_at.desc()
+        stmt = (
+            select(AutomationRuleModel)
+            .where(and_(*conditions))
+            .order_by(AutomationRuleModel.created_at.desc())
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
@@ -131,9 +131,7 @@ class AutomationRepository:
         await self._session.flush()
         return rule
 
-    async def increment_execution(
-        self, rule_id: uuid.UUID, status: str
-    ) -> None:
+    async def increment_execution(self, rule_id: uuid.UUID, status: str) -> None:
         """Increment execution count and update last executed."""
         stmt = (
             update(AutomationRuleModel)
@@ -146,9 +144,7 @@ class AutomationRepository:
         )
         await self._session.execute(stmt)
 
-    async def check_monthly_limit(
-        self, rule_id: uuid.UUID, max_per_month: int
-    ) -> bool:
+    async def check_monthly_limit(self, rule_id: uuid.UUID, max_per_month: int) -> bool:
         """Check if rule has exceeded monthly execution limit.
         Returns True if execution is allowed.
         """
@@ -248,9 +244,7 @@ class AutomationRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_all_active_rules(
-        self, user_id: uuid.UUID
-    ) -> list[AutomationRuleModel]:
+    async def get_all_active_rules(self, user_id: uuid.UUID) -> list[AutomationRuleModel]:
         """Get all active rules for a user (for batch evaluation)."""
         stmt = select(AutomationRuleModel).where(
             and_(

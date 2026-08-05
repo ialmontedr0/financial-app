@@ -39,7 +39,9 @@ class CardRepository:
         logger.info("credit_card_created", user_id=str(user_id), card_id=str(card.id))
         return card
 
-    async def get_card_by_id(self, card_id: uuid.UUID, user_id: uuid.UUID) -> CreditCardModel | None:
+    async def get_card_by_id(
+        self, card_id: uuid.UUID, user_id: uuid.UUID
+    ) -> CreditCardModel | None:
         stmt = select(CreditCardModel).where(
             CreditCardModel.id == card_id,
             CreditCardModel.user_id == user_id,
@@ -49,14 +51,20 @@ class CardRepository:
         return result.scalar_one_or_none()
 
     async def list_cards(self, user_id: uuid.UUID) -> list[CreditCardModel]:
-        stmt = select(CreditCardModel).where(
-            CreditCardModel.user_id == user_id,
-            CreditCardModel.deleted_at.is_(None),
-        ).order_by(CreditCardModel.name.asc())
+        stmt = (
+            select(CreditCardModel)
+            .where(
+                CreditCardModel.user_id == user_id,
+                CreditCardModel.deleted_at.is_(None),
+            )
+            .order_by(CreditCardModel.name.asc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update_card(self, card_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object) -> CreditCardModel | None:
+    async def update_card(
+        self, card_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
+    ) -> CreditCardModel | None:
         card = await self.get_card_by_id(card_id, user_id)
         if card is None:
             return None
@@ -112,7 +120,11 @@ class CardRepository:
         used_in_cycle = float(result.scalar_one())
 
         credit_limit = float(card.credit_limit) if card.credit_limit else 0
-        used_credit = float(card.credit_limit - card.available_credit) if card.credit_limit and card.available_credit is not None else 0
+        used_credit = (
+            float(card.credit_limit - card.available_credit)
+            if card.credit_limit and card.available_credit is not None
+            else 0
+        )
         total_used = max(used_credit, used_in_cycle)
 
         pct = (total_used / credit_limit * 100) if credit_limit > 0 else 0
@@ -129,7 +141,9 @@ class CardRepository:
             "period_end": today.isoformat(),
         }
 
-    async def get_historical_utilization(self, card_id: uuid.UUID, user_id: uuid.UUID, months: int = 6) -> list[dict]:
+    async def get_historical_utilization(
+        self, card_id: uuid.UUID, user_id: uuid.UUID, months: int = 6
+    ) -> list[dict]:
         from datetime import date as date_type, timedelta
 
         card = await self.get_card_by_id(card_id, user_id)
@@ -175,20 +189,25 @@ class CardRepository:
             spent = float(result.scalar_one())
             pct = (spent / credit_limit * 100) if credit_limit > 0 else 0
 
-            history.append({
-                "month": period_start.isoformat(),
-                "spent": str(round(spent, 2)),
-                "credit_limit": str(credit_limit),
-                "utilization_pct": str(round(pct, 2)),
-                "status": "healthy" if pct < 30 else "warning" if pct < 70 else "danger",
-            })
+            history.append(
+                {
+                    "month": period_start.isoformat(),
+                    "spent": str(round(spent, 2)),
+                    "credit_limit": str(credit_limit),
+                    "utilization_pct": str(round(pct, 2)),
+                    "status": "healthy" if pct < 30 else "warning" if pct < 70 else "danger",
+                }
+            )
 
         history.reverse()
         return history
 
     async def get_spending_by_category(
-        self, card_id: uuid.UUID, user_id: uuid.UUID,
-        period_start: date | None = None, period_end: date | None = None,
+        self,
+        card_id: uuid.UUID,
+        user_id: uuid.UUID,
+        period_start: date | None = None,
+        period_end: date | None = None,
     ) -> list[dict]:
         from datetime import date as date_type
 
@@ -242,7 +261,9 @@ class CardRepository:
         logger.info("card_bill_created", user_id=str(user_id), bill_id=str(bill.id))
         return bill
 
-    async def get_bill_by_id(self, bill_id: uuid.UUID, user_id: uuid.UUID) -> CreditCardBillModel | None:
+    async def get_bill_by_id(
+        self, bill_id: uuid.UUID, user_id: uuid.UUID
+    ) -> CreditCardBillModel | None:
         stmt = select(CreditCardBillModel).where(
             CreditCardBillModel.id == bill_id,
             CreditCardBillModel.user_id == user_id,
@@ -251,16 +272,24 @@ class CardRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_bills(self, user_id: uuid.UUID, credit_card_id: uuid.UUID) -> list[CreditCardBillModel]:
-        stmt = select(CreditCardBillModel).where(
-            CreditCardBillModel.user_id == user_id,
-            CreditCardBillModel.credit_card_id == credit_card_id,
-            CreditCardBillModel.deleted_at.is_(None),
-        ).order_by(CreditCardBillModel.statement_date.desc())
+    async def list_bills(
+        self, user_id: uuid.UUID, credit_card_id: uuid.UUID
+    ) -> list[CreditCardBillModel]:
+        stmt = (
+            select(CreditCardBillModel)
+            .where(
+                CreditCardBillModel.user_id == user_id,
+                CreditCardBillModel.credit_card_id == credit_card_id,
+                CreditCardBillModel.deleted_at.is_(None),
+            )
+            .order_by(CreditCardBillModel.statement_date.desc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update_bill(self, bill_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object) -> CreditCardBillModel | None:
+    async def update_bill(
+        self, bill_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
+    ) -> CreditCardBillModel | None:
         bill = await self.get_bill_by_id(bill_id, user_id)
         if bill is None:
             return None
@@ -282,8 +311,11 @@ class CardRepository:
         return True
 
     async def pay_bill(
-        self, bill_id: uuid.UUID, user_id: uuid.UUID,
-        amount: float, payment_method: str = "manual",
+        self,
+        bill_id: uuid.UUID,
+        user_id: uuid.UUID,
+        amount: float,
+        payment_method: str = "manual",
     ) -> CreditCardBillModel | None:
         from datetime import UTC, datetime as dt
 
@@ -317,7 +349,9 @@ class CardRepository:
         )
         return bill
 
-    async def generate_statement(self, credit_card_id: uuid.UUID, user_id: uuid.UUID) -> CreditCardBillModel | None:
+    async def generate_statement(
+        self, credit_card_id: uuid.UUID, user_id: uuid.UUID
+    ) -> CreditCardBillModel | None:
         from datetime import date as date_type, timedelta
 
         card = await self.get_card_by_id(credit_card_id, user_id)
@@ -331,7 +365,9 @@ class CardRepository:
         if today.day >= stmt_day:
             period_start = today.replace(day=stmt_day)
             if today.month == 12:
-                period_end = today.replace(year=today.year + 1, month=1, day=stmt_day) - timedelta(days=1)
+                period_end = today.replace(year=today.year + 1, month=1, day=stmt_day) - timedelta(
+                    days=1
+                )
             else:
                 period_end = today.replace(month=today.month + 1, day=stmt_day) - timedelta(days=1)
         else:
@@ -353,19 +389,25 @@ class CardRepository:
         result = await self._session.execute(stmt)
         total_amount = float(result.scalar_one())
 
-        count_stmt = select(func.count()).select_from(TransactionModel).where(
-            TransactionModel.user_id == user_id,
-            TransactionModel.credit_card_id == credit_card_id,
-            TransactionModel.transaction_type == "expense",
-            TransactionModel.status == "completed",
-            TransactionModel.effective_date >= period_start,
-            TransactionModel.effective_date <= period_end,
-            TransactionModel.deleted_at.is_(None),
+        count_stmt = (
+            select(func.count())
+            .select_from(TransactionModel)
+            .where(
+                TransactionModel.user_id == user_id,
+                TransactionModel.credit_card_id == credit_card_id,
+                TransactionModel.transaction_type == "expense",
+                TransactionModel.status == "completed",
+                TransactionModel.effective_date >= period_start,
+                TransactionModel.effective_date <= period_end,
+                TransactionModel.deleted_at.is_(None),
+            )
         )
         count_result = await self._session.execute(count_stmt)
         tx_count = count_result.scalar_one()
 
-        interest = total_amount * (float(card.interest_rate) / 100 / 12) if card.interest_rate else 0
+        interest = (
+            total_amount * (float(card.interest_rate) / 100 / 12) if card.interest_rate else 0
+        )
         minimum = max(total_amount * 0.05, 500) if total_amount > 0 else 0
 
         due_date = period_end.replace(day=due_day)
@@ -401,14 +443,18 @@ class CardRepository:
     # Spending Limits CRUD
     # ==============================================================
 
-    async def create_spending_limit(self, user_id: uuid.UUID, **kwargs: object) -> CardSpendingLimitModel:
+    async def create_spending_limit(
+        self, user_id: uuid.UUID, **kwargs: object
+    ) -> CardSpendingLimitModel:
         limit = CardSpendingLimitModel(user_id=user_id, **kwargs)  # type: ignore[arg-type]
         self._session.add(limit)
         await self._session.flush()
         logger.info("card_limit_created", user_id=str(user_id), limit_id=str(limit.id))
         return limit
 
-    async def get_limit_by_id(self, limit_id: uuid.UUID, user_id: uuid.UUID) -> CardSpendingLimitModel | None:
+    async def get_limit_by_id(
+        self, limit_id: uuid.UUID, user_id: uuid.UUID
+    ) -> CardSpendingLimitModel | None:
         stmt = select(CardSpendingLimitModel).where(
             CardSpendingLimitModel.id == limit_id,
             CardSpendingLimitModel.user_id == user_id,
@@ -417,16 +463,24 @@ class CardRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_limits(self, user_id: uuid.UUID, credit_card_id: uuid.UUID) -> list[CardSpendingLimitModel]:
-        stmt = select(CardSpendingLimitModel).where(
-            CardSpendingLimitModel.user_id == user_id,
-            CardSpendingLimitModel.credit_card_id == credit_card_id,
-            CardSpendingLimitModel.deleted_at.is_(None),
-        ).order_by(CardSpendingLimitModel.created_at.desc())
+    async def list_limits(
+        self, user_id: uuid.UUID, credit_card_id: uuid.UUID
+    ) -> list[CardSpendingLimitModel]:
+        stmt = (
+            select(CardSpendingLimitModel)
+            .where(
+                CardSpendingLimitModel.user_id == user_id,
+                CardSpendingLimitModel.credit_card_id == credit_card_id,
+                CardSpendingLimitModel.deleted_at.is_(None),
+            )
+            .order_by(CardSpendingLimitModel.created_at.desc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update_limit(self, limit_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object) -> CardSpendingLimitModel | None:
+    async def update_limit(
+        self, limit_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
+    ) -> CardSpendingLimitModel | None:
         limit = await self.get_limit_by_id(limit_id, user_id)
         if limit is None:
             return None
@@ -447,7 +501,9 @@ class CardRepository:
         await self._session.flush()
         return True
 
-    async def recalculate_limit_spent(self, limit_id: uuid.UUID, user_id: uuid.UUID) -> CardSpendingLimitModel | None:
+    async def recalculate_limit_spent(
+        self, limit_id: uuid.UUID, user_id: uuid.UUID
+    ) -> CardSpendingLimitModel | None:
         from datetime import date as date_type, timedelta
 
         limit = await self.get_limit_by_id(limit_id, user_id)
@@ -526,7 +582,9 @@ class CardRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_alert_by_id(self, alert_id: uuid.UUID, user_id: uuid.UUID) -> CardAlertModel | None:
+    async def get_alert_by_id(
+        self, alert_id: uuid.UUID, user_id: uuid.UUID
+    ) -> CardAlertModel | None:
         stmt = select(CardAlertModel).where(
             CardAlertModel.id == alert_id,
             CardAlertModel.user_id == user_id,
@@ -573,10 +631,14 @@ class CardRepository:
         return True
 
     async def get_unread_alert_count(self, user_id: uuid.UUID) -> int:
-        stmt = select(func.count()).select_from(CardAlertModel).where(
-            CardAlertModel.user_id == user_id,
-            CardAlertModel.is_read.is_(False),
-            CardAlertModel.is_dismissed.is_(False),
+        stmt = (
+            select(func.count())
+            .select_from(CardAlertModel)
+            .where(
+                CardAlertModel.user_id == user_id,
+                CardAlertModel.is_read.is_(False),
+                CardAlertModel.is_dismissed.is_(False),
+            )
         )
         result = await self._session.execute(stmt)
         return result.scalar_one()
@@ -630,7 +692,9 @@ class CardRepository:
             for bill in bills:
                 if bill.payment_status in ("pending", "partial") and bill.due_date <= upcoming:
                     existing = await self.list_alerts(user_id, credit_card_id=card.id)
-                    existing_bill_ids = {str(a.credit_card_bill_id) for a in existing if a.credit_card_bill_id}
+                    existing_bill_ids = {
+                        str(a.credit_card_bill_id) for a in existing if a.credit_card_bill_id
+                    }
 
                     if str(bill.id) not in existing_bill_ids:
                         days_left = (bill.due_date - today).days
@@ -654,7 +718,9 @@ class CardRepository:
 
                 if bill.payment_status in ("pending", "partial") and bill.due_date < today:
                     existing = await self.list_alerts(user_id, credit_card_id=card.id)
-                    overdue_types = {a.alert_type for a in existing if a.credit_card_bill_id == bill.id}
+                    overdue_types = {
+                        a.alert_type for a in existing if a.credit_card_bill_id == bill.id
+                    }
                     if "payment_overdue" not in overdue_types:
                         days_overdue = (today - bill.due_date).days
                         alert = await self.create_alert(
@@ -722,3 +788,12 @@ class CardRepository:
                 for c in cards
             ],
         }
+
+    async def list_active_card_user_ids(self) -> list[uuid.UUID]:
+        """IDs de usuarios con al menos una tarjeta de credito"""
+        from app.infrastructure.models.credit_card import CreditCardModel
+
+        result = await self._session.execute(
+            select(CreditCardModel.user_id).where(CreditCardModel.deleted_at.is_(None)).distinct()
+        )
+        return list(result.scalars().all())

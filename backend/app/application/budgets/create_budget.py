@@ -59,11 +59,15 @@ class CreateBudgetUseCase:
 
         valid_types = {"total", "category", "account"}
         if budget_type not in valid_types:
-            raise ValidationError(f"budget_type no valido: {budget_type}. Soportado: {', '.join(sorted(valid_types))}")
+            raise ValidationError(
+                f"budget_type no valido: {budget_type}. Soportado: {', '.join(sorted(valid_types))}"
+            )
 
         valid_periods = {"weekly", "biweekly", "monthly", "quarterly", "yearly"}
         if period not in valid_periods:
-            raise ValidationError(f"period no valido: {period}. Soportado: {', '.join(sorted(valid_periods))}")
+            raise ValidationError(
+                f"period no valido: {period}. Soportado: {', '.join(sorted(valid_periods))}"
+            )
 
         if not (1 <= alert_threshold <= 100):
             raise ValidationError("alert_threshold debe ser entre 1 y 100")

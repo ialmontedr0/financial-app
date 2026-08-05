@@ -46,7 +46,9 @@ class DebitCardRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def list_by_account(self, account_id: uuid.UUID, user_id: uuid.UUID) -> list[DebitCardModel]:
+    async def list_by_account(
+        self, account_id: uuid.UUID, user_id: uuid.UUID
+    ) -> list[DebitCardModel]:
         stmt = (
             select(DebitCardModel)
             .where(
@@ -59,7 +61,9 @@ class DebitCardRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update(self, card_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object) -> DebitCardModel | None:
+    async def update(
+        self, card_id: uuid.UUID, user_id: uuid.UUID, **kwargs: object
+    ) -> DebitCardModel | None:
         card = await self.get_by_id(card_id, user_id)
         if card is None:
             return None

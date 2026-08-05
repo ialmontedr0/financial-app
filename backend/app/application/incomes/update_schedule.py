@@ -34,7 +34,18 @@ class UpdateScheduleUseCase:
         if schedule is None:
             raise NotFoundError("IncomeSchedule")
 
-        allowed_fields = {"description", "amount", "currency_code", "account_id", "expected_date", "income_source_id", "status", "frequency", "projection_method", "notes"}
+        allowed_fields = {
+            "description",
+            "amount",
+            "currency_code",
+            "account_id",
+            "expected_date",
+            "income_source_id",
+            "status",
+            "frequency",
+            "projection_method",
+            "notes",
+        }
 
         if "status" in changes:
             valid_statuses = {"projected", "expected", "received", "overdue", "cancelled"}

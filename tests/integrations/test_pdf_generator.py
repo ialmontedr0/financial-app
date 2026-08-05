@@ -8,7 +8,13 @@ class TestPDFGenerator:
         from app.integrations.pdf_generator import generate_transaction_report
 
         txs = [
-            {"date": "2024-01-15", "description": "Groceries", "amount": 50.0, "type": "expense", "category": "Food"},
+            {
+                "date": "2024-01-15",
+                "description": "Groceries",
+                "amount": 50.0,
+                "type": "expense",
+                "category": "Food",
+            },
             {"date": "2024-01-16", "description": "Salary", "amount": 3000.0, "type": "income"},
         ]
         pdf = generate_transaction_report(txs, title="Test Report")
@@ -35,7 +41,12 @@ class TestPDFGenerator:
         from app.integrations.pdf_generator import generate_goals_report
 
         goals = [
-            {"name": "Emergency Fund", "target_amount": 10000, "current_amount": 5000, "status": "active"},
+            {
+                "name": "Emergency Fund",
+                "target_amount": 10000,
+                "current_amount": 5000,
+                "status": "active",
+            },
         ]
         pdf = generate_goals_report(goals)
         assert pdf.startswith(b"%PDF")

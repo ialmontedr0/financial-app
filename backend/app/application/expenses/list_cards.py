@@ -34,8 +34,12 @@ class ListCardsUseCase:
                 "currency_code": c.currency_code,
                 "is_multicurrency": c.is_multicurrency,
                 "secondary_currency_code": c.secondary_currency_code,
-                "secondary_credit_limit": str(c.secondary_credit_limit) if c.secondary_credit_limit else None,
-                "secondary_available_credit": str(c.secondary_available_credit) if c.secondary_available_credit else None,
+                "secondary_credit_limit": str(c.secondary_credit_limit)
+                if c.secondary_credit_limit
+                else None,
+                "secondary_available_credit": str(c.secondary_available_credit)
+                if c.secondary_available_credit
+                else None,
                 "credit_limit": str(c.credit_limit) if c.credit_limit else None,
                 "available_credit": str(c.available_credit) if c.available_credit else None,
                 "statement_day": c.statement_day,

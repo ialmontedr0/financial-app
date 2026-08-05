@@ -74,7 +74,9 @@ class CreateFromSourceUseCase:
         )
 
         if status == "completed":
-            await self._tx_repo.update_account_balance(account_id, Decimal(str(final_amount)), "add")
+            await self._tx_repo.update_account_balance(
+                account_id, Decimal(str(final_amount)), "add"
+            )
 
         income = await self._income_repo.create_income(
             user_id,

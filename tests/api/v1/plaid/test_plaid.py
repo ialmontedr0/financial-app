@@ -62,8 +62,6 @@ class TestPlaidAPI:
 
     async def test_list_items_empty(self, client: AsyncClient, test_password: str):
         token = await self._register_and_login(client, "pl_items@test.com", test_password)
-        resp = await client.get(
-            "/api/v1/plaid/items", headers={"Authorization": f"Bearer {token}"}
-        )
+        resp = await client.get("/api/v1/plaid/items", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 200
         assert resp.json() == {"items": []}

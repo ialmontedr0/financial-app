@@ -396,7 +396,9 @@ class TestBudgetRollover:
         budgets = resp.json()["budgets"]
         assert len(budgets) == 2
 
-    async def test_create_budget_defaults_to_dop_currency(self, client: AsyncClient, test_password: str):
+    async def test_create_budget_defaults_to_dop_currency(
+        self, client: AsyncClient, test_password: str
+    ):
         email = "budget_curr1@test.com"
         token = await self._register_and_login(client, email, test_password)
 
@@ -408,7 +410,9 @@ class TestBudgetRollover:
         assert resp.status_code == 201
         assert resp.json()["currency"] == "DOP"
 
-    async def test_create_budget_with_custom_currency(self, client: AsyncClient, test_password: str):
+    async def test_create_budget_with_custom_currency(
+        self, client: AsyncClient, test_password: str
+    ):
         email = "budget_curr2@test.com"
         token = await self._register_and_login(client, email, test_password)
 

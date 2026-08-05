@@ -24,7 +24,9 @@ def _derive_key(secret: str) -> bytes:
 def _fernet() -> Fernet:
     settings = get_settings()
     if not settings.ENCRYPTION_KEY:
-        raise ValidationError("ENCRYPTION_KEY no configurado; no se pueden almacenar tokens cifrados")
+        raise ValidationError(
+            "ENCRYPTION_KEY no configurado; no se pueden almacenar tokens cifrados"
+        )
     return Fernet(_derive_key(settings.ENCRYPTION_KEY))
 
 

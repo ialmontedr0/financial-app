@@ -2,8 +2,16 @@
 
 import pytest
 from app.domain.incomes.value_objects import (
-    IncomeType, IncomeStatus, IncomeStability, ScheduleStatus, ProjectionMethod,
-    INCOME_TYPES, INCOME_STATUSES, INCOME_STABILITY, SCHEDULE_STATUSES, PROJECTION_METHODS,
+    IncomeType,
+    IncomeStatus,
+    IncomeStability,
+    ScheduleStatus,
+    ProjectionMethod,
+    INCOME_TYPES,
+    INCOME_STATUSES,
+    INCOME_STABILITY,
+    SCHEDULE_STATUSES,
+    PROJECTION_METHODS,
 )
 
 

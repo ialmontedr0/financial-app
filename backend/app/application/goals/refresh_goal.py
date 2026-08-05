@@ -35,6 +35,7 @@ class RefreshGoalUseCase:
         progress = await self._repo.get_goal_progress(goal_id, user_id)
 
         from app.application.goals.create_goal import CreateGoalUseCase
+
         uc = CreateGoalUseCase(self._session)
         prediction = await uc._predict(user_id, goal)
 
@@ -53,11 +54,21 @@ class RefreshGoalUseCase:
             current_pct=pct,
         )
 
-        logger.info("goal_refreshed", user_id=str(user_id), goal_id=str(goal_id), pct=pct, notifications=emitted)
+        logger.info(
+            "goal_refreshed",
+            user_id=str(user_id),
+            goal_id=str(goal_id),
+            pct=pct,
+            notifications=emitted,
+        )
 
         return {
-            "id": str(goal.id), "name": goal.name,
-            "target_amount": str(goal.target_amount), "current_amount": str(goal.current_amount),
-            "status": goal.status, "progress": progress, "prediction": prediction,
+            "id": str(goal.id),
+            "name": goal.name,
+            "target_amount": str(goal.target_amount),
+            "current_amount": str(goal.current_amount),
+            "status": goal.status,
+            "progress": progress,
+            "prediction": prediction,
             "milestones_emitted": emitted,
         }

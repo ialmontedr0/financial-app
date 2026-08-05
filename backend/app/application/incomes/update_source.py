@@ -34,10 +34,35 @@ class UpdateSourceUseCase:
         if source is None:
             raise NotFoundError("IncomeSource")
 
-        allowed_fields = {"name", "income_type", "stability", "frequency", "pay_day", "pay_month", "pay_weekday", "default_amount", "default_account_id", "default_category_id", "default_currency", "notes", "is_active"}
+        allowed_fields = {
+            "name",
+            "income_type",
+            "stability",
+            "frequency",
+            "pay_day",
+            "pay_month",
+            "pay_weekday",
+            "default_amount",
+            "default_account_id",
+            "default_category_id",
+            "default_currency",
+            "notes",
+            "is_active",
+        }
 
         if "income_type" in changes:
-            valid_types = {"salary", "freelance", "business", "investment", "rental", "refund", "gift", "bonus", "commission", "other"}
+            valid_types = {
+                "salary",
+                "freelance",
+                "business",
+                "investment",
+                "rental",
+                "refund",
+                "gift",
+                "bonus",
+                "commission",
+                "other",
+            }
             if changes["income_type"] not in valid_types:
                 raise ValidationError(f"income_type no valido: {changes['income_type']}")
 
@@ -66,14 +91,20 @@ class UpdateSourceUseCase:
             "pay_month": updated.pay_month,
             "pay_weekday": updated.pay_weekday,
             "default_amount": str(updated.default_amount) if updated.default_amount else None,
-            "default_account_id": str(updated.default_account_id) if updated.default_account_id else None,
-            "default_category_id": str(updated.default_category_id) if updated.default_category_id else None,
+            "default_account_id": str(updated.default_account_id)
+            if updated.default_account_id
+            else None,
+            "default_category_id": str(updated.default_category_id)
+            if updated.default_category_id
+            else None,
             "default_currency": updated.default_currency,
             "icon": updated.icon,
             "color": updated.color,
             "is_active": updated.is_active,
             "total_received": str(updated.total_received) if updated.total_received else "0",
             "income_count": updated.income_count,
-            "last_received_at": updated.last_received_at.isoformat() if updated.last_received_at else None,
+            "last_received_at": updated.last_received_at.isoformat()
+            if updated.last_received_at
+            else None,
             "updated_at": updated.updated_at.isoformat() if updated.updated_at else None,
         }

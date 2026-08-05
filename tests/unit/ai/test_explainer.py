@@ -74,13 +74,15 @@ class TestExplainer:
 
     def test_parse_llm_json_valid(self):
         explainer = Explainer()
-        raw = json.dumps({
-            "headline": "Reduce gastos",
-            "why": "Porque gastas mucho",
-            "how": "Detectado en tus transacciones",
-            "impact": "Ahorrarias 1000/mes",
-            "action": "Revisa tus suscripciones",
-        })
+        raw = json.dumps(
+            {
+                "headline": "Reduce gastos",
+                "why": "Porque gastas mucho",
+                "how": "Detectado en tus transacciones",
+                "impact": "Ahorrarias 1000/mes",
+                "action": "Revisa tus suscripciones",
+            }
+        )
         result = explainer._parse_llm_json(raw)
         assert result is not None
         assert result["headline"] == "Reduce gastos"
@@ -133,20 +135,28 @@ class TestExplainerWithLLM:
     async def test_llm_path_success(self):
         llm_client = AsyncMock()
         llm_client.generate = AsyncMock(
-            return_value=json.dumps({
-                "headline": "LLM Headline",
-                "why": "LLM Why",
-                "how": "LLM How",
-                "impact": "LLM Impact",
-                "action": "LLM Action",
-            })
+            return_value=json.dumps(
+                {
+                    "headline": "LLM Headline",
+                    "why": "LLM Why",
+                    "how": "LLM How",
+                    "impact": "LLM Impact",
+                    "action": "LLM Action",
+                }
+            )
         )
 
         explainer = Explainer(llm_client=llm_client)
-        explainer._get_context_data = AsyncMock(return_value={
-            "income": 50000, "expense": 30000, "balance": 20000,
-            "top_category": "Comida", "tx_count": 30, "months_data": 6,
-        })
+        explainer._get_context_data = AsyncMock(
+            return_value={
+                "income": 50000,
+                "expense": 30000,
+                "balance": 20000,
+                "top_category": "Comida",
+                "tx_count": 30,
+                "months_data": 6,
+            }
+        )
 
         rec = {
             "type": "reduce_spending",
@@ -176,12 +186,23 @@ class TestExplainerWithLLM:
             "type": "reduce_spending",
             "title": "Test",
             "priority": "medium",
-            "features_used": {"amount": 5000, "pct": 20, "avg": 3000, "category": "Comida", "cat_share": 40, "savings": 1000},
+            "features_used": {
+                "amount": 5000,
+                "pct": 20,
+                "avg": 3000,
+                "category": "Comida",
+                "cat_share": 40,
+                "savings": 1000,
+            },
         }
 
         mock_session = AsyncMock()
         with patch.object(explainer, "_get_context_data", AsyncMock(return_value={})):
-            with patch.object(explainer, "_get_user_preferences", AsyncMock(return_value={"language": "es", "currency": "DOP"})):
+            with patch.object(
+                explainer,
+                "_get_user_preferences",
+                AsyncMock(return_value={"language": "es", "currency": "DOP"}),
+            ):
                 result = await explainer.explain(mock_session, "user-1", rec)
 
         assert result["llm_generated"] is False
@@ -195,11 +216,22 @@ class TestExplainerWithLLM:
         rec = {
             "type": "reduce_spending",
             "title": "Test",
-            "features_used": {"amount": 5000, "pct": 20, "avg": 3000, "category": "Comida", "cat_share": 40, "savings": 1000},
+            "features_used": {
+                "amount": 5000,
+                "pct": 20,
+                "avg": 3000,
+                "category": "Comida",
+                "cat_share": 40,
+                "savings": 1000,
+            },
         }
 
         mock_session = AsyncMock()
-        with patch.object(explainer, "_get_user_preferences", AsyncMock(return_value={"language": "es", "currency": "DOP"})):
+        with patch.object(
+            explainer,
+            "_get_user_preferences",
+            AsyncMock(return_value={"language": "es", "currency": "DOP"}),
+        ):
             result = await explainer.explain(mock_session, "user-1", rec)
 
         assert result["llm_generated"] is False
@@ -216,12 +248,23 @@ class TestExplainerWithLLM:
             "type": "reduce_spending",
             "title": "Test",
             "priority": "medium",
-            "features_used": {"amount": 5000, "pct": 20, "avg": 3000, "category": "Comida", "cat_share": 40, "savings": 1000},
+            "features_used": {
+                "amount": 5000,
+                "pct": 20,
+                "avg": 3000,
+                "category": "Comida",
+                "cat_share": 40,
+                "savings": 1000,
+            },
         }
 
         mock_session = AsyncMock()
         with patch.object(explainer, "_get_context_data", AsyncMock(return_value={})):
-            with patch.object(explainer, "_get_user_preferences", AsyncMock(return_value={"language": "es", "currency": "DOP"})):
+            with patch.object(
+                explainer,
+                "_get_user_preferences",
+                AsyncMock(return_value={"language": "es", "currency": "DOP"}),
+            ):
                 result = await explainer.explain(mock_session, "user-1", rec)
 
         assert result["llm_generated"] is False
@@ -241,6 +284,7 @@ class TestExplainerCache:
         explainer = Explainer(llm_client=llm_client)
         # Manually inject into cache with a fresh timestamp
         from app.ai.recommendations.explainer import _EXPLANATION_CACHE
+
         _EXPLANATION_CACHE[cache_key] = (time.time(), cached_value)
 
         # Override _cache_key to return our test key

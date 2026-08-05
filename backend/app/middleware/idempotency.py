@@ -80,7 +80,9 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                     path=request.url.path,
                 )
 
-    async def _complete_db(self, idempotency_key: str, *, status_code: int, response_body: str) -> None:
+    async def _complete_db(
+        self, idempotency_key: str, *, status_code: int, response_body: str
+    ) -> None:
         async with async_session_factory() as session:  # noqa: SIM117
             async with session.begin():
                 await IdempotencyRepository(session).complete(

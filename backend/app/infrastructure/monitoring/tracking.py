@@ -19,11 +19,13 @@ tracer = trace.get_tracer(__name__)
 
 def setup_tracking(app) -> None:
     """Configure OpenTelemetry tracing with OTLP exporter."""
-    resource = Resource.create({
-        "service.name": settings.OTEL_SERVICE_NAME,
-        "service.version": settings.APP_VERSION,
-        "deployment.environment": settings.ENVIRONMENT,
-    })
+    resource = Resource.create(
+        {
+            "service.name": settings.OTEL_SERVICE_NAME,
+            "service.version": settings.APP_VERSION,
+            "deployment.environment": settings.ENVIRONMENT,
+        }
+    )
 
     provider = TracerProvider(resource=resource)
     exporter = OTLPSpanExporter(endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT, insecure=True)
@@ -37,11 +39,14 @@ def setup_tracking(app) -> None:
 
 def create_span(name: str, attributes: dict | None = None):
     """Decorator for tracing specific functions with custom span."""
+
     def decorator(func):
         async def wrapper(*args, **kwargs):
             with tracer.start_as_current_span(name) as span:
                 if attributes:
                     span.set_attributes(attributes)
                 return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator

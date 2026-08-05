@@ -5,6 +5,7 @@ Revises: ffb27bee88cf
 Create Date: 2026-07-29 11:55:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -29,9 +30,7 @@ def upgrade() -> None:
         sa.Column("total_price", sa.Numeric(precision=19, scale=4), nullable=False),
         sa.Column("down_payment", sa.Numeric(precision=19, scale=4), nullable=False),
         sa.Column("financed_amount", sa.Numeric(precision=19, scale=4), nullable=False),
-        sa.Column(
-            "annual_interest_rate", sa.Numeric(precision=8, scale=4), nullable=False
-        ),
+        sa.Column("annual_interest_rate", sa.Numeric(precision=8, scale=4), nullable=False),
         sa.Column("installment_count", sa.Integer(), nullable=False),
         sa.Column(
             "installment_frequency",
@@ -47,9 +46,7 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
-        sa.Column(
-            "installment_amount", sa.Numeric(precision=19, scale=4), nullable=False
-        ),
+        sa.Column("installment_amount", sa.Numeric(precision=19, scale=4), nullable=False),
         sa.Column("calculation_method", sa.String(length=10), nullable=False),
         sa.Column("total_interest", sa.Numeric(precision=19, scale=4), nullable=False),
         sa.Column("total_paid", sa.Numeric(precision=19, scale=4), nullable=False),
@@ -90,12 +87,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_credit_purchase")),
     )
     with op.batch_alter_table("credit_purchase", schema=None) as batch_op:
-        batch_op.create_index(
-            batch_op.f("ix_credit_purchase_user_id"), ["user_id"], unique=False
-        )
-        batch_op.create_index(
-            "ix_credit_purchase_user_status", ["user_id", "status"], unique=False
-        )
+        batch_op.create_index(batch_op.f("ix_credit_purchase_user_id"), ["user_id"], unique=False)
+        batch_op.create_index("ix_credit_purchase_user_status", ["user_id", "status"], unique=False)
 
     op.create_table(
         "credit_purchase_installment",
@@ -104,15 +97,9 @@ def upgrade() -> None:
         sa.Column("installment_number", sa.Integer(), nullable=False),
         sa.Column("due_date", sa.Date(), nullable=False),
         sa.Column("amount", sa.Numeric(precision=19, scale=4), nullable=False),
-        sa.Column(
-            "principal_portion", sa.Numeric(precision=19, scale=4), nullable=False
-        ),
-        sa.Column(
-            "interest_portion", sa.Numeric(precision=19, scale=4), nullable=False
-        ),
-        sa.Column(
-            "balance_after", sa.Numeric(precision=19, scale=4), nullable=False
-        ),
+        sa.Column("principal_portion", sa.Numeric(precision=19, scale=4), nullable=False),
+        sa.Column("interest_portion", sa.Numeric(precision=19, scale=4), nullable=False),
+        sa.Column("balance_after", sa.Numeric(precision=19, scale=4), nullable=False),
         sa.Column(
             "status",
             sa.Enum("pending", "paid", "late", name="installment_status_enum"),
@@ -149,9 +136,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     with op.batch_alter_table("credit_purchase_installment", schema=None) as batch_op:
         batch_op.drop_index("ix_installment_purchase_number")
-        batch_op.drop_index(
-            batch_op.f("ix_credit_purchase_installment_purchase_id")
-        )
+        batch_op.drop_index(batch_op.f("ix_credit_purchase_installment_purchase_id"))
     op.drop_table("credit_purchase_installment")
 
     with op.batch_alter_table("credit_purchase", schema=None) as batch_op:

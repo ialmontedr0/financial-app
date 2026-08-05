@@ -38,6 +38,4 @@ class PlaidItemModel(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    __table_args__ = (
-        Index("ix_plaid_item_user_status", "user_id", "status"),
-    )
+    __table_args__ = (Index("ix_plaid_item_user_status", "user_id", "status"),)

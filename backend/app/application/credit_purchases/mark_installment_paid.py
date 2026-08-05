@@ -26,9 +26,7 @@ class MarkInstallmentPaidUseCase:
         if not entry:
             raise NotFoundError("Cuota no encontrada")
 
-        paid_total = sum(
-            inst.amount for inst in purchase.installments if inst.status == "paid"
-        )
+        paid_total = sum(inst.amount for inst in purchase.installments if inst.status == "paid")
         purchase = await self._repo.update(purchase, total_paid=paid_total)
 
         all_paid = all(inst.status == "paid" for inst in purchase.installments)

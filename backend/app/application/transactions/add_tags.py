@@ -37,5 +37,9 @@ class AddTagsUseCase:
 
         added = await self._repo.add_tags(transaction_id, user_id, cleaned)
         all_tags = await self._repo.get_tags(transaction_id)
-        return {"transaction_id": str(transaction_id), "added": [t.tag_name for t in added],
-            "total_tags": len(all_tags), "all_tags": [t.tag_name for t in all_tags]}
+        return {
+            "transaction_id": str(transaction_id),
+            "added": [t.tag_name for t in added],
+            "total_tags": len(all_tags),
+            "all_tags": [t.tag_name for t in all_tags],
+        }

@@ -37,8 +37,16 @@ DEFAULT_ROLES = {
         "display_name": "Usuario",
         "description": "Usuario regular del sistema",
         "is_system": True,
-        "permissions": ["user:read", "user:write", "transaction:read", "transaction:write",
-                        "transaction:delete", "budget:read", "budget:write", "budget:delete"],
+        "permissions": [
+            "user:read",
+            "user:write",
+            "transaction:read",
+            "transaction:write",
+            "transaction:delete",
+            "budget:read",
+            "budget:write",
+            "budget:delete",
+        ],
         "parent": None,
     },
     "moderator": {
@@ -52,8 +60,14 @@ DEFAULT_ROLES = {
         "display_name": "Administrador",
         "description": "Administrador con todos los permisos",
         "is_system": True,
-        "permissions": ["user:delete", "admin:users", "admin:roles", "admin:permissions",
-                        "admin:settings", "system:write"],
+        "permissions": [
+            "user:delete",
+            "admin:users",
+            "admin:roles",
+            "admin:permissions",
+            "admin:settings",
+            "system:write",
+        ],
         "parent": "moderator",
     },
 }
@@ -63,22 +77,23 @@ async def seed_roles_and_permissions(db: AsyncSession) -> None:
     """Seed default roles and permissions."""
     # 1. Create permissions
     for name, resource, action, description in ALL_PERMISSIONS:
-        existing = await db.execute(
-            select(PermissionModel).where(PermissionModel.name == name)
-        )
+        existing = await db.execute(select(PermissionModel).where(PermissionModel.name == name))
         if not existing.scalar_one_or_none():
-            db.add(PermissionModel(
-                name=name, resource=resource, action=action, description=description,
-            ))
+            db.add(
+                PermissionModel(
+                    name=name,
+                    resource=resource,
+                    action=action,
+                    description=description,
+                )
+            )
     await db.flush()
 
     # 2. Create roles (with parent hierarchy)
     role_cache: dict[str, RoleModel] = {}
 
     for role_name, config in DEFAULT_ROLES.items():
-        existing = await db.execute(
-            select(RoleModel).where(RoleModel.name == role_name)
-        )
+        existing = await db.execute(select(RoleModel).where(RoleModel.name == role_name))
         role = existing.scalar_one_or_none()
         if not role:
             role = RoleModel(

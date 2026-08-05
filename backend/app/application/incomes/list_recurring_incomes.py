@@ -36,8 +36,12 @@ class ListRecurringIncomesUseCase:
                 "description": r.description,
                 "account_id": str(r.account_id),
                 "category_id": str(r.category_id) if r.category_id else None,
-                "next_execution_date": r.next_execution_date.isoformat() if r.next_execution_date else None,
-                "last_execution_date": r.last_execution_date.isoformat() if r.last_execution_date else None,
+                "next_execution_date": r.next_execution_date.isoformat()
+                if r.next_execution_date
+                else None,
+                "last_execution_date": r.last_execution_date.isoformat()
+                if r.last_execution_date
+                else None,
                 "is_active": r.is_active,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
             }

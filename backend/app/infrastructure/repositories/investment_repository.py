@@ -136,9 +136,7 @@ class InvestmentRepository:
         await self._session.refresh(pa)
         return pa
 
-    async def list_portfolio_assets(
-        self, portfolio_id: uuid.UUID
-    ) -> list[PortfolioAssetModel]:
+    async def list_portfolio_assets(self, portfolio_id: uuid.UUID) -> list[PortfolioAssetModel]:
         stmt = (
             select(PortfolioAssetModel)
             .where(PortfolioAssetModel.portfolio_id == portfolio_id)
@@ -150,7 +148,9 @@ class InvestmentRepository:
     async def list_assets_in_portfolios(
         self, portfolio_ids: list[uuid.UUID]
     ) -> list[PortfolioAssetModel]:
-        stmt = select(PortfolioAssetModel).where(PortfolioAssetModel.portfolio_id.in_(portfolio_ids))
+        stmt = select(PortfolioAssetModel).where(
+            PortfolioAssetModel.portfolio_id.in_(portfolio_ids)
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
@@ -163,7 +163,9 @@ class InvestmentRepository:
         logger.info("investment_transaction_created", tx_id=str(tx.id))
         return tx
 
-    async def list_asset_transactions(self, asset_id: uuid.UUID) -> list[InvestmentTransactionModel]:
+    async def list_asset_transactions(
+        self, asset_id: uuid.UUID
+    ) -> list[InvestmentTransactionModel]:
         stmt = (
             select(InvestmentTransactionModel)
             .where(InvestmentTransactionModel.asset_id == asset_id)

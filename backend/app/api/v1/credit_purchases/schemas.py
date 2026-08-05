@@ -26,9 +26,7 @@ class UpdateCreditPurchaseSchema(BaseModel):
     store_name: str | None = Field(None, max_length=200)
     description: str | None = Field(None, max_length=500)
     notes: str | None = Field(None, max_length=1000)
-    status: str | None = Field(
-        None, pattern=r"^(active|completed|cancelled)$"
-    )
+    status: str | None = Field(None, pattern=r"^(active|completed|cancelled)$")
     annual_interest_rate: float | None = Field(None, ge=0)
 
 

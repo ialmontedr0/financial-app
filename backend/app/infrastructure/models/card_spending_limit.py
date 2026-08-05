@@ -50,8 +50,12 @@ class CardSpendingLimitModel(Base):
         default=None,
     )
 
-    period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
-    period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    period_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    period_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
 
     alert_threshold: Mapped[int] = mapped_column(nullable=False, default=80)
     alert_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -73,4 +77,6 @@ class CardSpendingLimitModel(Base):
     credit_card: Mapped[CreditCardModel] = relationship("CreditCardModel", lazy="selectin")
 
     def __repr__(self) -> str:
-        return f"<CardSpendingLimit(id={self.id}, type={self.limit_type}, limit={self.limit_amount})>"
+        return (
+            f"<CardSpendingLimit(id={self.id}, type={self.limit_type}, limit={self.limit_amount})>"
+        )

@@ -30,7 +30,9 @@ class GetBudgetUseCase:
 
         budget = await self._repo.recalculate_spent(budget_id, user_id) or budget
 
-        pct_used = (float(budget.spent) / float(budget.amount) * 100) if float(budget.amount) > 0 else 0
+        pct_used = (
+            (float(budget.spent) / float(budget.amount) * 100) if float(budget.amount) > 0 else 0
+        )
 
         alerts = await self._repo.list_alerts(user_id, budget_id=budget_id)
         unread_alerts = sum(1 for a in alerts if not a.is_read and not a.is_dismissed)
@@ -58,7 +60,11 @@ class GetBudgetUseCase:
             "is_active": budget.is_active,
             "version": budget.version,
             "pct_used": round(pct_used, 1),
-            "status": "exceeded" if pct_used > 100 else "warning" if pct_used >= budget.alert_threshold else "ok",
+            "status": "exceeded"
+            if pct_used > 100
+            else "warning"
+            if pct_used >= budget.alert_threshold
+            else "ok",
             "icon": budget.icon,
             "color": budget.color,
             "unread_alerts": unread_alerts,

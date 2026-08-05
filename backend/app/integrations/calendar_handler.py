@@ -45,9 +45,7 @@ def recurring_transactions_to_ics(
         next_date_str = tx.get("next_execution_date", "")
         if next_date_str:
             try:
-                next_date = datetime.fromisoformat(
-                    next_date_str.replace("Z", "+00:00")
-                ).date()
+                next_date = datetime.fromisoformat(next_date_str.replace("Z", "+00:00")).date()
             except (ValueError, AttributeError):
                 next_date = datetime.now(UTC).date()
         else:
@@ -94,9 +92,7 @@ def goals_to_ics(
             continue
 
         try:
-            target_date = datetime.fromisoformat(
-                target_date_str.replace("Z", "+00:00")
-            ).date()
+            target_date = datetime.fromisoformat(target_date_str.replace("Z", "+00:00")).date()
         except (ValueError, AttributeError):
             continue
 

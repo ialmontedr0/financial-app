@@ -36,7 +36,9 @@ def upgrade() -> None:
         sa.Column(
             "purpose",
             sa.Enum(
-                "registration", "password_reset", "email_change",
+                "registration",
+                "password_reset",
+                "email_change",
                 name="verification_purpose",
             ),
             nullable=False,
@@ -59,10 +61,14 @@ def upgrade() -> None:
     )
     with op.batch_alter_table("email_verification", schema=None) as batch_op:
         batch_op.create_index(
-            batch_op.f("ix_email_verification_token"), ["token"], unique=True,
+            batch_op.f("ix_email_verification_token"),
+            ["token"],
+            unique=True,
         )
         batch_op.create_index(
-            batch_op.f("ix_email_verification_user_id"), ["user_id"], unique=False,
+            batch_op.f("ix_email_verification_user_id"),
+            ["user_id"],
+            unique=False,
         )
 
     op.create_table(
@@ -96,7 +102,9 @@ def upgrade() -> None:
             unique=True,
         )
         batch_op.create_index(
-            batch_op.f("ix_user_session_user_id"), ["user_id"], unique=False,
+            batch_op.f("ix_user_session_user_id"),
+            ["user_id"],
+            unique=False,
         )
 
     with op.batch_alter_table("user", schema=None) as batch_op:

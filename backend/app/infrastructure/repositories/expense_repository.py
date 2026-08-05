@@ -552,7 +552,9 @@ class ExpenseRepository:
 
         if monthly > 5000:
             recommendations.append(
-                "Tu gasto en suscripciones es alto (>{:,.0f}/mes). Considera revisar cuales usas regularmente.".format(monthly)  # noqa: UP032
+                "Tu gasto en suscripciones es alto (>{:,.0f}/mes). Considera revisar cuales usas regularmente.".format(
+                    monthly
+                )  # noqa: UP032
             )
         if summary["active_count"] > 5:
             recommendations.append(

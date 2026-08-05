@@ -50,9 +50,7 @@ class CreditPurchaseRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update(
-        self, purchase: CreditPurchaseModel, **kwargs: object
-    ) -> CreditPurchaseModel:
+    async def update(self, purchase: CreditPurchaseModel, **kwargs: object) -> CreditPurchaseModel:
         for key, value in kwargs.items():
             setattr(purchase, key, value)
         await self._session.flush()

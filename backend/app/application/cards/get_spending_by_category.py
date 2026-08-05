@@ -22,8 +22,11 @@ class GetSpendingByCategoryUseCase:
         self._repo = CardRepository(session)
 
     async def execute(
-        self, user_id: uuid.UUID, card_id: uuid.UUID,
-        period_start: date | None = None, period_end: date | None = None,
+        self,
+        user_id: uuid.UUID,
+        card_id: uuid.UUID,
+        period_start: date | None = None,
+        period_end: date | None = None,
     ) -> dict:
         from app.middleware.error_handler import NotFoundError
 
@@ -31,7 +34,9 @@ class GetSpendingByCategoryUseCase:
         if card is None:
             raise NotFoundError("CreditCard")
 
-        breakdown = await self._repo.get_spending_by_category(card_id, user_id, period_start, period_end)
+        breakdown = await self._repo.get_spending_by_category(
+            card_id, user_id, period_start, period_end
+        )
         total = sum(float(b["total"]) for b in breakdown)
 
         return {

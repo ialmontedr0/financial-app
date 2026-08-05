@@ -60,6 +60,7 @@ PROJECTION_METHODS: dict[str, str] = {
 # Value Objects
 # ======================================================================
 
+
 @dataclass(frozen=True)
 class IncomeType:
     value: str
@@ -89,7 +90,9 @@ class IncomeStatus:
         normalized = self.value.lower().strip()
         if normalized not in self._VALID_STATUSES:
             supported = ", ".join(sorted(self._VALID_STATUSES))
-            raise ValueError(f"Estado de ingreso no soportado: {self.value}. Soportado: {supported}")
+            raise ValueError(
+                f"Estado de ingreso no soportado: {self.value}. Soportado: {supported}"
+            )
         object.__setattr__(self, "value", normalized)
 
     def __str__(self) -> str:
@@ -129,7 +132,9 @@ class ScheduleStatus:
         normalized = self.value.lower().strip()
         if normalized not in self._VALID_STATUSES:
             supported = ", ".join(sorted(self._VALID_STATUSES))
-            raise ValueError(f"Estado de programacion no soportado: {self.value}. Soportado: {supported}")
+            raise ValueError(
+                f"Estado de programacion no soportado: {self.value}. Soportado: {supported}"
+            )
         object.__setattr__(self, "value", normalized)
 
     def __str__(self) -> str:
@@ -149,7 +154,9 @@ class ProjectionMethod:
         normalized = self.value.lower().strip()
         if normalized not in self._VALID_METHODS:
             supported = ", ".join(sorted(self._VALID_METHODS))
-            raise ValueError(f"Metodo de proyeccion no soportado: {self.value}. Soportado: {supported}")
+            raise ValueError(
+                f"Metodo de proyeccion no soportado: {self.value}. Soportado: {supported}"
+            )
         object.__setattr__(self, "value", normalized)
 
     def __str__(self) -> str:

@@ -38,8 +38,12 @@ class GetPortfolioSummaryUseCase:
             qty_by_asset: dict[uuid.UUID, Decimal] = {}
             cost_by_asset: dict[uuid.UUID, Decimal] = {}
             for pa in portfolio_assets:
-                qty_by_asset[pa.asset_id] = qty_by_asset.get(pa.asset_id, Decimal("0")) + pa.quantity
-                cost_by_asset[pa.asset_id] = cost_by_asset.get(pa.asset_id, Decimal("0")) + pa.cost_basis
+                qty_by_asset[pa.asset_id] = (
+                    qty_by_asset.get(pa.asset_id, Decimal("0")) + pa.quantity
+                )
+                cost_by_asset[pa.asset_id] = (
+                    cost_by_asset.get(pa.asset_id, Decimal("0")) + pa.cost_basis
+                )
 
             for asset_id, qty in qty_by_asset.items():
                 asset = assets.get(asset_id)

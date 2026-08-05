@@ -49,7 +49,9 @@ class RefreshBudgetUseCase:
                 ],
             )
 
-        pct_used = (float(budget.spent) / float(budget.amount) * 100) if float(budget.amount) > 0 else 0
+        pct_used = (
+            (float(budget.spent) / float(budget.amount) * 100) if float(budget.amount) > 0 else 0
+        )
 
         return {
             "id": str(budget.id),
@@ -58,6 +60,10 @@ class RefreshBudgetUseCase:
             "spent": str(budget.spent),
             "remaining": str(budget.remaining),
             "pct_used": round(pct_used, 1),
-            "status": "exceeded" if pct_used > 100 else "warning" if pct_used >= budget.alert_threshold else "ok",
+            "status": "exceeded"
+            if pct_used > 100
+            else "warning"
+            if pct_used >= budget.alert_threshold
+            else "ok",
             "new_alerts": len(new_alerts),
         }

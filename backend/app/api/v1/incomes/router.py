@@ -12,6 +12,7 @@ router = APIRouter(prefix="/incomes", tags=["Incomes"])
 
 # --- Income CRUD ---
 
+
 @router.post("", status_code=201)
 async def create_income(
     body: dict,
@@ -22,7 +23,11 @@ async def create_income(
     from datetime import date as date_type
     from app.application.incomes.create_income import CreateIncomeUseCase
 
-    effective_date = date_type.fromisoformat(body["effective_date"]) if isinstance(body.get("effective_date"), str) else body.get("effective_date")
+    effective_date = (
+        date_type.fromisoformat(body["effective_date"])
+        if isinstance(body.get("effective_date"), str)
+        else body.get("effective_date")
+    )
     tags = body.pop("tags", None)
     return await CreateIncomeUseCase(db).execute(
         uuid.UUID(current_user["sub"]),
@@ -40,7 +45,9 @@ async def create_income(
         income_type=body.get("income_type", "salary"),
         income_status=body.get("income_status", "received"),
         stability=body.get("stability", "fixed"),
-        income_source_id=uuid.UUID(body["income_source_id"]) if body.get("income_source_id") else None,
+        income_source_id=uuid.UUID(body["income_source_id"])
+        if body.get("income_source_id")
+        else None,
         employer_name=body.get("employer_name"),
         employer_tax_id=body.get("employer_tax_id"),
         gross_amount=float(body["gross_amount"]) if body.get("gross_amount") else None,
@@ -76,15 +83,21 @@ async def list_incomes(
 
     return await ListIncomesUseCase(db).execute(
         uuid.UUID(current_user["sub"]),
-        income_type=income_type, income_status=income_status, stability=stability,
+        income_type=income_type,
+        income_status=income_status,
+        stability=stability,
         income_source_id=uuid.UUID(income_source_id) if income_source_id else None,
         category_id=uuid.UUID(category_id) if category_id else None,
         account_id=uuid.UUID(account_id) if account_id else None,
-        min_amount=min_amount, max_amount=max_amount,
+        min_amount=min_amount,
+        max_amount=max_amount,
         date_from=date_type.fromisoformat(date_from) if date_from else None,
         date_to=date_type.fromisoformat(date_to) if date_to else None,
-        search=search, sort_by=sort_by, sort_order=sort_order,
-        page=page, page_size=page_size,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page=page,
+        page_size=page_size,
     )
 
 
@@ -175,7 +188,9 @@ async def get_monthly_breakdown(
     import uuid
     from app.application.incomes.get_monthly_breakdown import GetMonthlyBreakdownUseCase
 
-    return await GetMonthlyBreakdownUseCase(db).execute(uuid.UUID(current_user["sub"]), year=year, month=month)
+    return await GetMonthlyBreakdownUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), year=year, month=month
+    )
 
 
 @router.get("/recurring-candidates")
@@ -219,6 +234,7 @@ async def batch_update_status(
 
 # --- Income Sources ---
 
+
 @router.post("/sources", status_code=201)
 async def create_source(
     body: dict,
@@ -235,8 +251,12 @@ async def create_source(
         stability=body.get("stability", "fixed"),
         frequency=body.get("frequency"),
         default_amount=float(body["default_amount"]) if body.get("default_amount") else None,
-        default_account_id=uuid.UUID(body["default_account_id"]) if body.get("default_account_id") else None,
-        default_category_id=uuid.UUID(body["default_category_id"]) if body.get("default_category_id") else None,
+        default_account_id=uuid.UUID(body["default_account_id"])
+        if body.get("default_account_id")
+        else None,
+        default_category_id=uuid.UUID(body["default_category_id"])
+        if body.get("default_category_id")
+        else None,
         notes=body.get("description"),
         pay_day=int(body["pay_day"]) if body.get("pay_day") else None,
         pay_month=int(body["pay_month"]) if body.get("pay_month") else None,
@@ -289,14 +309,18 @@ async def get_source(
         "pay_weekday": source.pay_weekday,
         "default_amount": str(source.default_amount) if source.default_amount else None,
         "default_account_id": str(source.default_account_id) if source.default_account_id else None,
-        "default_category_id": str(source.default_category_id) if source.default_category_id else None,
+        "default_category_id": str(source.default_category_id)
+        if source.default_category_id
+        else None,
         "default_currency": source.default_currency,
         "icon": source.icon,
         "color": source.color,
         "is_active": source.is_active,
         "total_received": str(source.total_received) if source.total_received else "0",
         "income_count": source.income_count,
-        "last_received_at": source.last_received_at.isoformat() if source.last_received_at else None,
+        "last_received_at": source.last_received_at.isoformat()
+        if source.last_received_at
+        else None,
         "created_at": source.created_at.isoformat() if source.created_at else None,
         "updated_at": source.updated_at.isoformat() if source.updated_at else None,
     }
@@ -313,7 +337,11 @@ async def create_from_source(
     from datetime import date as date_type
     from app.application.incomes.create_from_source import CreateFromSourceUseCase
 
-    ed = date_type.fromisoformat(body["received_date"]) if body.get("received_date") else date_type.today()
+    ed = (
+        date_type.fromisoformat(body["received_date"])
+        if body.get("received_date")
+        else date_type.today()
+    )
     return await CreateFromSourceUseCase(db).execute(
         uuid.UUID(current_user["sub"]),
         uuid.UUID(source_id),
@@ -349,10 +377,13 @@ async def delete_source(
     import uuid
     from app.application.incomes.delete_source import DeleteSourceUseCase
 
-    return await DeleteSourceUseCase(db).execute(uuid.UUID(current_user["sub"]), uuid.UUID(source_id))
+    return await DeleteSourceUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), uuid.UUID(source_id)
+    )
 
 
 # --- Income Schedule ---
+
 
 @router.post("/schedule", status_code=201)
 async def create_schedule(
@@ -370,7 +401,9 @@ async def create_schedule(
         amount=float(body["amount"]),
         account_id=uuid.UUID(body["account_id"]),
         expected_date=date_type.fromisoformat(body["expected_date"]),
-        income_source_id=uuid.UUID(body["income_source_id"]) if body.get("income_source_id") else None,
+        income_source_id=uuid.UUID(body["income_source_id"])
+        if body.get("income_source_id")
+        else None,
         currency_code=body.get("currency_code", "DOP"),
         frequency=body.get("frequency"),
         projection_method=body.get("projection_method"),
@@ -407,7 +440,9 @@ async def get_projected_income(
     import uuid
     from app.infrastructure.repositories.income_repository import IncomeRepository
 
-    return await IncomeRepository(db).get_projected_income(uuid.UUID(current_user["sub"]), months=months)
+    return await IncomeRepository(db).get_projected_income(
+        uuid.UUID(current_user["sub"]), months=months
+    )
 
 
 @router.post("/schedule/{schedule_id}/receive", status_code=201)
@@ -458,10 +493,13 @@ async def delete_schedule(
     import uuid
     from app.application.incomes.delete_schedule import DeleteScheduleUseCase
 
-    return await DeleteScheduleUseCase(db).execute(uuid.UUID(current_user["sub"]), uuid.UUID(schedule_id))
+    return await DeleteScheduleUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), uuid.UUID(schedule_id)
+    )
 
 
 # --- Recurring ---
+
 
 @router.get("/recurring")
 async def list_recurring_incomes(
@@ -485,6 +523,7 @@ async def process_recurring_incomes(
 
 
 # --- Income Detail (MUST be after all static routes) ---
+
 
 @router.get("/{income_id}")
 async def get_income(
@@ -524,4 +563,6 @@ async def delete_income(
     import uuid
     from app.application.incomes.delete_income import DeleteIncomeUseCase
 
-    return await DeleteIncomeUseCase(db).execute(uuid.UUID(current_user["sub"]), uuid.UUID(income_id))
+    return await DeleteIncomeUseCase(db).execute(
+        uuid.UUID(current_user["sub"]), uuid.UUID(income_id)
+    )

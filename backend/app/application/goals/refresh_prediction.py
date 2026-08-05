@@ -30,17 +30,28 @@ class RefreshPredictionUseCase:
             raise NotFoundError("Goal")
 
         from app.application.goals.create_goal import CreateGoalUseCase
+
         uc = CreateGoalUseCase(self._session)
         prediction = await uc._predict(user_id, goal)
 
         await self._repo.update_goal(goal_id, user_id, prediction_updated_at=datetime.now(UTC))
 
         await self._repo.create_milestone(
-            user_id, goal_id=goal.id, event_type="prediction_update",
-            amount_at_event=goal.current_amount, target_amount=goal.target_amount,
-            pct_complete=round(float(goal.current_amount) / float(goal.target_amount) * 100, 2) if float(goal.target_amount) > 0 else 0,
+            user_id,
+            goal_id=goal.id,
+            event_type="prediction_update",
+            amount_at_event=goal.current_amount,
+            target_amount=goal.target_amount,
+            pct_complete=round(float(goal.current_amount) / float(goal.target_amount) * 100, 2)
+            if float(goal.target_amount) > 0
+            else 0,
             metadata_json=prediction,
         )
 
-        logger.info("prediction_refreshed", user_id=str(user_id), goal_id=str(goal_id), probability=prediction.get("predicted_probability"))
+        logger.info(
+            "prediction_refreshed",
+            user_id=str(user_id),
+            goal_id=str(goal_id),
+            probability=prediction.get("predicted_probability"),
+        )
         return {"goal_id": str(goal.id), "name": goal.name, "prediction": prediction}

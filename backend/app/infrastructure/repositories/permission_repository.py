@@ -14,9 +14,7 @@ class PermissionRepository:
         self._db = db
 
     async def get_by_name(self, name: str) -> PermissionModel | None:
-        result = await self._db.execute(
-            select(PermissionModel).where(PermissionModel.name == name)
-        )
+        result = await self._db.execute(select(PermissionModel).where(PermissionModel.name == name))
         return result.scalar_one_or_none()
 
     async def get_by_id(self, permission_id: UUID) -> PermissionModel | None:

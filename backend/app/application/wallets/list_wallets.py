@@ -35,17 +35,19 @@ class ListWalletsUseCase:
         result: list[dict] = []
         for w in wallets:
             account_ids = await self._repo.get_wallet_account_ids(w.id)
-            result.append({
-                "id": str(w.id),
-                "name": w.name,
-                "description": w.description,
-                "wallet_type": w.wallet_type,
-                "status": w.status,
-                "icon": w.icon,
-                "color": w.color,
-                "sort_order": w.sort_order,
-                "account_count": len(account_ids),
-                "created_at": w.created_at.isoformat() if w.created_at else None,
-            })
+            result.append(
+                {
+                    "id": str(w.id),
+                    "name": w.name,
+                    "description": w.description,
+                    "wallet_type": w.wallet_type,
+                    "status": w.status,
+                    "icon": w.icon,
+                    "color": w.color,
+                    "sort_order": w.sort_order,
+                    "account_count": len(account_ids),
+                    "created_at": w.created_at.isoformat() if w.created_at else None,
+                }
+            )
 
         return result

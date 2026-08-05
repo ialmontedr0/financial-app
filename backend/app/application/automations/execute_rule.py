@@ -13,9 +13,7 @@ class ExecuteAutomationRuleUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(
-        self, user_id: uuid.UUID, rule_id: uuid.UUID, dry_run: bool = False
-    ) -> dict:
+    async def execute(self, user_id: uuid.UUID, rule_id: uuid.UUID, dry_run: bool = False) -> dict:
         from app.automation.engine import AutomationEngine
 
         engine = AutomationEngine(self._session)

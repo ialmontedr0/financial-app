@@ -222,9 +222,7 @@ class Explainer:
             months_data=context.get("months_data", 0),
         )
 
-        raw = await self._llm_client.generate(
-            prompt, system_prompt=SYSTEM_PROMPT_EXPLANATION
-        )
+        raw = await self._llm_client.generate(prompt, system_prompt=SYSTEM_PROMPT_EXPLANATION)
         if raw is None:
             return None
 
@@ -328,12 +326,8 @@ class Explainer:
         result = await session.execute(stmt)
         transactions = list(result.scalars().all())
 
-        income = sum(
-            float(t.amount) for t in transactions if t.transaction_type == "income"
-        )
-        expense = sum(
-            abs(float(t.amount)) for t in transactions if t.transaction_type == "expense"
-        )
+        income = sum(float(t.amount) for t in transactions if t.transaction_type == "income")
+        expense = sum(abs(float(t.amount)) for t in transactions if t.transaction_type == "expense")
 
         monthly_months: set[str] = set()
         category_totals: dict[str, float] = {}

@@ -46,8 +46,28 @@ class UpdateIncomeUseCase:
         if tx.transaction_type != "income":
             raise ValidationError("Transaction is not an income")
 
-        tx_fields = {"amount", "description", "notes", "category_id", "subcategory_id", "status", "effective_date", "account_id"}
-        income_fields = {"income_type", "income_status", "stability", "income_source_id", "employer_name", "employer_tax_id", "gross_amount", "tax_withheld", "net_amount", "frequency"}
+        tx_fields = {
+            "amount",
+            "description",
+            "notes",
+            "category_id",
+            "subcategory_id",
+            "status",
+            "effective_date",
+            "account_id",
+        }
+        income_fields = {
+            "income_type",
+            "income_status",
+            "stability",
+            "income_source_id",
+            "employer_name",
+            "employer_tax_id",
+            "gross_amount",
+            "tax_withheld",
+            "net_amount",
+            "frequency",
+        }
 
         tx_changes = {k: v for k, v in changes.items() if k in tx_fields}
         income_changes = {k: v for k, v in changes.items() if k in income_fields}
@@ -56,14 +76,21 @@ class UpdateIncomeUseCase:
         for field, new_value in {**tx_changes, **income_changes}.items():
             old_value = getattr(tx if field in tx_fields else income, field, None)
             if str(old_value) != str(new_value):
-                audit_changes[field] = {"old": str(old_value) if old_value is not None else None, "new": str(new_value) if new_value is not None else None}
+                audit_changes[field] = {
+                    "old": str(old_value) if old_value is not None else None,
+                    "new": str(new_value) if new_value is not None else None,
+                }
 
         if not audit_changes:
             return {"message": "No changes detected"}
 
         if "amount" in tx_changes or "account_id" in tx_changes:
             old_amount = tx.amount
-            new_amount = Decimal(str(tx_changes.get("amount", tx.amount))) if "amount" in tx_changes else tx.amount
+            new_amount = (
+                Decimal(str(tx_changes.get("amount", tx.amount)))
+                if "amount" in tx_changes
+                else tx.amount
+            )
             if tx.status == "completed":
                 await self._tx_repo.update_account_balance(tx.account_id, old_amount, "subtract")
                 new_acc = tx_changes.get("account_id", tx.account_id)
@@ -100,7 +127,9 @@ class UpdateIncomeUseCase:
             "source": tx.source,
             "tags": [t.tag_name for t in tags],
             "income_type": updated_income.income_type if updated_income else income.income_type,
-            "income_status": updated_income.income_status if updated_income else income.income_status,
+            "income_status": updated_income.income_status
+            if updated_income
+            else income.income_status,
             "stability": updated_income.stability if updated_income else income.stability,
             "updated_at": tx.updated_at.isoformat() if tx.updated_at else None,
             "audit_changes": audit_changes,

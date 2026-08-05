@@ -50,7 +50,10 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     try:
         usage = shutil.disk_usage("/")
         free_gb = usage.free / (1024**3)
-        checks["disk"] = {"free_gb": round(free_gb, 2), "status": "ok" if free_gb > 1.0 else "warning"}
+        checks["disk"] = {
+            "free_gb": round(free_gb, 2),
+            "status": "ok" if free_gb > 1.0 else "warning",
+        }
         if free_gb < 1.0:
             all_healthy = False
     except Exception as e:

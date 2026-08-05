@@ -51,7 +51,9 @@ class ReceiveScheduledUseCase:
             final_amount = Decimal(str(amount))
         elif schedule.income_source_id:
             source = await self._income_repo.get_source_by_id(schedule.income_source_id, user_id)
-            final_amount = source.default_amount if source and source.default_amount else schedule.amount
+            final_amount = (
+                source.default_amount if source and source.default_amount else schedule.amount
+            )
         else:
             final_amount = schedule.amount
         if final_amount <= 0:
@@ -86,9 +88,14 @@ class ReceiveScheduledUseCase:
         )
 
         from datetime import UTC, datetime
-        await self._income_repo.update_schedule(schedule_id, user_id,
-            status="received", received_transaction_id=tx.id,
-            received_at=datetime.now(UTC))
+
+        await self._income_repo.update_schedule(
+            schedule_id,
+            user_id,
+            status="received",
+            received_transaction_id=tx.id,
+            received_at=datetime.now(UTC),
+        )
 
         if schedule.income_source_id:
             await self._income_repo.increment_source_stats(schedule.income_source_id, final_amount)

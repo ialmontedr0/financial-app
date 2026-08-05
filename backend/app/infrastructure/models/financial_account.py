@@ -78,9 +78,7 @@ class FinancialAccountModel(Base, VersionMixin):
 
     # --- Institution Info ---
     institution: Mapped[str | None] = mapped_column(String(200), nullable=True, default=None)
-    account_number_last4: Mapped[str | None] = mapped_column(
-        String(4), nullable=True, default=None
-    )
+    account_number_last4: Mapped[str | None] = mapped_column(String(4), nullable=True, default=None)
 
     # --- Display ---
     icon: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)

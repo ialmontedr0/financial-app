@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.infrastructure.security.jwt_service import JWTService

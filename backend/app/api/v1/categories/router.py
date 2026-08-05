@@ -55,7 +55,9 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 async def list_categories(
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
-    category_type: str | None = Query(None, description="Filter: expense, income, transfer, adjustment"),
+    category_type: str | None = Query(
+        None, description="Filter: expense, income, transfer, adjustment"
+    ),
     include_inactive: bool = Query(False, description="Include inactive categories"),
 ) -> dict:
     """List all categories."""

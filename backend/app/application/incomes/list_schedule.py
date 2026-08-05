@@ -30,7 +30,9 @@ class ListScheduleUseCase:
         date_from: date | None = None,
         date_to: date | None = None,
     ) -> dict:
-        schedules = await self._repo.list_schedules(user_id, status=status, date_from=date_from, date_to=date_to)
+        schedules = await self._repo.list_schedules(
+            user_id, status=status, date_from=date_from, date_to=date_to
+        )
 
         items = [
             {
@@ -46,7 +48,9 @@ class ListScheduleUseCase:
                 "projection_method": s.projection_method,
                 "confidence_score": str(s.confidence_score) if s.confidence_score else None,
                 "notes": s.notes,
-                "received_transaction_id": str(s.received_transaction_id) if s.received_transaction_id else None,
+                "received_transaction_id": str(s.received_transaction_id)
+                if s.received_transaction_id
+                else None,
                 "received_at": s.received_at.isoformat() if s.received_at else None,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
             }

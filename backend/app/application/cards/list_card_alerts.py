@@ -41,7 +41,9 @@ class ListCardAlertsUseCase:
             {
                 "id": str(a.id),
                 "credit_card_id": str(a.credit_card_id),
-                "credit_card_bill_id": str(a.credit_card_bill_id) if a.credit_card_bill_id else None,
+                "credit_card_bill_id": str(a.credit_card_bill_id)
+                if a.credit_card_bill_id
+                else None,
                 "alert_type": a.alert_type,
                 "severity": a.severity,
                 "title": a.title,

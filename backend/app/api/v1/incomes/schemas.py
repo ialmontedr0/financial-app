@@ -70,6 +70,7 @@ class ListIncomesResponse(BaseModel):
 # Income Sources
 # ======================================================================
 
+
 class CreateSourceRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     income_type: str = "salary"
@@ -117,6 +118,7 @@ class ListSourcesResponse(BaseModel):
 # Income Schedule
 # ======================================================================
 
+
 class CreateScheduleRequest(BaseModel):
     description: str = Field(..., min_length=1, max_length=500)
     amount: str
@@ -161,6 +163,7 @@ class ReceiveScheduledRequest(BaseModel):
 # ======================================================================
 # Analytics
 # ======================================================================
+
 
 class IncomeSummaryResponse(BaseModel):
     period_start: str

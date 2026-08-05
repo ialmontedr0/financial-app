@@ -101,7 +101,9 @@ class TestCategoryCRUD:
         )
         assert response.status_code == 200
 
-    async def test_cannot_delete_system_category(self, client: AsyncClient, test_password: str) -> None:
+    async def test_cannot_delete_system_category(
+        self, client: AsyncClient, test_password: str
+    ) -> None:
         email = "catnodelete@test.com"
         token = await self._register_and_login(client, email, test_password)
         # Get system category ID
@@ -161,7 +163,9 @@ class TestCategorize:
         )
         return login_resp.json()["tokens"]["access_token"]
 
-    async def test_categorize_unknown_returns_fallback(self, client: AsyncClient, test_password: str) -> None:
+    async def test_categorize_unknown_returns_fallback(
+        self, client: AsyncClient, test_password: str
+    ) -> None:
         email = "categorize@test.com"
         token = await self._register_and_login(client, email, test_password)
         response = await client.post(

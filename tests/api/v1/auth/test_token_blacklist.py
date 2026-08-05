@@ -16,7 +16,9 @@ class TestTokenBlacklist:
     ):
         email = "blacklist@test.com"
         await client.post("/api/v1/auth/register", json={"email": email, "password": test_password})
-        login = await client.post("/api/v1/auth/login", json={"email": email, "password": test_password})
+        login = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": test_password}
+        )
         tokens = login.json()["tokens"]
         access_token = tokens["access_token"]
         refresh_token = tokens["refresh_token"]
@@ -40,12 +42,12 @@ class TestTokenBlacklist:
         assert me_after.status_code == 401
         assert me_after.json()["error"]["message"] == "Token has been revoked"
 
-    async def test_logout_all_revokes_access_token(
-        self, client: AsyncClient, test_password: str
-    ):
+    async def test_logout_all_revokes_access_token(self, client: AsyncClient, test_password: str):
         email = "blacklistall@test.com"
         await client.post("/api/v1/auth/register", json={"email": email, "password": test_password})
-        login = await client.post("/api/v1/auth/login", json={"email": email, "password": test_password})
+        login = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": test_password}
+        )
         access_token = login.json()["tokens"]["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
 

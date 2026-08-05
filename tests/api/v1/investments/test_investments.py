@@ -134,9 +134,7 @@ class TestInvestmentTransactions:
     async def _setup(
         self, client: AsyncClient, email: str, test_password: str
     ) -> tuple[str, dict, dict]:
-        await client.post(
-            "/api/v1/auth/register", json={"email": email, "password": test_password}
-        )
+        await client.post("/api/v1/auth/register", json={"email": email, "password": test_password})
         login = await client.post(
             "/api/v1/auth/login", json={"email": email, "password": test_password}
         )
@@ -154,9 +152,7 @@ class TestInvestmentTransactions:
         return access, asset_resp.json(), portfolio_resp.json()
 
     async def test_buy_updates_holdings(self, client: AsyncClient, test_password: str):
-        token, asset, portfolio = await self._setup(
-            client, "inv_buy1@test.com", test_password
-        )
+        token, asset, portfolio = await self._setup(client, "inv_buy1@test.com", test_password)
         resp = await client.post(
             f"/api/v1/investments/assets/{asset['id']}/transactions",
             json={
@@ -186,9 +182,7 @@ class TestInvestmentTransactions:
     async def test_second_buy_recalculates_average_price(
         self, client: AsyncClient, test_password: str
     ):
-        token, asset, portfolio = await self._setup(
-            client, "inv_buy2@test.com", test_password
-        )
+        token, asset, portfolio = await self._setup(client, "inv_buy2@test.com", test_password)
         for price, qty in [(100, 10), (200, 10)]:
             resp = await client.post(
                 f"/api/v1/investments/assets/{asset['id']}/transactions",
@@ -214,20 +208,30 @@ class TestInvestmentTransactions:
         assert pa["average_price"] == 150.0
 
     async def test_sell_reduces_holdings(self, client: AsyncClient, test_password: str):
-        token, asset, portfolio = await self._setup(
-            client, "inv_sel1@test.com", test_password
-        )
+        token, asset, portfolio = await self._setup(client, "inv_sel1@test.com", test_password)
         buy = await client.post(
             f"/api/v1/investments/assets/{asset['id']}/transactions",
-            json={"type": "buy", "quantity": 20, "price_per_unit": 50, "fees": 0,
-                  "portfolio_id": portfolio["id"], "date": _iso()},
+            json={
+                "type": "buy",
+                "quantity": 20,
+                "price_per_unit": 50,
+                "fees": 0,
+                "portfolio_id": portfolio["id"],
+                "date": _iso(),
+            },
             headers={"Authorization": f"Bearer {token}"},
         )
         assert buy.status_code == 201
         sell = await client.post(
             f"/api/v1/investments/assets/{asset['id']}/transactions",
-            json={"type": "sell", "quantity": 8, "price_per_unit": 60, "fees": 2,
-                  "portfolio_id": portfolio["id"], "date": _iso()},
+            json={
+                "type": "sell",
+                "quantity": 8,
+                "price_per_unit": 60,
+                "fees": 2,
+                "portfolio_id": portfolio["id"],
+                "date": _iso(),
+            },
             headers={"Authorization": f"Bearer {token}"},
         )
         assert sell.status_code == 201, sell.text
@@ -243,32 +247,46 @@ class TestInvestmentTransactions:
         assert pa["average_price"] == 50.0
 
     async def test_cannot_sell_more_than_held(self, client: AsyncClient, test_password: str):
-        token, asset, portfolio = await self._setup(
-            client, "inv_sel2@test.com", test_password
-        )
+        token, asset, portfolio = await self._setup(client, "inv_sel2@test.com", test_password)
         buy = await client.post(
             f"/api/v1/investments/assets/{asset['id']}/transactions",
-            json={"type": "buy", "quantity": 5, "price_per_unit": 50, "fees": 0,
-                  "portfolio_id": portfolio["id"], "date": _iso()},
+            json={
+                "type": "buy",
+                "quantity": 5,
+                "price_per_unit": 50,
+                "fees": 0,
+                "portfolio_id": portfolio["id"],
+                "date": _iso(),
+            },
             headers={"Authorization": f"Bearer {token}"},
         )
         assert buy.status_code == 201
         sell = await client.post(
             f"/api/v1/investments/assets/{asset['id']}/transactions",
-            json={"type": "sell", "quantity": 50, "price_per_unit": 60, "fees": 0,
-                  "portfolio_id": portfolio["id"], "date": _iso()},
+            json={
+                "type": "sell",
+                "quantity": 50,
+                "price_per_unit": 60,
+                "fees": 0,
+                "portfolio_id": portfolio["id"],
+                "date": _iso(),
+            },
             headers={"Authorization": f"Bearer {token}"},
         )
         assert sell.status_code == 422
 
     async def test_transaction_updates_asset_price(self, client: AsyncClient, test_password: str):
-        token, asset, portfolio = await self._setup(
-            client, "inv_price1@test.com", test_password
-        )
+        token, asset, portfolio = await self._setup(client, "inv_price1@test.com", test_password)
         resp = await client.post(
             f"/api/v1/investments/assets/{asset['id']}/transactions",
-            json={"type": "buy", "quantity": 1, "price_per_unit": 333, "fees": 0,
-                  "portfolio_id": portfolio["id"], "date": _iso()},
+            json={
+                "type": "buy",
+                "quantity": 1,
+                "price_per_unit": 333,
+                "fees": 0,
+                "portfolio_id": portfolio["id"],
+                "date": _iso(),
+            },
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 201
@@ -305,8 +323,14 @@ class TestPortfolioSummary:
 
         buy = await client.post(
             f"/api/v1/investments/assets/{asset_id}/transactions",
-            json={"type": "buy", "quantity": 4, "price_per_unit": 100, "fees": 0,
-                  "portfolio_id": portfolio_id, "date": _iso()},
+            json={
+                "type": "buy",
+                "quantity": 4,
+                "price_per_unit": 100,
+                "fees": 0,
+                "portfolio_id": portfolio_id,
+                "date": _iso(),
+            },
             headers={"Authorization": f"Bearer {access}"},
         )
         assert buy.status_code == 201
@@ -364,7 +388,13 @@ class TestPriceHistory:
         today = datetime.now(UTC).date().isoformat()
         resp = await client.post(
             f"/api/v1/investments/assets/{asset_id}/price-history",
-            json={"close_price": 120, "date": today, "open_price": 115, "high_price": 125, "low_price": 110},
+            json={
+                "close_price": 120,
+                "date": today,
+                "open_price": 115,
+                "high_price": 125,
+                "low_price": 110,
+            },
             headers={"Authorization": f"Bearer {access}"},
         )
         assert resp.status_code == 201

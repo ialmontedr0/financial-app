@@ -80,15 +80,26 @@ class CreateIncomeBulkUseCase:
                     stability=inc.get("stability", "one_time"),
                     income_source_id=inc.get("income_source_id"),
                     employer_name=inc.get("employer_name"),
-                    gross_amount=Decimal(str(inc["gross_amount"])) if inc.get("gross_amount") else None,
-                    tax_withheld=Decimal(str(inc["tax_withheld"])) if inc.get("tax_withheld") else None,
+                    gross_amount=Decimal(str(inc["gross_amount"]))
+                    if inc.get("gross_amount")
+                    else None,
+                    tax_withheld=Decimal(str(inc["tax_withheld"]))
+                    if inc.get("tax_withheld")
+                    else None,
                     net_amount=Decimal(str(inc["net_amount"])) if inc.get("net_amount") else None,
                     frequency=inc.get("frequency"),
                     effective_date=ed,
                     notes=inc.get("notes"),
                 )
 
-                created.append({"id": str(income.id), "transaction_id": str(tx.id), "description": tx.description, "amount": str(tx.amount)})
+                created.append(
+                    {
+                        "id": str(income.id),
+                        "transaction_id": str(tx.id),
+                        "description": tx.description,
+                        "amount": str(tx.amount),
+                    }
+                )
             except Exception as e:
                 errors.append({"index": i, "error": str(e), "data": inc})
 

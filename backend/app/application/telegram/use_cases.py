@@ -71,9 +71,7 @@ class ProcessTelegramUpdateUseCase:
         if text.startswith("/link"):
             parts = text.split(maxsplit=1)
             if len(parts) < 2:
-                await self._send_message(
-                    chat_id, "Usa: /link <codigo>\nEjemplo: /link 482917"
-                )
+                await self._send_message(chat_id, "Usa: /link <codigo>\nEjemplo: /link 482917")
                 return
             code = parts[1].strip()
             link = await self._link_repo.get_by_code(code)
@@ -84,7 +82,9 @@ class ProcessTelegramUpdateUseCase:
                 await self._send_message(chat_id, "Este codigo ya fue usado.")
                 return
             if link.expires_at.replace(tzinfo=None) < datetime.utcnow():
-                await self._send_message(chat_id, "El codigo ha expirado. Genera uno nuevo en la plataforma.")
+                await self._send_message(
+                    chat_id, "El codigo ha expirado. Genera uno nuevo en la plataforma."
+                )
                 return
             await self._link_repo.mark_used(link)
             prefs = await self._notif_repo.get_user_preferences(link.user_id)
@@ -107,16 +107,23 @@ class ProcessTelegramUpdateUseCase:
 
         if text.startswith("/unlink"):
             from sqlalchemy import select
-            from app.infrastructure.models.notification_preference import NotificationPreferenceModel
+            from app.infrastructure.models.notification_preference import (
+                NotificationPreferenceModel,
+            )
+
             result = await self._notif_repo._db.execute(
-                select(NotificationPreferenceModel).where(NotificationPreferenceModel.telegram_chat_id == str(chat_id))
+                select(NotificationPreferenceModel).where(
+                    NotificationPreferenceModel.telegram_chat_id == str(chat_id)
+                )
             )
             prefs = result.scalar_one_or_none()
             if prefs:
                 prefs.telegram_chat_id = None
                 prefs.telegram_enabled = False
                 await self._notif_repo._db.flush()
-                await self._send_message(chat_id, "Cuenta desvinculada. Ya no recibiras notificaciones aqui.")
+                await self._send_message(
+                    chat_id, "Cuenta desvinculada. Ya no recibiras notificaciones aqui."
+                )
                 logger.info("telegram_account_unlinked", chat_id=chat_id)
             else:
                 await self._send_message(chat_id, "No hay ninguna cuenta vinculada a este chat.")
@@ -136,6 +143,8 @@ class ProcessTelegramUpdateUseCase:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 url = f"{_TELEGRAM_API}{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
-                await client.post(url, json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"})
+                await client.post(
+                    url, json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+                )
         except Exception as exc:
             logger.warning("telegram_webhook_reply_failed", chat_id=chat_id, error=str(exc))

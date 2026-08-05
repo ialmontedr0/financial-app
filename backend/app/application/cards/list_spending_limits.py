@@ -32,24 +32,38 @@ class ListSpendingLimitsUseCase:
         items = []
         for lim in limits:
             updated = await self._repo.recalculate_limit_spent(lim.id, user_id) or lim
-            pct = (float(updated.spent_amount) / float(updated.limit_amount) * 100) if float(updated.limit_amount) > 0 else 0
-            items.append({
-                "id": str(updated.id),
-                "credit_card_id": str(updated.credit_card_id),
-                "limit_type": updated.limit_type,
-                "limit_amount": str(updated.limit_amount),
-                "spent_amount": str(updated.spent_amount),
-                "remaining": str(max(float(updated.limit_amount) - float(updated.spent_amount), 0)),
-                "pct_used": round(pct, 1),
-                "status": "exceeded" if pct > 100 else "warning" if pct >= updated.alert_threshold else "ok",
-                "category_id": str(updated.category_id) if updated.category_id else None,
-                "alert_threshold": updated.alert_threshold,
-                "alert_enabled": updated.alert_enabled,
-                "description": updated.description,
-                "is_active": updated.is_active,
-                "period_start": updated.period_start.isoformat() if updated.period_start else None,
-                "period_end": updated.period_end.isoformat() if updated.period_end else None,
-                "created_at": updated.created_at.isoformat() if updated.created_at else None,
-            })
+            pct = (
+                (float(updated.spent_amount) / float(updated.limit_amount) * 100)
+                if float(updated.limit_amount) > 0
+                else 0
+            )
+            items.append(
+                {
+                    "id": str(updated.id),
+                    "credit_card_id": str(updated.credit_card_id),
+                    "limit_type": updated.limit_type,
+                    "limit_amount": str(updated.limit_amount),
+                    "spent_amount": str(updated.spent_amount),
+                    "remaining": str(
+                        max(float(updated.limit_amount) - float(updated.spent_amount), 0)
+                    ),
+                    "pct_used": round(pct, 1),
+                    "status": "exceeded"
+                    if pct > 100
+                    else "warning"
+                    if pct >= updated.alert_threshold
+                    else "ok",
+                    "category_id": str(updated.category_id) if updated.category_id else None,
+                    "alert_threshold": updated.alert_threshold,
+                    "alert_enabled": updated.alert_enabled,
+                    "description": updated.description,
+                    "is_active": updated.is_active,
+                    "period_start": updated.period_start.isoformat()
+                    if updated.period_start
+                    else None,
+                    "period_end": updated.period_end.isoformat() if updated.period_end else None,
+                    "created_at": updated.created_at.isoformat() if updated.created_at else None,
+                }
+            )
 
         return {"limits": items, "total": len(items)}

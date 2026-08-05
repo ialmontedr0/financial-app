@@ -20,14 +20,27 @@ class UpdateSpendingLimitUseCase:
         self._session = session
         self._repo = CardRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, card_id: uuid.UUID, limit_id: uuid.UUID, *, changes: dict[str, Any]) -> dict:
+    async def execute(
+        self,
+        user_id: uuid.UUID,
+        card_id: uuid.UUID,
+        limit_id: uuid.UUID,
+        *,
+        changes: dict[str, Any],
+    ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
         card = await self._repo.get_card_by_id(card_id, user_id)
         if card is None:
             raise NotFoundError("CreditCard")
 
-        allowed_fields = {"limit_amount", "alert_threshold", "alert_enabled", "description", "is_active"}
+        allowed_fields = {
+            "limit_amount",
+            "alert_threshold",
+            "alert_enabled",
+            "description",
+            "is_active",
+        }
         filtered = {k: v for k, v in changes.items() if k in allowed_fields}
 
         if "limit_amount" in filtered:
@@ -45,7 +58,11 @@ class UpdateSpendingLimitUseCase:
         if updated is None:
             raise NotFoundError("SpendingLimit")
 
-        pct = (float(updated.spent_amount) / float(updated.limit_amount) * 100) if float(updated.limit_amount) > 0 else 0
+        pct = (
+            (float(updated.spent_amount) / float(updated.limit_amount) * 100)
+            if float(updated.limit_amount) > 0
+            else 0
+        )
 
         return {
             "id": str(updated.id),

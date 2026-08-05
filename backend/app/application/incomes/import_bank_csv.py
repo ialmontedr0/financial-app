@@ -38,12 +38,32 @@ class ImportBankCSVUseCase:
 
         for i, row in enumerate(rows):
             try:
-                amount = row.get("amount") or row.get("monto") or row.get("Amount") or row.get("Monto")
-                description = row.get("description") or row.get("descripcion") or row.get("Description") or row.get("Descripcion") or row.get("concept")
-                effective_date = row.get("date") or row.get("fecha") or row.get("Date") or row.get("Fecha") or row.get("effective_date")
+                amount = (
+                    row.get("amount") or row.get("monto") or row.get("Amount") or row.get("Monto")
+                )
+                description = (
+                    row.get("description")
+                    or row.get("descripcion")
+                    or row.get("Description")
+                    or row.get("Descripcion")
+                    or row.get("concept")
+                )
+                effective_date = (
+                    row.get("date")
+                    or row.get("fecha")
+                    or row.get("Date")
+                    or row.get("Fecha")
+                    or row.get("effective_date")
+                )
                 transaction_type = (row.get("transaction_type") or row.get("tipo") or "").lower()
 
-                if transaction_type and transaction_type not in ("credit", "income", "abono", "ingreso", "deposit"):
+                if transaction_type and transaction_type not in (
+                    "credit",
+                    "income",
+                    "abono",
+                    "ingreso",
+                    "deposit",
+                ):
                     skipped += 1
                     continue
 
@@ -71,19 +91,21 @@ class ImportBankCSVUseCase:
 
                 clean_amount = str(abs(float(str(amount).replace(",", ""))))
 
-                incomes.append({
-                    "account_id": account_id,
-                    "amount": clean_amount,
-                    "description": str(description),
-                    "effective_date": str(effective_date),
-                    "category_id": row.get("category_id"),
-                    "notes": row.get("notes") or row.get("notas"),
-                    "source": "bank_import",
-                    "currency_code": row.get("currency_code") or "DOP",
-                    "income_type": "other",
-                    "income_status": "received",
-                    "stability": "one_time",
-                })
+                incomes.append(
+                    {
+                        "account_id": account_id,
+                        "amount": clean_amount,
+                        "description": str(description),
+                        "effective_date": str(effective_date),
+                        "category_id": row.get("category_id"),
+                        "notes": row.get("notes") or row.get("notas"),
+                        "source": "bank_import",
+                        "currency_code": row.get("currency_code") or "DOP",
+                        "income_type": "other",
+                        "income_status": "received",
+                        "stability": "one_time",
+                    }
+                )
             except Exception as e:
                 logger.warning("csv_row_parse_error", row_index=i, error=str(e))
                 skipped += 1
@@ -93,7 +115,13 @@ class ImportBankCSVUseCase:
             raise ValidationError("No se pudieron parsear filas validas de ingresos del CSV")
 
         result = await self._bulk_uc.execute(user_id, incomes)
-        logger.info("bank_csv_import_completed", user_id=str(user_id), created=result["created"], errors=result["errors"], skipped=skipped)
+        logger.info(
+            "bank_csv_import_completed",
+            user_id=str(user_id),
+            created=result["created"],
+            errors=result["errors"],
+            skipped=skipped,
+        )
 
         return {
             "imported": result["created"],

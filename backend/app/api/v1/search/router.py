@@ -50,13 +50,10 @@ async def search_transactions(
         .limit(limit)
     )
 
-    count_stmt = (
-        select(func.count(TransactionModel.id))
-        .where(
-            TransactionModel.user_id == user_id,
-            TransactionModel.deleted_at.is_(None),
-            TransactionModel.search_vector.op("@@")(query),
-        )
+    count_stmt = select(func.count(TransactionModel.id)).where(
+        TransactionModel.user_id == user_id,
+        TransactionModel.deleted_at.is_(None),
+        TransactionModel.search_vector.op("@@")(query),
     )
 
     result = await db.execute(stmt, params)

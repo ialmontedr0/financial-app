@@ -9,7 +9,6 @@ from sqlalchemy import select
 from app.infrastructure.models.idempotency_key import IdempotencyKeyModel
 
 if TYPE_CHECKING:
-
     from sqlalchemy.ext.asyncio import AsyncSession
 
 

@@ -16,7 +16,9 @@ class NotificationRepository:
 
     async def get_user_preferences(self, user_id: UUID) -> NotificationPreferenceModel | None:
         result = await self._db.execute(
-            select(NotificationPreferenceModel).where(NotificationPreferenceModel.user_id == user_id)
+            select(NotificationPreferenceModel).where(
+                NotificationPreferenceModel.user_id == user_id
+            )
         )
         return result.scalar_one_or_none()
 
@@ -164,9 +166,7 @@ class NotificationRepository:
 
     async def stats(self, user_id: UUID) -> dict[str, Any]:
         total_q = await self._db.execute(
-            select(func.count(NotificationModel.id)).where(
-                NotificationModel.user_id == user_id
-            )
+            select(func.count(NotificationModel.id)).where(NotificationModel.user_id == user_id)
         )
         total = total_q.scalar() or 0
         unread = await self.unread_count(user_id)
@@ -186,3 +186,29 @@ class NotificationRepository:
         by_type: dict[str, int] = dict(tp_q.all())
 
         return {"total": total, "unread": unread, "by_channel": by_channel, "by_type": by_type}
+
+    async def exists_with_data(self, user_id: UUID, type_: str, key: str, value: str) -> bool:
+        """True si ya existe una notificacion con data[key] == value (para evitar duplicados)
+
+        Args:
+            user_id (UUID): ID del usuario
+            type_ (str): tipo de la notificacion
+            key (str): _description_
+            value (str): _description_
+
+        Returns:
+            bool: True o False
+        """
+        stmt = (
+            select(NotificationModel.id)
+            .where(
+                and_(
+                    NotificationModel.user_id == user_id,
+                    NotificationModel.type == type_,
+                    NotificationModel.data[key].astext == value,
+                )
+            )
+            .limit(1)
+        )
+        result = await self._db.execute(stmt)
+        return result.first() is not None

@@ -68,6 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: UP043
     if settings.is_production:
         _check_production_env()
         from app.core.log_config import configure_production_logging
+
         configure_production_logging()
 
     logger.info("Iniciando API FIP", version=settings.APP_VERSION)
@@ -107,7 +108,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(SecurityHeadersMiddleware)
-    app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_MAX, window_seconds=settings.RATE_LIMIT_WINDOW)
+    app.add_middleware(
+        RateLimitMiddleware,
+        max_requests=settings.RATE_LIMIT_MAX,
+        window_seconds=settings.RATE_LIMIT_WINDOW,
+    )
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(IdempotencyMiddleware)
     app.add_middleware(CurrencyConversionMiddleware)
@@ -124,6 +129,7 @@ def create_app() -> FastAPI:
 
     # --- Health Check ----------------------------------------------------------
     from app.api.v1.health.router import router as health_router
+
     app.include_router(health_router)
 
     return app

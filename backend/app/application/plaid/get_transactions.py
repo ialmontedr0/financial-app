@@ -66,11 +66,7 @@ class GetPlaidTransactionsUseCase:
     @staticmethod
     def _map_transaction(tx: dict[str, Any]) -> dict[str, Any]:
         amount_value = tx.get("amount")
-        amount = (
-            abs(Decimal(str(amount_value)))
-            if amount_value is not None
-            else None
-        )
+        amount = abs(Decimal(str(amount_value))) if amount_value is not None else None
         return {
             "transaction_id": tx.get("transaction_id"),
             "name": tx.get("name"),

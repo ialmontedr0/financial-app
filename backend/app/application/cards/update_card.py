@@ -20,15 +20,29 @@ class UpdateCardUseCase:
         self._session = session
         self._repo = CardRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, card_id: uuid.UUID, *, changes: dict[str, Any]) -> dict:
+    async def execute(
+        self, user_id: uuid.UUID, card_id: uuid.UUID, *, changes: dict[str, Any]
+    ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
         allowed_fields = {
-            "name", "last_four_digits", "card_network", "currency_code",
-            "is_multicurrency", "secondary_currency_code",
-            "secondary_credit_limit", "secondary_available_credit",
-            "credit_limit", "available_credit", "statement_day", "payment_due_day",
-            "interest_rate", "is_active", "include_in_totals", "color", "icon",
+            "name",
+            "last_four_digits",
+            "card_network",
+            "currency_code",
+            "is_multicurrency",
+            "secondary_currency_code",
+            "secondary_credit_limit",
+            "secondary_available_credit",
+            "credit_limit",
+            "available_credit",
+            "statement_day",
+            "payment_due_day",
+            "interest_rate",
+            "is_active",
+            "include_in_totals",
+            "color",
+            "icon",
         }
         filtered = {k: v for k, v in changes.items() if k in allowed_fields}
 
@@ -66,10 +80,16 @@ class UpdateCardUseCase:
             "currency_code": updated.currency_code,
             "is_multicurrency": updated.is_multicurrency,
             "secondary_currency_code": updated.secondary_currency_code,
-            "secondary_credit_limit": str(updated.secondary_credit_limit) if updated.secondary_credit_limit else None,
-            "secondary_available_credit": str(updated.secondary_available_credit) if updated.secondary_available_credit else None,
+            "secondary_credit_limit": str(updated.secondary_credit_limit)
+            if updated.secondary_credit_limit
+            else None,
+            "secondary_available_credit": str(updated.secondary_available_credit)
+            if updated.secondary_available_credit
+            else None,
             "credit_limit": str(updated.credit_limit) if updated.credit_limit else None,
-            "available_credit": str(updated.available_credit) if updated.available_credit is not None else None,
+            "available_credit": str(updated.available_credit)
+            if updated.available_credit is not None
+            else None,
             "statement_day": updated.statement_day,
             "payment_due_day": updated.payment_due_day,
             "interest_rate": str(updated.interest_rate) if updated.interest_rate else None,

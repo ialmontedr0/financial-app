@@ -20,7 +20,9 @@ class MarkCardAlertReadUseCase:
         self._session = session
         self._repo = CardRepository(session)
 
-    async def execute(self, user_id: uuid.UUID, alert_id: uuid.UUID | None = None, *, mark_all: bool = False) -> dict:
+    async def execute(
+        self, user_id: uuid.UUID, alert_id: uuid.UUID | None = None, *, mark_all: bool = False
+    ) -> dict:
         from app.middleware.error_handler import NotFoundError, ValidationError
 
         if mark_all:

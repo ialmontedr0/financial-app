@@ -47,13 +47,10 @@ class AccountRepository:
         user_id: uuid.UUID,
     ) -> FinancialAccountModel | None:
         """Get account by ID, scoped to user. Excludes soft-deleted."""
-        stmt = (
-            select(FinancialAccountModel)
-            .where(
-                FinancialAccountModel.id == account_id,
-                FinancialAccountModel.user_id == user_id,
-                FinancialAccountModel.deleted_at.is_(None),
-            )
+        stmt = select(FinancialAccountModel).where(
+            FinancialAccountModel.id == account_id,
+            FinancialAccountModel.user_id == user_id,
+            FinancialAccountModel.deleted_at.is_(None),
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
@@ -140,12 +137,9 @@ class AccountRepository:
         result = await self._session.execute(stmt)
         rows = result.all()
 
-        count_stmt = (
-            select(func.count(FinancialAccountModel.id))
-            .where(
-                FinancialAccountModel.user_id == user_id,
-                FinancialAccountModel.deleted_at.is_(None),
-            )
+        count_stmt = select(func.count(FinancialAccountModel.id)).where(
+            FinancialAccountModel.user_id == user_id,
+            FinancialAccountModel.deleted_at.is_(None),
         )
         total_count = (await self._session.execute(count_stmt)).scalar() or 0
 

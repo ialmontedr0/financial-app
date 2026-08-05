@@ -63,6 +63,8 @@ def validate_ocr_file(filename: str, content_type: str) -> None:
     ext = Path(filename).suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         supported = ", ".join(sorted(SUPPORTED_EXTENSIONS))
-        raise ValueError(f"Extensión no soportada: {ext or '(sin extensión)'}. Soportado: {supported}")
+        raise ValueError(
+            f"Extensión no soportada: {ext or '(sin extensión)'}. Soportado: {supported}"
+        )
     if content_type and content_type.split(";")[0].strip() not in SUPPORTED_MIME_TYPES:
         raise ValueError(f"Tipo de archivo no soportado: {content_type}")

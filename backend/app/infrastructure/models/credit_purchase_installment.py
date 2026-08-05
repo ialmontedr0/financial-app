@@ -22,7 +22,8 @@ class CreditPurchaseInstallmentModel(Base):
     purchase_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("credit_purchase.id", ondelete="CASCADE"),
-        nullable=False, index=True,
+        nullable=False,
+        index=True,
     )
 
     installment_number: Mapped[int] = mapped_column(nullable=False)
@@ -39,7 +40,8 @@ class CreditPurchaseInstallmentModel(Base):
     )
     status: Mapped[str] = mapped_column(
         Enum("pending", "paid", "late", name="installment_status_enum", create_type=False),
-        nullable=False, default="pending",
+        nullable=False,
+        default="pending",
     )
     paid_at: Mapped[date | None] = mapped_column(Date, nullable=True)
 
@@ -47,7 +49,9 @@ class CreditPurchaseInstallmentModel(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    purchase: Mapped[CreditPurchaseModel] = relationship(back_populates="installments", lazy="noload")
+    purchase: Mapped[CreditPurchaseModel] = relationship(
+        back_populates="installments", lazy="noload"
+    )
 
     __table_args__ = (
         Index("ix_installment_purchase_number", "purchase_id", "installment_number", unique=True),

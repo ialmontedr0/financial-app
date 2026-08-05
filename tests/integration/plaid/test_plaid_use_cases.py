@@ -44,9 +44,7 @@ class FakePlaidClient:
     def get_institution_name(self, _institution_id: str) -> str:
         return "Test Bank"
 
-    def get_transactions(
-        self, _access_token: str, _start_date: date, _end_date: date
-    ) -> dict:
+    def get_transactions(self, _access_token: str, _start_date: date, _end_date: date) -> dict:
         return {
             "transactions": [
                 {
@@ -79,7 +77,8 @@ class TestPlaidUseCases:
         client = FakePlaidClient()
 
         result = await ExchangePublicTokenUseCase(db_session, client).execute(
-            user_id=user_id, public_token="public-sandbox-fake"  # noqa: S106
+            user_id=user_id,
+            public_token="public-sandbox-fake",  # noqa: S106
         )
         assert result["success"] is True
         item = result["item"]
@@ -98,7 +97,8 @@ class TestPlaidUseCases:
         user_id = await _create_user(db_session)
         client = FakePlaidClient()
         exchange = await ExchangePublicTokenUseCase(db_session, client).execute(
-            user_id=user_id, public_token="public-sandbox-tx"  # noqa: S106
+            user_id=user_id,
+            public_token="public-sandbox-tx",  # noqa: S106
         )
         item_id = uuid.UUID(exchange["item"]["id"])
 

@@ -10,7 +10,9 @@ class TestCardCRUD:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def _create_account(self, client: AsyncClient, token: str) -> str:
@@ -75,7 +77,9 @@ class TestCardCRUD:
         )
         card_id = create_resp.json()["id"]
 
-        resp = await client.get(f"/api/v1/cards/{card_id}", headers={"Authorization": f"Bearer {token}"})
+        resp = await client.get(
+            f"/api/v1/cards/{card_id}", headers={"Authorization": f"Bearer {token}"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["name"] == "Detail Card"
@@ -113,10 +117,14 @@ class TestCardCRUD:
         )
         card_id = create_resp.json()["id"]
 
-        resp = await client.delete(f"/api/v1/cards/{card_id}", headers={"Authorization": f"Bearer {token}"})
+        resp = await client.delete(
+            f"/api/v1/cards/{card_id}", headers={"Authorization": f"Bearer {token}"}
+        )
         assert resp.status_code == 200
 
-        get_resp = await client.get(f"/api/v1/cards/{card_id}", headers={"Authorization": f"Bearer {token}"})
+        get_resp = await client.get(
+            f"/api/v1/cards/{card_id}", headers={"Authorization": f"Bearer {token}"}
+        )
         assert get_resp.status_code == 404
 
     async def test_get_cards_summary(self, client: AsyncClient, test_password: str):
@@ -130,7 +138,9 @@ class TestCardCRUD:
             json={"name": "Summary Card", "account_id": account_id, "credit_limit": "150000"},
         )
 
-        resp = await client.get("/api/v1/cards/summary", headers={"Authorization": f"Bearer {token}"})
+        resp = await client.get(
+            "/api/v1/cards/summary", headers={"Authorization": f"Bearer {token}"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "total_cards" in data
@@ -143,7 +153,9 @@ class TestCardBills:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def _create_card(self, client: AsyncClient, token: str) -> str:
@@ -155,7 +167,11 @@ class TestCardBills:
         card_resp = await client.post(
             "/api/v1/cards",
             headers={"Authorization": f"Bearer {token}"},
-            json={"name": "Bill Card", "account_id": account_resp.json()["id"], "credit_limit": "100000"},
+            json={
+                "name": "Bill Card",
+                "account_id": account_resp.json()["id"],
+                "credit_limit": "100000",
+            },
         )
         return card_resp.json()["id"]
 
@@ -186,10 +202,16 @@ class TestCardBills:
         await client.post(
             f"/api/v1/cards/{card_id}/bills",
             headers={"Authorization": f"Bearer {token}"},
-            json={"statement_date": "2026-07-01", "due_date": "2026-07-25", "total_amount": "20000"},
+            json={
+                "statement_date": "2026-07-01",
+                "due_date": "2026-07-25",
+                "total_amount": "20000",
+            },
         )
 
-        resp = await client.get(f"/api/v1/cards/{card_id}/bills", headers={"Authorization": f"Bearer {token}"})
+        resp = await client.get(
+            f"/api/v1/cards/{card_id}/bills", headers={"Authorization": f"Bearer {token}"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
@@ -202,7 +224,12 @@ class TestCardBills:
         bill_resp = await client.post(
             f"/api/v1/cards/{card_id}/bills",
             headers={"Authorization": f"Bearer {token}"},
-            json={"statement_date": "2026-07-01", "due_date": "2026-07-25", "total_amount": "30000", "minimum_payment": "1500"},
+            json={
+                "statement_date": "2026-07-01",
+                "due_date": "2026-07-25",
+                "total_amount": "30000",
+                "minimum_payment": "1500",
+            },
         )
         bill_id = bill_resp.json()["id"]
 
@@ -222,7 +249,9 @@ class TestCardLimits:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def _create_card(self, client: AsyncClient, token: str) -> str:
@@ -234,7 +263,11 @@ class TestCardLimits:
         card_resp = await client.post(
             "/api/v1/cards",
             headers={"Authorization": f"Bearer {token}"},
-            json={"name": "Limit Card", "account_id": account_resp.json()["id"], "credit_limit": "200000"},
+            json={
+                "name": "Limit Card",
+                "account_id": account_resp.json()["id"],
+                "credit_limit": "200000",
+            },
         )
         return card_resp.json()["id"]
 
@@ -263,7 +296,9 @@ class TestCardLimits:
             json={"limit_type": "daily", "limit_amount": "5000"},
         )
 
-        resp = await client.get(f"/api/v1/cards/{card_id}/limits", headers={"Authorization": f"Bearer {token}"})
+        resp = await client.get(
+            f"/api/v1/cards/{card_id}/limits", headers={"Authorization": f"Bearer {token}"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
@@ -293,14 +328,18 @@ class TestCardAlerts:
 
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_list_alerts(self, client: AsyncClient, test_password: str):
         email = "card_alert_list1@test.com"
         token = await self._register_and_login(client, email, test_password)
 
-        resp = await client.get("/api/v1/cards/alerts/all", headers={"Authorization": f"Bearer {token}"})
+        resp = await client.get(
+            "/api/v1/cards/alerts/all", headers={"Authorization": f"Bearer {token}"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "alerts" in data
@@ -320,7 +359,9 @@ class TestCardAlerts:
         email = "card_alert_check1@test.com"
         token = await self._register_and_login(client, email, test_password)
 
-        resp = await client.post("/api/v1/cards/alerts/check", headers={"Authorization": f"Bearer {token}"})
+        resp = await client.post(
+            "/api/v1/cards/alerts/check", headers={"Authorization": f"Bearer {token}"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "new_alerts" in data

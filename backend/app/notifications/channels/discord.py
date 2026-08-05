@@ -10,10 +10,14 @@ logger = structlog.get_logger()
 settings = get_settings()
 
 _TYPE_COLORS: dict[str, int] = {
-    "transaction_alert": 0x3498db,
+    "transaction_alert": 0x3498DB,
     "budget_warning": 0xE74C3C,
+    "budget_alert": 0xF1C40F,
+    "budget_closed": 0x1ABC9C,
     "goal_completed": 0x2ECC71,
+    "goal_milestone": 0x27AE60,
     "bill_due": 0xF39C12,
+    "payment_due": 0xF39C12,
     "anomaly_detected": 0x9B59B6,
     "automation_executed": 0x1ABC9C,
     "security_alert": 0xE74C3C,

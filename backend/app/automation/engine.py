@@ -21,9 +21,7 @@ class AutomationEngine:
         self._session = session
         self._repo = AutomationRepository(session)
 
-    async def evaluate_all(
-        self, user_id: uuid.UUID, dry_run: bool = False
-    ) -> dict[str, Any]:
+    async def evaluate_all(self, user_id: uuid.UUID, dry_run: bool = False) -> dict[str, Any]:
         """Evaluate all active rules for a user.
 
         Returns summary of executions.
@@ -68,9 +66,7 @@ class AutomationEngine:
         """Evaluate a single rule: check trigger, execute action."""
         # Check monthly limit
         if rule.max_executions_per_month:
-            allowed = await self._repo.check_monthly_limit(
-                rule.id, rule.max_executions_per_month
-            )
+            allowed = await self._repo.check_monthly_limit(rule.id, rule.max_executions_per_month)
             if not allowed:
                 return {
                     "rule_id": str(rule.id),

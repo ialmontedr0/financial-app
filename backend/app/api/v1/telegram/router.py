@@ -7,7 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user, get_db
 from app.api.v1.telegram import schemas as tg_schemas
-from app.application.telegram.use_cases import GenerateLinkCodeUseCase, ProcessTelegramUpdateUseCase, UnlinkTelegramUseCase
+from app.application.telegram.use_cases import (
+    GenerateLinkCodeUseCase,
+    ProcessTelegramUpdateUseCase,
+    UnlinkTelegramUseCase,
+)
 from app.core.config import get_settings
 from app.infrastructure.repositories.notification_repository import NotificationRepository
 

@@ -15,7 +15,16 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger()
 
-ALLOWED_UPDATE_FIELDS = {"name", "description", "category_type", "icon", "color", "sort_order", "keywords", "is_active"}
+ALLOWED_UPDATE_FIELDS = {
+    "name",
+    "description",
+    "category_type",
+    "icon",
+    "color",
+    "sort_order",
+    "keywords",
+    "is_active",
+}
 
 
 class UpdateCategoryUseCase:
@@ -37,9 +46,7 @@ class UpdateCategoryUseCase:
 
         invalid = set(fields.keys()) - ALLOWED_UPDATE_FIELDS
         if invalid:
-            raise ValidationError(
-                f"Campos no permitidos para actualizacion: {', '.join(invalid)}"
-            )
+            raise ValidationError(f"Campos no permitidos para actualizacion: {', '.join(invalid)}")
 
         if "name" in fields:
             name = str(fields["name"]).strip()

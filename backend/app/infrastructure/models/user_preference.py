@@ -1,4 +1,5 @@
 """User preferences model — currency, timezone, language, formatting, notifications."""
+
 from __future__ import annotations
 
 import uuid
@@ -12,7 +13,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.infrastructure.db.base import Base
 
 if TYPE_CHECKING:
-
     from app.infrastructure.models.user import UserModel
 
 

@@ -28,7 +28,8 @@ class SimulateSavingsUseCase:
 
         optimizer = SavingsOptimizer()
         return await optimizer.simulate(
-            self._session, user_id,
+            self._session,
+            user_id,
             monthly_amount=monthly_amount,
             months=months,
             annual_return_pct=annual_return_pct,

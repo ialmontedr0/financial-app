@@ -28,7 +28,9 @@ class ListSourcesUseCase:
         is_active: bool | None = None,
         income_type: str | None = None,
     ) -> dict:
-        sources = await self._repo.list_sources(user_id, is_active=is_active, income_type=income_type)
+        sources = await self._repo.list_sources(
+            user_id, is_active=is_active, income_type=income_type
+        )
 
         items = [
             {
@@ -44,7 +46,9 @@ class ListSourcesUseCase:
                 "pay_weekday": s.pay_weekday,
                 "default_amount": str(s.default_amount) if s.default_amount else None,
                 "default_account_id": str(s.default_account_id) if s.default_account_id else None,
-                "default_category_id": str(s.default_category_id) if s.default_category_id else None,
+                "default_category_id": str(s.default_category_id)
+                if s.default_category_id
+                else None,
                 "default_currency": s.default_currency,
                 "icon": s.icon,
                 "color": s.color,

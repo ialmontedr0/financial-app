@@ -52,7 +52,9 @@ class CreateExpenseUseCase:
 
         # At least one funding source is required
         if not account_id and not credit_card_id and not debit_card_id:
-            raise ValidationError("Debe especificar una cuenta, tarjeta de credito o tarjeta de debito")
+            raise ValidationError(
+                "Debe especificar una cuenta, tarjeta de credito o tarjeta de debito"
+            )
 
         # Validate expense method
         if template_id:
@@ -70,6 +72,7 @@ class CreateExpenseUseCase:
         # Resolve debit card → linked account
         if debit_card_id:
             from app.infrastructure.repositories.debit_card_repository import DebitCardRepository
+
             debit_card = await DebitCardRepository(self._session).get_by_id(debit_card_id, user_id)
             if debit_card is None:
                 raise NotFoundError("DebitCard")
@@ -117,11 +120,14 @@ class CreateExpenseUseCase:
 
         if status == "completed":
             if account_id:
-                await self._tx_repo.update_account_balance(account_id, Decimal(str(amount)), "subtract")
+                await self._tx_repo.update_account_balance(
+                    account_id, Decimal(str(amount)), "subtract"
+                )
             if credit_card_id:
                 card = await self._expense_repo.get_credit_card_by_id(credit_card_id, user_id)
                 if card and card.available_credit is not None:
                     from decimal import Decimal as D
+
                     card.available_credit -= D(str(amount))
                     await self._session.flush()
 

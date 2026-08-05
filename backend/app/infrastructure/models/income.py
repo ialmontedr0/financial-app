@@ -26,10 +26,17 @@ class IncomeModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     transaction_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("transaction.id", ondelete="CASCADE"), nullable=False, unique=True, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("transaction.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
     )
 
     # --- Income Metadata ---
@@ -39,7 +46,11 @@ class IncomeModel(Base):
 
     # --- Source (optional) ---
     income_source_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("income_source.id", ondelete="SET NULL"), nullable=True, default=None, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("income_source.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+        index=True,
     )
 
     # --- Employer / Payer Info ---
@@ -47,9 +58,15 @@ class IncomeModel(Base):
     employer_tax_id: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None)
 
     # --- Tax ---
-    gross_amount: Mapped[Decimal | None] = mapped_column(Numeric(precision=19, scale=4), nullable=True, default=None)
-    tax_withheld: Mapped[Decimal | None] = mapped_column(Numeric(precision=19, scale=4), nullable=True, default=None)
-    net_amount: Mapped[Decimal | None] = mapped_column(Numeric(precision=19, scale=4), nullable=True, default=None)
+    gross_amount: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=True, default=None
+    )
+    tax_withheld: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=True, default=None
+    )
+    net_amount: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=19, scale=4), nullable=True, default=None
+    )
 
     # --- Frequency (for recurring income tracking) ---
     frequency: Mapped[str | None] = mapped_column(String(20), nullable=True, default=None)
@@ -61,16 +78,25 @@ class IncomeModel(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
     # --- Timestamps ---
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False,
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
 
     # --- Relationships ---
     user: Mapped[UserModel] = relationship("UserModel", lazy="noload")
     transaction: Mapped[TransactionModel] = relationship("TransactionModel", lazy="selectin")
-    income_source: Mapped[IncomeSourceModel | None] = relationship("IncomeSourceModel", lazy="selectin")
+    income_source: Mapped[IncomeSourceModel | None] = relationship(
+        "IncomeSourceModel", lazy="selectin"
+    )
 
     def __repr__(self) -> str:
         return f"<IncomeModel(id={self.id}, type={self.income_type}, status={self.income_status})>"

@@ -22,7 +22,9 @@ class ImportRepository:
         await self.db.flush()
         return job
 
-    async def get_by_id_and_user(self, job_id: uuid.UUID, user_id: uuid.UUID) -> ImportJobModel | None:
+    async def get_by_id_and_user(
+        self, job_id: uuid.UUID, user_id: uuid.UUID
+    ) -> ImportJobModel | None:
         result = await self.db.execute(
             select(ImportJobModel).where(
                 ImportJobModel.id == job_id,

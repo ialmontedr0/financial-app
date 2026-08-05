@@ -72,9 +72,7 @@ async def get_execution_logs(
     from app.application.automations.get_execution_logs import GetExecutionLogsUseCase
 
     user_id = uuid.UUID(current_user["sub"])
-    return await GetExecutionLogsUseCase(db).execute(
-        user_id, rule_id=rule_id, limit=limit
-    )
+    return await GetExecutionLogsUseCase(db).execute(user_id, rule_id=rule_id, limit=limit)
 
 
 @router.get("/execution-log/{log_id}")
@@ -100,9 +98,7 @@ async def get_execution_log(
         "trigger_snapshot": log.trigger_snapshot,
         "action_result": log.action_result,
         "error_message": log.error_message,
-        "amount_involved": (
-            float(log.amount_involved) if log.amount_involved else None
-        ),
+        "amount_involved": (float(log.amount_involved) if log.amount_involved else None),
         "is_dry_run": log.is_dry_run,
         "executed_at": log.executed_at.isoformat() if log.executed_at else None,
     }
@@ -167,9 +163,7 @@ async def execute_rule(
     from app.application.automations.execute_rule import ExecuteAutomationRuleUseCase
 
     user_id = uuid.UUID(current_user["sub"])
-    return await ExecuteAutomationRuleUseCase(db).execute(
-        user_id, rule_id, dry_run=dry_run
-    )
+    return await ExecuteAutomationRuleUseCase(db).execute(user_id, rule_id, dry_run=dry_run)
 
 
 @router.post("/evaluate")

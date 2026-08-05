@@ -86,16 +86,18 @@ def transactions_to_excel(transactions: list[dict[str, Any]]) -> bytes:
         cell.fill = header_fill
 
     for tx in transactions:
-        ws.append([
-            tx.get("date", ""),
-            tx.get("description", ""),
-            tx.get("amount", 0),
-            tx.get("type", ""),
-            tx.get("category", ""),
-            tx.get("account", ""),
-            tx.get("currency", "DOP"),
-            tx.get("notes", ""),
-        ])
+        ws.append(
+            [
+                tx.get("date", ""),
+                tx.get("description", ""),
+                tx.get("amount", 0),
+                tx.get("type", ""),
+                tx.get("category", ""),
+                tx.get("account", ""),
+                tx.get("currency", "DOP"),
+                tx.get("notes", ""),
+            ]
+        )
 
     for col in ws.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)

@@ -59,9 +59,7 @@ class LoanModel(Base):
     principal_amount: Mapped[Decimal] = mapped_column(
         Numeric(precision=19, scale=4), nullable=False
     )
-    current_balance: Mapped[Decimal] = mapped_column(
-        Numeric(precision=19, scale=4), nullable=False
-    )
+    current_balance: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False)
     annual_interest_rate: Mapped[Decimal] = mapped_column(
         Numeric(precision=8, scale=4), nullable=False
     )
@@ -77,9 +75,7 @@ class LoanModel(Base):
         nullable=False,
         default="monthly",
     )
-    monthly_payment: Mapped[Decimal] = mapped_column(
-        Numeric(precision=19, scale=4), nullable=False
-    )
+    monthly_payment: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False)
 
     total_paid: Mapped[Decimal] = mapped_column(
         Numeric(precision=19, scale=4), nullable=False, default=0

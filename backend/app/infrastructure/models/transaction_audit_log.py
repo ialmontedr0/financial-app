@@ -22,18 +22,28 @@ class TransactionAuditLogModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     transaction_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("transaction.id", ondelete="CASCADE"), nullable=False, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("transaction.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     action: Mapped[str] = mapped_column(String(20), nullable=False)
     changes: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=None)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True, default=None)
     user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
-    transaction: Mapped[TransactionModel] = relationship("TransactionModel", back_populates="audit_logs", lazy="noload")
+    transaction: Mapped[TransactionModel] = relationship(
+        "TransactionModel", back_populates="audit_logs", lazy="noload"
+    )
     user: Mapped[UserModel] = relationship("UserModel", lazy="noload")
 
     def __repr__(self) -> str:

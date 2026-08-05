@@ -86,9 +86,7 @@ def _header_block(title: str, subtitle: str = "") -> list:
 
 def _meta_bar(*parts: str) -> list:
     """Light-gray bar with metadata."""
-    html = " &nbsp;\u00b7&nbsp; ".join(
-        f'<font color="{GRAY_500}">{p}</font>' for p in parts
-    )
+    html = " &nbsp;\u00b7&nbsp; ".join(f'<font color="{GRAY_500}">{p}</font>' for p in parts)
     t = Table(
         [[Paragraph(html, _style("mb", fontSize=7, alignment=TA_LEFT))]],
         colWidths=[6.5 * inch],
@@ -194,11 +192,13 @@ def _footer(canvas, doc):
     canvas.setFont("Helvetica", 6.5)
     canvas.setFillColor(colors.HexColor(GRAY_400))
     canvas.drawString(
-        doc.leftMargin, y - 12,
+        doc.leftMargin,
+        y - 12,
         f"Generated {datetime.now(UTC).strftime('%b %d, %Y at %H:%M UTC')}",
     )
     canvas.drawRightString(
-        doc.width + doc.leftMargin, y - 12,
+        doc.width + doc.leftMargin,
+        y - 12,
         f"Page {doc.page}",
     )
     canvas.restoreState()
@@ -217,9 +217,12 @@ def generate_transaction_report(
     """Modern transaction report with KPI cards and detail table."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=letter,
-        topMargin=0.45 * inch, bottomMargin=0.75 * inch,
-        leftMargin=0.55 * inch, rightMargin=0.55 * inch,
+        buf,
+        pagesize=letter,
+        topMargin=0.45 * inch,
+        bottomMargin=0.75 * inch,
+        leftMargin=0.55 * inch,
+        rightMargin=0.55 * inch,
     )
     el: list[Any] = []
 
@@ -246,14 +249,30 @@ def generate_transaction_report(
     net = income - expense
     el.extend(
         _kpi_cards(
-            {"label": "Total Income", "value": _format_currency(income),
-             "color": EMERALD, "bg": "#f0fdf4"},
-            {"label": "Total Expenses", "value": _format_currency(expense),
-             "color": RED, "bg": "#fef2f2"},
-            {"label": "Net Flow", "value": _format_currency(net),
-             "color": EMERALD if net >= 0 else RED, "bg": "#f8fafc"},
-            {"label": "Transactions", "value": str(len(transactions)),
-             "color": PURPLE, "bg": "#f5f3ff"},
+            {
+                "label": "Total Income",
+                "value": _format_currency(income),
+                "color": EMERALD,
+                "bg": "#f0fdf4",
+            },
+            {
+                "label": "Total Expenses",
+                "value": _format_currency(expense),
+                "color": RED,
+                "bg": "#fef2f2",
+            },
+            {
+                "label": "Net Flow",
+                "value": _format_currency(net),
+                "color": EMERALD if net >= 0 else RED,
+                "bg": "#f8fafc",
+            },
+            {
+                "label": "Transactions",
+                "value": str(len(transactions)),
+                "color": PURPLE,
+                "bg": "#f5f3ff",
+            },
         )
     )
 
@@ -263,19 +282,28 @@ def generate_transaction_report(
     rows = []
     for tx in transactions:
         amt = tx.get("amount", 0)
-        display_amt = _format_currency(-amt) if tx.get("type") == "expense" else _format_currency(amt)
-        rows.append([
-            Paragraph(f'<font size="7">{tx.get("date", "")}</font>', _style("c")),
-            Paragraph(f'<font size="7">{tx.get("description", "")[:55]}</font>', _style("c")),
-            Paragraph(f'<font size="7">{tx.get("type", "")}</font>', _style("c")),
-            Paragraph(f'<font size="7">{tx.get("category", "-")}</font>', _style("c")),
-            Paragraph(f'<font size="7">{display_amt}</font>', _style("ca", alignment=TA_RIGHT)),
-        ])
+        display_amt = (
+            _format_currency(-amt) if tx.get("type") == "expense" else _format_currency(amt)
+        )
+        rows.append(
+            [
+                Paragraph(f'<font size="7">{tx.get("date", "")}</font>', _style("c")),
+                Paragraph(f'<font size="7">{tx.get("description", "")[:55]}</font>', _style("c")),
+                Paragraph(f'<font size="7">{tx.get("type", "")}</font>', _style("c")),
+                Paragraph(f'<font size="7">{tx.get("category", "-")}</font>', _style("c")),
+                Paragraph(f'<font size="7">{display_amt}</font>', _style("ca", alignment=TA_RIGHT)),
+            ]
+        )
 
     if rows:
         el.append(_data_table(headers, rows, [0.95, 2.4, 0.75, 0.95, 1.45]))
     else:
-        el.append(Paragraph("No transactions found.", _style("empty", fontSize=9, textColor=colors.HexColor(GRAY_400))))
+        el.append(
+            Paragraph(
+                "No transactions found.",
+                _style("empty", fontSize=9, textColor=colors.HexColor(GRAY_400)),
+            )
+        )
 
     doc.build(el, onFirstPage=_footer, onLaterPages=_footer)
     buf.seek(0)
@@ -290,9 +318,12 @@ def generate_budget_report(
     """Modern budget-vs-actual report with usage colour-coding."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=letter,
-        topMargin=0.45 * inch, bottomMargin=0.75 * inch,
-        leftMargin=0.55 * inch, rightMargin=0.55 * inch,
+        buf,
+        pagesize=letter,
+        topMargin=0.45 * inch,
+        bottomMargin=0.75 * inch,
+        leftMargin=0.55 * inch,
+        rightMargin=0.55 * inch,
     )
     el: list[Any] = []
 
@@ -311,15 +342,25 @@ def generate_budget_report(
     pct_color = EMERALD if pct < 75 else (AMBER if pct < 90 else RED)
     el.extend(
         _kpi_cards(
-            {"label": "Total Budget", "value": _format_currency(total_budget),
-             "color": PURPLE, "bg": "#f5f3ff"},
-            {"label": "Total Spent", "value": _format_currency(total_spent),
-             "color": INDIGO, "bg": "#eef2ff"},
-            {"label": "Remaining", "value": _format_currency(remaining),
-             "color": EMERALD if remaining >= 0 else RED,
-             "bg": "#f0fdf4" if remaining >= 0 else "#fef2f2"},
-            {"label": "Usage", "value": f"{pct:.1f}%",
-             "color": pct_color, "bg": "#f8fafc"},
+            {
+                "label": "Total Budget",
+                "value": _format_currency(total_budget),
+                "color": PURPLE,
+                "bg": "#f5f3ff",
+            },
+            {
+                "label": "Total Spent",
+                "value": _format_currency(total_spent),
+                "color": INDIGO,
+                "bg": "#eef2ff",
+            },
+            {
+                "label": "Remaining",
+                "value": _format_currency(remaining),
+                "color": EMERALD if remaining >= 0 else RED,
+                "bg": "#f0fdf4" if remaining >= 0 else "#fef2f2",
+            },
+            {"label": "Usage", "value": f"{pct:.1f}%", "color": pct_color, "bg": "#f8fafc"},
         )
     )
 
@@ -332,20 +373,37 @@ def generate_budget_report(
         rm = ba - sp
         up = (sp / ba * 100) if ba else 0
         uc = EMERALD if up < 75 else (AMBER if up < 90 else RED)
-        rows.append([
-            Paragraph(f'<font size="7">{b.get("category", "")}</font>', _style("c")),
-            Paragraph(f'<font size="7">{_format_currency(ba)}</font>', _style("cr", alignment=TA_RIGHT)),
-            Paragraph(f'<font size="7">{_format_currency(sp)}</font>', _style("cr", alignment=TA_RIGHT)),
-            Paragraph(f'<font color="{EMERALD if rm >= 0 else RED}" size="7">{_format_currency(rm)}</font>',
-                      _style("cr", alignment=TA_RIGHT)),
-            Paragraph(f'<font color="{uc}" size="7"><b>{up:.1f}%</b></font>',
-                      _style("cr", alignment=TA_RIGHT)),
-        ])
+        rows.append(
+            [
+                Paragraph(f'<font size="7">{b.get("category", "")}</font>', _style("c")),
+                Paragraph(
+                    f'<font size="7">{_format_currency(ba)}</font>',
+                    _style("cr", alignment=TA_RIGHT),
+                ),
+                Paragraph(
+                    f'<font size="7">{_format_currency(sp)}</font>',
+                    _style("cr", alignment=TA_RIGHT),
+                ),
+                Paragraph(
+                    f'<font color="{EMERALD if rm >= 0 else RED}" size="7">{_format_currency(rm)}</font>',
+                    _style("cr", alignment=TA_RIGHT),
+                ),
+                Paragraph(
+                    f'<font color="{uc}" size="7"><b>{up:.1f}%</b></font>',
+                    _style("cr", alignment=TA_RIGHT),
+                ),
+            ]
+        )
 
     if rows:
         el.append(_data_table(headers, rows, [1.55, 1.2, 1.2, 1.2, 1.35]))
     else:
-        el.append(Paragraph("No budget data found.", _style("empty", fontSize=9, textColor=colors.HexColor(GRAY_400))))
+        el.append(
+            Paragraph(
+                "No budget data found.",
+                _style("empty", fontSize=9, textColor=colors.HexColor(GRAY_400)),
+            )
+        )
 
     doc.build(el, onFirstPage=_footer, onLaterPages=_footer)
     buf.seek(0)
@@ -360,9 +418,12 @@ def generate_goals_report(
     """Modern goals-progress report with status badges."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=letter,
-        topMargin=0.45 * inch, bottomMargin=0.75 * inch,
-        leftMargin=0.55 * inch, rightMargin=0.55 * inch,
+        buf,
+        pagesize=letter,
+        topMargin=0.45 * inch,
+        bottomMargin=0.75 * inch,
+        leftMargin=0.55 * inch,
+        rightMargin=0.55 * inch,
     )
     el: list[Any] = []
 
@@ -382,15 +443,25 @@ def generate_goals_report(
 
     el.extend(
         _kpi_cards(
-            {"label": "Total Target", "value": _format_currency(total_target),
-             "color": PURPLE, "bg": "#f5f3ff"},
-            {"label": "Total Saved", "value": _format_currency(total_current),
-             "color": EMERALD, "bg": "#f0fdf4"},
-            {"label": "Progress", "value": f"{overall:.1f}%",
-             "color": oc, "bg": "#f8fafc"},
-            {"label": f"{completed} done \u00b7 {active} active",
-             "value": f"{completed + active}",
-             "color": INDIGO, "bg": "#eef2ff"},
+            {
+                "label": "Total Target",
+                "value": _format_currency(total_target),
+                "color": PURPLE,
+                "bg": "#f5f3ff",
+            },
+            {
+                "label": "Total Saved",
+                "value": _format_currency(total_current),
+                "color": EMERALD,
+                "bg": "#f0fdf4",
+            },
+            {"label": "Progress", "value": f"{overall:.1f}%", "color": oc, "bg": "#f8fafc"},
+            {
+                "label": f"{completed} done \u00b7 {active} active",
+                "value": f"{completed + active}",
+                "color": INDIGO,
+                "bg": "#eef2ff",
+            },
         )
     )
 
@@ -402,23 +473,44 @@ def generate_goals_report(
         current = g.get("current_amount", 0)
         prog = (current / target * 100) if target else 0
         status = g.get("status", "active")
-        sc = {"completed": EMERALD, "active": PURPLE, "on_track": INDIGO,
-              "at_risk": AMBER, "failed": RED}.get(status, GRAY_500)
+        sc = {
+            "completed": EMERALD,
+            "active": PURPLE,
+            "on_track": INDIGO,
+            "at_risk": AMBER,
+            "failed": RED,
+        }.get(status, GRAY_500)
         pc = EMERALD if prog >= 75 else (AMBER if prog >= 40 else RED)
-        rows.append([
-            Paragraph(f'<font size="7">{g.get("name", "")[:35]}</font>', _style("c")),
-            Paragraph(f'<font size="7">{_format_currency(target)}</font>', _style("cr", alignment=TA_RIGHT)),
-            Paragraph(f'<font size="7">{_format_currency(current)}</font>', _style("cr", alignment=TA_RIGHT)),
-            Paragraph(f'<font color="{pc}" size="7"><b>{prog:.1f}%</b></font>',
-                      _style("cr", alignment=TA_RIGHT)),
-            Paragraph(f'<font color="{sc}" size="7"><b>{status.upper()}</b></font>',
-                      _style("c", alignment=TA_CENTER)),
-        ])
+        rows.append(
+            [
+                Paragraph(f'<font size="7">{g.get("name", "")[:35]}</font>', _style("c")),
+                Paragraph(
+                    f'<font size="7">{_format_currency(target)}</font>',
+                    _style("cr", alignment=TA_RIGHT),
+                ),
+                Paragraph(
+                    f'<font size="7">{_format_currency(current)}</font>',
+                    _style("cr", alignment=TA_RIGHT),
+                ),
+                Paragraph(
+                    f'<font color="{pc}" size="7"><b>{prog:.1f}%</b></font>',
+                    _style("cr", alignment=TA_RIGHT),
+                ),
+                Paragraph(
+                    f'<font color="{sc}" size="7"><b>{status.upper()}</b></font>',
+                    _style("c", alignment=TA_CENTER),
+                ),
+            ]
+        )
 
     if rows:
         el.append(_data_table(headers, rows, [1.55, 1.2, 1.2, 1.0, 1.55]))
     else:
-        el.append(Paragraph("No goals found.", _style("empty", fontSize=9, textColor=colors.HexColor(GRAY_400))))
+        el.append(
+            Paragraph(
+                "No goals found.", _style("empty", fontSize=9, textColor=colors.HexColor(GRAY_400))
+            )
+        )
 
     doc.build(el, onFirstPage=_footer, onLaterPages=_footer)
     buf.seek(0)

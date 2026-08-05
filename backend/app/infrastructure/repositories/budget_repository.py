@@ -88,14 +88,20 @@ class BudgetRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def list_expired_active_budgets(self, user_id: uuid.UUID, today: date) -> list[BudgetModel]:
+    async def list_expired_active_budgets(
+        self, user_id: uuid.UUID, today: date
+    ) -> list[BudgetModel]:
         """List active, non-deleted budgets whose period has already ended."""
-        stmt = select(BudgetModel).where(
-            BudgetModel.user_id == user_id,
-            BudgetModel.deleted_at.is_(None),
-            BudgetModel.is_active.is_(True),
-            BudgetModel.end_date < today,
-        ).order_by(BudgetModel.end_date.asc())
+        stmt = (
+            select(BudgetModel)
+            .where(
+                BudgetModel.user_id == user_id,
+                BudgetModel.deleted_at.is_(None),
+                BudgetModel.is_active.is_(True),
+                BudgetModel.end_date < today,
+            )
+            .order_by(BudgetModel.end_date.asc())
+        )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
@@ -304,10 +310,14 @@ class BudgetRepository:
         return True
 
     async def get_unread_alert_count(self, user_id: uuid.UUID) -> int:
-        stmt = select(func.count()).select_from(BudgetAlertModel).where(
-            BudgetAlertModel.user_id == user_id,
-            BudgetAlertModel.is_read.is_(False),
-            BudgetAlertModel.is_dismissed.is_(False),
+        stmt = (
+            select(func.count())
+            .select_from(BudgetAlertModel)
+            .where(
+                BudgetAlertModel.user_id == user_id,
+                BudgetAlertModel.is_read.is_(False),
+                BudgetAlertModel.is_dismissed.is_(False),
+            )
         )
         result = await self._session.execute(stmt)
         return result.scalar_one()
@@ -327,7 +337,9 @@ class BudgetRepository:
             pct = float(budget.spent) / float(budget.amount) * 100
             existing = await self.list_alerts(user_id, budget_id=budget.id)
             existing_types = {a.alert_type for a in existing}
-            existing_thresholds = {a.threshold_percentage for a in existing if a.threshold_percentage}
+            existing_thresholds = {
+                a.threshold_percentage for a in existing if a.threshold_percentage
+            }
 
             if pct >= 100 and "exceeded" not in existing_types:
                 alert = await self.create_alert(
@@ -346,7 +358,9 @@ class BudgetRepository:
                     budget_amount=budget.amount,
                 )
                 new_alerts.append(alert)
-            elif pct >= budget.alert_threshold and budget.alert_threshold not in existing_thresholds:
+            elif (
+                pct >= budget.alert_threshold and budget.alert_threshold not in existing_thresholds
+            ):
                 severity = "warning" if pct < 90 else "critical"
                 alert = await self.create_alert(
                     user_id,
@@ -366,3 +380,16 @@ class BudgetRepository:
                 new_alerts.append(alert)
 
         return new_alerts
+
+    async def list_active_user_ids(self) -> list[uuid.UUID]:
+        """Devuelve IDs de usuarios con al menos un presupuesto activo.
+
+        Returns:
+            list[uuid.UUID]
+        """
+        from app.infrastructure.models.budget import BudgetModel
+
+        result = await self._session.execute(
+            select(BudgetModel.user_id).where(BudgetModel.is_active.is_(True)).distinct()
+        )
+        return list(result.scalars().all())

@@ -67,7 +67,9 @@ class MarkServicePaidUseCase:
         await self._tx_repo.update_account_balance(account_id, Decimal(str(amount)), "subtract")
 
         # Mark service as paid
-        await self._expense_repo.update_service(service_id, user_id, payment_status="paid", last_paid_at=ed)
+        await self._expense_repo.update_service(
+            service_id, user_id, payment_status="paid", last_paid_at=ed
+        )
 
         await self._tx_repo.create_audit_log(
             tx_id=tx.id,

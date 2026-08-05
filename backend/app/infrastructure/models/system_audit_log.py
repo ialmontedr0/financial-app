@@ -35,4 +35,6 @@ class SystemAuditLogModel(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<SystemAuditLogModel(id={self.id}, action={self.action}, resource={self.resource})>"
+        return (
+            f"<SystemAuditLogModel(id={self.id}, action={self.action}, resource={self.resource})>"
+        )

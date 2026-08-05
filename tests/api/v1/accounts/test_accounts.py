@@ -242,6 +242,7 @@ class TestAccountCRUD:
 
     async def test_get_nonexistent_account(self, client: AsyncClient, test_password: str):
         import uuid
+
         email = "ghostacc@test.com"
         token = await self._register_and_login(client, email, test_password)
         fake_id = uuid.uuid4()
@@ -251,9 +252,7 @@ class TestAccountCRUD:
         )
         assert response.status_code == 404
 
-    async def test_account_isolation_between_users(
-        self, client: AsyncClient, test_password: str
-    ):
+    async def test_account_isolation_between_users(self, client: AsyncClient, test_password: str):
         """User A cannot see User B's accounts."""
         email_a = "usera@test.com"
         token_a = await self._register_and_login(client, email_a, test_password)

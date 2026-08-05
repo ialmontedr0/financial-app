@@ -13,9 +13,9 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "9b3f2a7c1d5e"
-down_revision: Union[str, None] = "f1a2b3c4d5e6" # noqa: UP007
-branch_labels: Union[str, Sequence[str], None] = None # noqa: UP007
-depends_on: Union[str, Sequence[str], None] = None # noqa: UP007
+down_revision: Union[str, None] = "f1a2b3c4d5e6"  # noqa: UP007
+branch_labels: Union[str, Sequence[str], None] = None  # noqa: UP007
+depends_on: Union[str, Sequence[str], None] = None  # noqa: UP007
 
 
 def upgrade() -> None:

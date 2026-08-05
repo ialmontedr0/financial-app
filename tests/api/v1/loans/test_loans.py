@@ -10,7 +10,9 @@ from httpx import AsyncClient  # noqa: TC002
 class TestLoanCRUD:
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_create_loan(self, client: AsyncClient, test_password: str):
@@ -147,7 +149,9 @@ class TestLoanCRUD:
 class TestLoanPayments:
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def _create_loan(self, client: AsyncClient, token: str) -> str:
@@ -202,7 +206,9 @@ class TestLoanPayments:
 class TestLoanAmortization:
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_get_schedule(self, client: AsyncClient, test_password: str):
@@ -255,7 +261,9 @@ class TestLoanAmortization:
 class TestLoanSimulator:
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_simulate(self, client: AsyncClient, test_password: str):
@@ -282,7 +290,9 @@ class TestLoanSimulator:
 class TestLoanEarlyPayoff:
     async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
         await client.post("/api/v1/auth/register", json={"email": email, "password": password})
-        login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
         return login_resp.json()["tokens"]["access_token"]
 
     async def test_early_payoff(self, client: AsyncClient, test_password: str):

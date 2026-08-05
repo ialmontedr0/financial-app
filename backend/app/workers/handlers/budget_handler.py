@@ -52,9 +52,13 @@ async def handle_transaction_event(session: AsyncSession, event: dict[str, Any])
 
     refreshed = 0
     for budget in budgets:
-        if budget.budget_type == "category" and (not budget.category_id or budget.category_id != category_id):
+        if budget.budget_type == "category" and (
+            not budget.category_id or budget.category_id != category_id
+        ):
             continue
-        if budget.budget_type == "account" and (not budget.account_id or budget.account_id != account_id):
+        if budget.budget_type == "account" and (
+            not budget.account_id or budget.account_id != account_id
+        ):
             continue
         await RefreshBudgetUseCase(session).execute(user_id, budget.id)
         refreshed += 1

@@ -30,11 +30,20 @@ class ProcessRecurringUseCase:
 
         for rec in due:
             try:
-                tx = await self._repo.create(rec.user_id, account_id=rec.account_id,
-                    category_id=rec.category_id, subcategory_id=rec.subcategory_id,
-                    transaction_type=rec.transaction_type, status="completed", amount=rec.amount,
-                    currency_code=rec.currency_code, description=rec.description, notes=rec.notes,
-                    effective_date=rec.next_execution_date, source="recurring", recurring_id=rec.id,
+                tx = await self._repo.create(
+                    rec.user_id,
+                    account_id=rec.account_id,
+                    category_id=rec.category_id,
+                    subcategory_id=rec.subcategory_id,
+                    transaction_type=rec.transaction_type,
+                    status="completed",
+                    amount=rec.amount,
+                    currency_code=rec.currency_code,
+                    description=rec.description,
+                    notes=rec.notes,
+                    effective_date=rec.next_execution_date,
+                    source="recurring",
+                    recurring_id=rec.id,
                 )
 
                 if rec.transaction_type == "income":
@@ -42,7 +51,10 @@ class ProcessRecurringUseCase:
                 elif rec.transaction_type == "expense":
                     await self._repo.update_account_balance(rec.account_id, rec.amount, "subtract")
 
-                await self._repo.create_audit_log(tx_id=tx.id, user_id=rec.user_id, action="created",
+                await self._repo.create_audit_log(
+                    tx_id=tx.id,
+                    user_id=rec.user_id,
+                    action="created",
                     changes={"recurring": {"recurring_id": str(rec.id), "source": "automatic"}},
                 )
 
@@ -50,7 +62,11 @@ class ProcessRecurringUseCase:
                 new_next = freq.calculate_next_date(rec.next_execution_date, rec.interval)
                 new_count = rec.execution_count + 1
 
-                update_kwargs: dict[str, object] = {"next_execution_date": new_next, "execution_count": new_count, "last_executed_at": datetime.now(UTC)}
+                update_kwargs: dict[str, object] = {
+                    "next_execution_date": new_next,
+                    "execution_count": new_count,
+                    "last_executed_at": datetime.now(UTC),
+                }
                 if rec.max_executions and new_count >= rec.max_executions:
                     update_kwargs["is_active"] = False
                 if rec.end_date and new_next > rec.end_date:

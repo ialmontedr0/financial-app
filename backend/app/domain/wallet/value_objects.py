@@ -39,9 +39,7 @@ class WalletType:
         normalized = self.value.lower().strip()
         if normalized not in self._VALID_TYPES:
             supported = ", ".join(sorted(self._VALID_TYPES))
-            raise ValueError(
-                f"Tipo de wallet no soportado: {self.value}. Soportado: {supported}"
-            )
+            raise ValueError(f"Tipo de wallet no soportado: {self.value}. Soportado: {supported}")
         object.__setattr__(self, "value", normalized)
 
     def __str__(self) -> str:
@@ -64,9 +62,7 @@ class WalletStatus:
         normalized = self.value.lower().strip()
         if normalized not in self._VALID_STATUSES:
             supported = ", ".join(sorted(self._VALID_STATUSES))
-            raise ValueError(
-                f"Estado de wallet no soportado: {self.value}. Soportado: {supported}"
-            )
+            raise ValueError(f"Estado de wallet no soportado: {self.value}. Soportado: {supported}")
         object.__setattr__(self, "value", normalized)
 
     def __str__(self) -> str:

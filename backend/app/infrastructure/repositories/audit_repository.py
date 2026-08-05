@@ -103,21 +103,29 @@ class AuditRepository:
         total = total_q.scalar() or 0
 
         action_q = await self._db.execute(
-            select(SystemAuditLogModel.action, func.count(SystemAuditLogModel.id))
-            .group_by(SystemAuditLogModel.action)
+            select(SystemAuditLogModel.action, func.count(SystemAuditLogModel.id)).group_by(
+                SystemAuditLogModel.action
+            )
         )
         by_action: dict[str, int] = dict(action_q.all())
 
         resource_q = await self._db.execute(
-            select(SystemAuditLogModel.resource, func.count(SystemAuditLogModel.id))
-            .group_by(SystemAuditLogModel.resource)
+            select(SystemAuditLogModel.resource, func.count(SystemAuditLogModel.id)).group_by(
+                SystemAuditLogModel.resource
+            )
         )
         by_resource: dict[str, int] = dict(resource_q.all())
 
         status_q = await self._db.execute(
-            select(SystemAuditLogModel.status, func.count(SystemAuditLogModel.id))
-            .group_by(SystemAuditLogModel.status)
+            select(SystemAuditLogModel.status, func.count(SystemAuditLogModel.id)).group_by(
+                SystemAuditLogModel.status
+            )
         )
         by_status: dict[str, int] = dict(status_q.all())
 
-        return {"total": total, "by_action": by_action, "by_resource": by_resource, "by_status": by_status}
+        return {
+            "total": total,
+            "by_action": by_action,
+            "by_resource": by_resource,
+            "by_status": by_status,
+        }

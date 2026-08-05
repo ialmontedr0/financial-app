@@ -40,7 +40,9 @@ class CreateSpendingLimitUseCase:
 
         valid_types = {"daily", "weekly", "monthly", "category"}
         if limit_type not in valid_types:
-            raise ValidationError(f"limit_type no valido: {limit_type}. Soportado: {', '.join(sorted(valid_types))}")
+            raise ValidationError(
+                f"limit_type no valido: {limit_type}. Soportado: {', '.join(sorted(valid_types))}"
+            )
 
         if limit_amount <= 0:
             raise ValidationError("limit_amount debe ser mayor a 0")

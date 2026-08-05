@@ -24,9 +24,7 @@ class ListAutomationRulesUseCase:
         )
 
         repo = AutomationRepository(self._session)
-        rules = await repo.list_rules(
-            user_id, is_active=is_active, trigger_type=trigger_type
-        )
+        rules = await repo.list_rules(user_id, is_active=is_active, trigger_type=trigger_type)
 
         return {
             "rules": [

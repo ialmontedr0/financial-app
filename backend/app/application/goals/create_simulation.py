@@ -68,8 +68,12 @@ class CreateSimulationUseCase:
         self._repo = GoalRepository(session)
 
     async def execute(
-        self, user_id: uuid.UUID, goal_id: uuid.UUID, *,
-        name: str, monthly_contribution: float,
+        self,
+        user_id: uuid.UUID,
+        goal_id: uuid.UUID,
+        *,
+        name: str,
+        monthly_contribution: float,
         lump_sum: float | None = None,
         lump_sum_date: str | None = None,
         interest_rate: float | None = None,
@@ -107,7 +111,9 @@ class CreateSimulationUseCase:
         ls_date: date_type | None = None
         if lump_sum_date:
             try:
-                ls_date = date_type.fromisoformat(lump_sum_date[:7] + "-01" if len(lump_sum_date) == 7 else lump_sum_date)
+                ls_date = date_type.fromisoformat(
+                    lump_sum_date[:7] + "-01" if len(lump_sum_date) == 7 else lump_sum_date
+                )
             except ValueError:
                 ls_date = None
 
@@ -161,20 +167,26 @@ class CreateSimulationUseCase:
         predicted_prob = round(final_prob, 4)
         total_contributions = round(total_contrib, 2)
         total_interest_val = round(total_interest, 2)
-        total_income_used = round(
-            sum(p.get("income_contribution", 0) for p in projection), 2
-        ) if projection else 0
+        total_income_used = (
+            round(sum(p.get("income_contribution", 0) for p in projection), 2) if projection else 0
+        )
 
         if preview:
             logger.info(
                 "simulation_previewed",
-                user_id=str(user_id), goal_id=str(goal_id),
-                months=months, probability=predicted_prob,
-                income_sources=len(inc_sources), expenses=len(exp_items),
+                user_id=str(user_id),
+                goal_id=str(goal_id),
+                months=months,
+                probability=predicted_prob,
+                income_sources=len(inc_sources),
+                expenses=len(exp_items),
             )
             return {
-                "id": None, "saved": False, "name": name.strip(),
-                "goal_id": str(goal.id), "goal_name": goal.name,
+                "id": None,
+                "saved": False,
+                "name": name.strip(),
+                "goal_id": str(goal.id),
+                "goal_name": goal.name,
                 "starting_amount": f"{current_amount:.2f}",
                 "monthly_contribution": str(monthly_contribution),
                 "lump_sum": str(lump_sum) if lump_sum else None,
@@ -212,7 +224,9 @@ class CreateSimulationUseCase:
         }
 
         sim = await self._repo.create_simulation(
-            user_id, goal_id=goal.id, name=name.strip(),
+            user_id,
+            goal_id=goal.id,
+            name=name.strip(),
             monthly_contribution=monthly_contribution,
             lump_sum=lump_sum,
             lump_sum_date=ls_date,
@@ -229,14 +243,20 @@ class CreateSimulationUseCase:
 
         logger.info(
             "simulation_created",
-            user_id=str(user_id), goal_id=str(goal_id),
-            months=months, probability=predicted_prob,
-            income_sources=len(inc_sources), expenses=len(exp_items),
+            user_id=str(user_id),
+            goal_id=str(goal_id),
+            months=months,
+            probability=predicted_prob,
+            income_sources=len(inc_sources),
+            expenses=len(exp_items),
         )
 
         return {
-            "id": str(sim.id), "saved": True, "name": sim.name,
-            "goal_id": str(goal.id), "goal_name": goal.name,
+            "id": str(sim.id),
+            "saved": True,
+            "name": sim.name,
+            "goal_id": str(goal.id),
+            "goal_name": goal.name,
             "starting_amount": f"{current_amount:.2f}",
             "monthly_contribution": str(sim.monthly_contribution),
             "lump_sum": str(sim.lump_sum) if sim.lump_sum else None,
@@ -267,12 +287,19 @@ class CreateSimulationUseCase:
         return max(rel, 1)
 
     def _run_projection(
-        self, target_amount: float, current_amount: float,
-        monthly: float, rate: float,
-        lump_sum: float | None, lump_sum_date: str | None,
-        increase_pct: float, inflation_rate: float,
-        income_sources: list[dict], expenses: list[dict],
-        start_date: date_type, target_date: date_type,
+        self,
+        target_amount: float,
+        current_amount: float,
+        monthly: float,
+        rate: float,
+        lump_sum: float | None,
+        lump_sum_date: str | None,
+        increase_pct: float,
+        inflation_rate: float,
+        income_sources: list[dict],
+        expenses: list[dict],
+        start_date: date_type,
+        target_date: date_type,
     ) -> tuple[list[dict], float, float, int, float]:
         monthly_rate = rate / 100 / 12
         balance = current_amount
@@ -316,8 +343,11 @@ class CreateSimulationUseCase:
                 em = src.get("end_month")
                 if _is_active(months, sm, em):
                     income_amount += _calc_monthly_amount(
-                        float(src["amount"]), src["frequency"],
-                        src.get("growth_rate"), months, sm,
+                        float(src["amount"]),
+                        src["frequency"],
+                        src.get("growth_rate"),
+                        months,
+                        sm,
                     )
 
             # Expenses
@@ -327,8 +357,11 @@ class CreateSimulationUseCase:
                 em = exp.get("end_month")
                 if _is_active(months, sm, em):
                     expense_amount += _calc_monthly_amount(
-                        float(exp["amount"]), exp["frequency"],
-                        exp.get("growth_rate"), months, sm,
+                        float(exp["amount"]),
+                        exp["frequency"],
+                        exp.get("growth_rate"),
+                        months,
+                        sm,
                     )
 
             # Net total for this month
@@ -346,15 +379,17 @@ class CreateSimulationUseCase:
             total_contrib += contribution
             total_interest += interest
 
-            projection.append({
-                "month": months,
-                "contribution": round(contribution, 2),
-                "interest": round(interest, 2),
-                "cumulative": round(balance, 2),
-                "income_contribution": round(income_amount, 2) if income_amount > 0 else 0,
-                "inflation_adjusted_target": round(adj_target, 2) if inflation_rate > 0 else 0,
-                "date": (start_date + timedelta(days=months * 30.44)).isoformat(),
-            })
+            projection.append(
+                {
+                    "month": months,
+                    "contribution": round(contribution, 2),
+                    "interest": round(interest, 2),
+                    "cumulative": round(balance, 2),
+                    "income_contribution": round(income_amount, 2) if income_amount > 0 else 0,
+                    "inflation_adjusted_target": round(adj_target, 2) if inflation_rate > 0 else 0,
+                    "date": (start_date + timedelta(days=months * 30.44)).isoformat(),
+                }
+            )
 
         # Probability
         predicted_date = start_date + timedelta(days=int(months * 30.44))
@@ -368,12 +403,19 @@ class CreateSimulationUseCase:
         return projection, total_contrib, total_interest, months, probability
 
     def _run_monte_carlo(
-        self, target_amount: float, current_amount: float,
-        monthly: float, rate: float,
-        lump_sum: float | None, lump_sum_date: str | None,
-        increase_pct: float, inflation_rate: float,
-        income_sources: list[dict], expenses: list[dict],
-        start_date: date_type, target_date: date_type,
+        self,
+        target_amount: float,
+        current_amount: float,
+        monthly: float,
+        rate: float,
+        lump_sum: float | None,
+        lump_sum_date: str | None,
+        increase_pct: float,
+        inflation_rate: float,
+        income_sources: list[dict],
+        expenses: list[dict],
+        start_date: date_type,
+        target_date: date_type,
         num_simulations: int = 500,
     ) -> list[dict] | None:
         all_paths: dict[int, list[float]] = {}
@@ -395,7 +437,7 @@ class CreateSimulationUseCase:
                 _months += 1
                 _contribution = perturbed_monthly
                 if increase_pct > 0 and _months > 1:
-                    _contribution *= (1 + increase_pct * ((_months - 1) / 12))
+                    _contribution *= 1 + increase_pct * ((_months - 1) / 12)
 
                 _income_amount = 0.0
                 for src in income_sources:
@@ -403,8 +445,11 @@ class CreateSimulationUseCase:
                     em = src.get("end_month")
                     if _is_active(_months, sm, em):
                         _income_amount += _calc_monthly_amount(
-                            float(src["amount"]), src["frequency"],
-                            src.get("growth_rate"), _months, sm,
+                            float(src["amount"]),
+                            src["frequency"],
+                            src.get("growth_rate"),
+                            _months,
+                            sm,
                         )
 
                 _expense_amount = 0.0
@@ -413,8 +458,11 @@ class CreateSimulationUseCase:
                     em = exp.get("end_month")
                     if _is_active(_months, sm, em):
                         _expense_amount += _calc_monthly_amount(
-                            float(exp["amount"]), exp["frequency"],
-                            exp.get("growth_rate"), _months, sm,
+                            float(exp["amount"]),
+                            exp["frequency"],
+                            exp.get("growth_rate"),
+                            _months,
+                            sm,
                         )
 
                 _net = _contribution + _income_amount - _expense_amount
@@ -450,22 +498,29 @@ class CreateSimulationUseCase:
             p95 = values[int(n * 0.95)]
 
             if current - start >= step_size or m == max_months:
-                percentiles.append({
-                    "month": m,
-                    "p5": round(p5, 2),
-                    "p25": round(p25, 2),
-                    "p50": round(p50, 2),
-                    "p75": round(p75, 2),
-                    "p95": round(p95, 2),
-                })
+                percentiles.append(
+                    {
+                        "month": m,
+                        "p5": round(p5, 2),
+                        "p25": round(p25, 2),
+                        "p50": round(p50, 2),
+                        "p75": round(p75, 2),
+                        "p95": round(p95, 2),
+                    }
+                )
                 start = current
 
         return percentiles
 
     def _calc_recommendations(
-        self, target_amount: float, current_amount: float,
-        current_monthly: float, rate: float, inflation_rate: float,
-        start_date: date_type, target_date: date_type,
+        self,
+        target_amount: float,
+        current_amount: float,
+        current_monthly: float,
+        rate: float,
+        inflation_rate: float,
+        start_date: date_type,
+        target_date: date_type,
     ) -> list[dict]:
         multipliers = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0]
         recs = []
@@ -486,10 +541,12 @@ class CreateSimulationUseCase:
                 start_date=start_date,
                 target_date=target_date,
             )
-            recs.append({
-                "contribution": round(contrib, 2),
-                "probability": round(prob, 4),
-                "months": months,
-            })
+            recs.append(
+                {
+                    "contribution": round(contrib, 2),
+                    "probability": round(prob, 4),
+                    "months": months,
+                }
+            )
 
         return recs

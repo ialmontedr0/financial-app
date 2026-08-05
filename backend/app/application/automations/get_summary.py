@@ -48,9 +48,7 @@ class GetAutomationSummaryUseCase:
                     "amount_involved": (
                         float(log.amount_involved) if log.amount_involved else None
                     ),
-                    "executed_at": (
-                        log.executed_at.isoformat() if log.executed_at else None
-                    ),
+                    "executed_at": (log.executed_at.isoformat() if log.executed_at else None),
                 }
                 for log in logs
             ],

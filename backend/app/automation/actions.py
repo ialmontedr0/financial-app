@@ -25,9 +25,7 @@ class ActionExecutor:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(
-        self, rule: AutomationRuleModel, dry_run: bool = False
-    ) -> dict[str, Any]:
+    async def execute(self, rule: AutomationRuleModel, dry_run: bool = False) -> dict[str, Any]:
         """Execute the action defined in a rule."""
         executor = getattr(self, f"_exec_{rule.action_type}", None)
         if executor is None:
@@ -35,9 +33,7 @@ class ActionExecutor:
 
         return await executor(rule, dry_run)
 
-    async def _exec_transfer(
-        self, rule: AutomationRuleModel, dry_run: bool
-    ) -> dict[str, Any]:
+    async def _exec_transfer(self, rule: AutomationRuleModel, dry_run: bool) -> dict[str, Any]:
         """Transfer money between accounts."""
         params = rule.action_params or {}
         source_id = uuid.UUID(params["source_account_id"])
@@ -70,9 +66,7 @@ class ActionExecutor:
             raise ValueError("Calculated amount is zero or negative")
 
         if float(actual_amount) > float(source.balance):
-            raise ValueError(
-                f"Insufficient funds: need {actual_amount}, have {source.balance}"
-            )
+            raise ValueError(f"Insufficient funds: need {actual_amount}, have {source.balance}")
 
         if dry_run:
             return {
@@ -142,13 +136,17 @@ class ActionExecutor:
         payment_type = params.get("payment_type", "full")
         custom_amount = params.get("custom_amount")
 
-        stmt = select(CreditCardBillModel).where(
-            and_(
-                CreditCardBillModel.credit_card_id == card_id,
-                CreditCardBillModel.payment_status == "pending",
-                CreditCardBillModel.deleted_at.is_(None),
+        stmt = (
+            select(CreditCardBillModel)
+            .where(
+                and_(
+                    CreditCardBillModel.credit_card_id == card_id,
+                    CreditCardBillModel.payment_status == "pending",
+                    CreditCardBillModel.deleted_at.is_(None),
+                )
             )
-        ).order_by(CreditCardBillModel.due_date)
+            .order_by(CreditCardBillModel.due_date)
+        )
         result = await self._session.execute(stmt)
         bill = result.scalar_one_or_none()
 
@@ -173,8 +171,7 @@ class ActionExecutor:
 
         if float(payment_account.balance) < float(payment_amount):
             raise ValueError(
-                f"Insufficient funds: need {payment_amount}, "
-                f"have {payment_account.balance}"
+                f"Insufficient funds: need {payment_amount}, have {payment_account.balance}"
             )
 
         if dry_run:
@@ -227,9 +224,7 @@ class ActionExecutor:
         """Create a transaction automatically."""
         params = rule.action_params or {}
         account_id = uuid.UUID(params["account_id"])
-        category_id = (
-            uuid.UUID(params["category_id"]) if params.get("category_id") else None
-        )
+        category_id = uuid.UUID(params["category_id"]) if params.get("category_id") else None
         amount = Decimal(str(params["amount"]))
         description = params.get("description", "Transaccion automatica")
         transaction_type = params.get("transaction_type", "expense")
@@ -268,9 +263,7 @@ class ActionExecutor:
             "description": description,
         }
 
-    async def _exec_notify(
-        self, rule: AutomationRuleModel, dry_run: bool
-    ) -> dict[str, Any]:
+    async def _exec_notify(self, rule: AutomationRuleModel, dry_run: bool) -> dict[str, Any]:
         """Send notification via NotificationService."""
         params = rule.action_params or {}
         message = params.get("message", "Notificacion de automatizacion")
@@ -311,7 +304,9 @@ class ActionExecutor:
                 "message": message,
                 "channel": channel or "multi",
                 "status": "sent" if success else "failed",
-                "results": [{"channel": r.channel, "success": r.success, "error": r.error} for r in results],
+                "results": [
+                    {"channel": r.channel, "success": r.success, "error": r.error} for r in results
+                ],
             }
         except Exception as exc:
             self.logger.exception("notification_send_error", rule_id=str(rule.id))
@@ -322,9 +317,7 @@ class ActionExecutor:
                 "error": str(exc),
             }
 
-    async def _exec_adjust_budget(
-        self, rule: AutomationRuleModel, dry_run: bool
-    ) -> dict[str, Any]:
+    async def _exec_adjust_budget(self, rule: AutomationRuleModel, dry_run: bool) -> dict[str, Any]:
         """Auto-adjust budget amount."""
         from app.infrastructure.models.budget import BudgetModel
 
@@ -371,12 +364,8 @@ class ActionExecutor:
             "adjustment_type": adjustment_type,
         }
 
-    async def _get_account(
-        self, account_id: uuid.UUID
-    ) -> FinancialAccountModel | None:
+    async def _get_account(self, account_id: uuid.UUID) -> FinancialAccountModel | None:
         """Get a financial account by ID."""
-        stmt = select(FinancialAccountModel).where(
-            FinancialAccountModel.id == account_id
-        )
+        stmt = select(FinancialAccountModel).where(FinancialAccountModel.id == account_id)
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()

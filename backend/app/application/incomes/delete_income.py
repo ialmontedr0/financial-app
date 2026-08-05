@@ -55,7 +55,13 @@ class DeleteIncomeUseCase:
             tx_id=income.transaction_id,
             user_id=user_id,
             action="deleted",
-            changes={"deleted": {"amount": str(tx.amount), "source": tx.source, "income_type": income.income_type}},
+            changes={
+                "deleted": {
+                    "amount": str(tx.amount),
+                    "source": tx.source,
+                    "income_type": income.income_type,
+                }
+            },
             ip_address=ip_address,
             user_agent=user_agent,
         )

@@ -53,9 +53,7 @@ def generate_installment_schedule(
     current_date = first_due
 
     for i in range(1, num_installments + 1):
-        interest = (balance * rate_per_period).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        interest = (balance * rate_per_period).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         principal_portion = (installment_amount - interest).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
@@ -66,23 +64,23 @@ def generate_installment_schedule(
         else:
             payment_amount = installment_amount
 
-        balance = (balance - principal_portion).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        balance = (balance - principal_portion).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         if balance < 0:
             balance = Decimal("0")
 
         total_interest += interest
 
-        entries.append({
-            "installment_number": i,
-            "due_date": current_date,
-            "amount": payment_amount,
-            "principal_portion": principal_portion,
-            "interest_portion": interest,
-            "balance_after": balance,
-            "status": "pending",
-        })
+        entries.append(
+            {
+                "installment_number": i,
+                "due_date": current_date,
+                "amount": payment_amount,
+                "principal_portion": principal_portion,
+                "interest_portion": interest,
+                "balance_after": balance,
+                "status": "pending",
+            }
+        )
 
         months_to_add = int(freq_months)
         month = current_date.month + months_to_add
@@ -135,7 +133,9 @@ class CreateCreditPurchaseUseCase:
             inst_amt = Decimal(str(installment_amount))
             calc_method = "manual"
         else:
-            inst_amt = calculate_installment(financed, rate, installment_count, installment_frequency)
+            inst_amt = calculate_installment(
+                financed, rate, installment_count, installment_frequency
+            )
             calc_method = "auto"
 
         total_interest = (inst_amt * Decimal(installment_count) - financed).quantize(

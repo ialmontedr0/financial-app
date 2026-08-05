@@ -49,12 +49,7 @@ class WalletAccountModel(Base):
     wallet: Mapped[WalletModel] = relationship(
         "WalletModel", back_populates="wallet_accounts", lazy="noload"
     )
-    account: Mapped[FinancialAccountModel] = relationship(
-        "FinancialAccountModel", lazy="selectin"
-    )
+    account: Mapped[FinancialAccountModel] = relationship("FinancialAccountModel", lazy="selectin")
 
     def __repr__(self) -> str:
-        return (
-            f"<WalletAccountModel(wallet_id={self.wallet_id}, "
-            f"account_id={self.account_id})>"
-        )
+        return f"<WalletAccountModel(wallet_id={self.wallet_id}, account_id={self.account_id})>"
