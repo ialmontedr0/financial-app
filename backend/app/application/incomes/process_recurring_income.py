@@ -63,6 +63,18 @@ class ProcessRecurringIncomeUseCase:
 
                 await self._tx_repo.update_recurring(rec.id, rec.user_id, last_execution_date=date_type.today(), next_execution_date=next_date)
 
+                from app.application.transactions.notifications import emit_transaction_notification
+
+                await emit_transaction_notification(
+                    self._session,
+                    rec.user_id,
+                    transaction_id=tx.id,
+                    account_id=tx.account_id,
+                    amount=f"{tx.amount}",
+                    currency_code=tx.currency_code,
+                    action="created",
+                )
+
                 processed.append({"recurring_id": str(rec.id), "transaction_id": str(tx.id), "amount": str(tx.amount)})
             except Exception as e:
                 errors.append({"recurring_id": str(rec.id), "error": str(e)})

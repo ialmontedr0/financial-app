@@ -82,6 +82,18 @@ class MarkServicePaidUseCase:
             user_agent=user_agent,
         )
 
+        from app.application.transactions.notifications import emit_transaction_notification
+
+        await emit_transaction_notification(
+            self._session,
+            user_id,
+            transaction_id=tx.id,
+            account_id=tx.account_id,
+            amount=f"{tx.amount}",
+            currency_code=tx.currency_code,
+            action="created",
+        )
+
         return {
             "transaction_id": str(tx.id),
             "service_id": str(service_id),

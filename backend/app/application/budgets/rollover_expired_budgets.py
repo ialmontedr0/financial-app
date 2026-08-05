@@ -32,11 +32,11 @@ class RolloverExpiredBudgetsUseCase:
         self._repo = BudgetRepository(session)
 
     async def execute(self, user_id: uuid.UUID) -> dict:
-        from datetime import date as date_type
+        from datetime import UTC, datetime
 
         from app.application.notifications.helpers import mirror_inapp_notifications
 
-        today = date_type.today()  # noqa: DTZ011
+        today = datetime.now(UTC).date()
         expired = await self._repo.list_expired_active_budgets(user_id, today)
 
         closed: list[dict] = []

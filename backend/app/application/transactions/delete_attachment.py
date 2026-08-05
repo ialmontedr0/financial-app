@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import structlog
 
 from app.infrastructure.repositories.transaction_repository import TransactionRepository
-from app.infrastructure.storage.file_storage import delete_file
+from app.infrastructure.storage.storage_service import get_storage_backend
 
 if TYPE_CHECKING:
     import uuid
@@ -29,7 +29,7 @@ class DeleteAttachmentUseCase:
         if att is None or att.user_id != user_id:
             raise NotFoundError("Attachment")
 
-        delete_file(att.storage_path)
+        get_storage_backend().delete_file(att.storage_path)
         deleted = await self._repo.delete_attachment(attachment_id)
         if not deleted:
             raise NotFoundError("Attachment")

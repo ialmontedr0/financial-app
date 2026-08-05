@@ -26,6 +26,7 @@ from app.api.v1.loans.router import router as loans_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.ocr.router import router as ocr_router
 from app.api.v1.plaid.router import router as plaid_router
+from app.api.v1.search.router import router as search_router
 from app.api.v1.taxes.router import router as taxes_router
 from app.api.v1.telegram.router import router as telegram_router
 from app.api.v1.transactions.router import router as transactions_router
@@ -60,6 +61,7 @@ api_v1_router.include_router(investments_router)
 api_v1_router.include_router(notifications_router)
 api_v1_router.include_router(ocr_router)
 api_v1_router.include_router(plaid_router)
+api_v1_router.include_router(search_router)
 api_v1_router.include_router(taxes_router)
 api_v1_router.include_router(analytics_router)
 api_v1_router.include_router(ai_router)

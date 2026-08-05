@@ -186,6 +186,24 @@ systemctl restart fip-api
 - **deploy.yml**: Deploy SSH a VPS
 - **security-scan.yml**: Escaneo semanal de dependencias/vulnerabilidades
 
+## Decisiones de Arquitectura
+
+### Restricciones de integridad referencial (FKs) — desviación deliberada
+
+El `GUIDE.md` (Parcial 21) solicita migrar estas claves foráneas de `ON DELETE SET NULL` a `ON DELETE CASCADE`:
+
+- `transactions.account_id` → `financial_account.id`
+- `budgets.category_id` → `category.id`
+- `goals.account_id` → `financial_account.id`
+
+**Decisión (business decision):** se mantiene `ON DELETE SET NULL` en las tres claves.
+
+**Motivo:** la plataforma trata las transacciones y las metas como historial financiero que no debe perderse. Eliminar una cuenta, una categoría o una meta no debe borrar en cascada sus transacciones ni sus objetivos; en su lugar, los registros quedan huérfanos (`NULL`) y conservan el dato para auditoría y analítica histórica.
+
+**Consecuencia:** al eliminar un padre (cuenta/categoría), los hijos quedan con `NULL` en la FK. Los casos de uso de lectura ya toleran esta condición (los modelos declaran las columnas como `nullable=True`). No se requiere migración; la restricción actual de `SET NULL` ya existe en la base de datos.
+
+**Si en el futuro se requiere borrado en cascada:** generar una migración Alembic que ejecute `op.drop_constraint(...)` + `op.create_foreign_key(..., ondelete="CASCADE")` para cada FK listada arriba (ver `FIP_GUIA_PENDIENTES.md`, Parcial 21, para los pasos exactos).
+
 ## Endpoints de la API
 
 Todos los endpoints bajo `/api/v1`. Documentacion OpenAPI en `/docs` (deshabilitado en produccion).

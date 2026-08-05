@@ -58,6 +58,7 @@ class BudgetModel(Base, VersionMixin):
 
     # --- Amounts ---
     amount: Mapped[Decimal] = mapped_column(Numeric(precision=19, scale=4), nullable=False)
+    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="DOP")
     spent: Mapped[Decimal] = mapped_column(
         Numeric(precision=19, scale=4), nullable=False, server_default="0"
     )

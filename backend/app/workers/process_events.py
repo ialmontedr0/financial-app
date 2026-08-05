@@ -19,7 +19,6 @@ from app.infrastructure.models.domain_event import DomainEventModel
 from app.workers.handlers import (
     handle_budget_event,
     handle_goal_event,
-    handle_notification_event,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +50,6 @@ def _parse_event(fields: dict[str, Any]) -> dict[str, Any]:
 async def _dispatch(session: AsyncSession, event: dict[str, Any]) -> None:
     await handle_budget_event(session, event)
     await handle_goal_event(session, event)
-    await handle_notification_event(session, event)
 
 
 async def _record_processed(session: AsyncSession, fields: dict[str, Any]) -> None:

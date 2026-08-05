@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -50,7 +50,7 @@ class CreatePremiumUseCase:
         else:
             validated_method = None
 
-        status = "paid" if paid_date else ("overdue" if due_date < date.today() else "pending")  # noqa: DTZ011
+        status = "paid" if paid_date else ("overdue" if due_date < datetime.now(UTC).date() else "pending")
 
         premium = await self._repo.create_premium(
             insurance_id=insurance_id,

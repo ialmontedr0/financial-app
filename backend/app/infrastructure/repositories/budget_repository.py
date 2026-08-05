@@ -314,9 +314,9 @@ class BudgetRepository:
 
     async def check_and_create_alerts(self, user_id: uuid.UUID) -> list[BudgetAlertModel]:
         """Check all active budgets and create alerts where thresholds are met."""
-        from datetime import date as date_type
+        from datetime import UTC, datetime
 
-        today = date_type.today()  # noqa: DTZ011
+        today = datetime.now(UTC).date()
         budgets = await self.get_active_budgets_for_period(user_id, today, today)
         new_alerts: list[BudgetAlertModel] = []
 

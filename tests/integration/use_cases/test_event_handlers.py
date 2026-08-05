@@ -1,14 +1,17 @@
 """Integration tests for event bus worker handlers."""
 
-from datetime import date, timedelta
+import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 from sqlalchemy import func, select
 
+from app.application.transactions.notifications import emit_transaction_notification
 from app.domain.events import EventType
 from app.infrastructure.models.notification import NotificationModel
 from app.infrastructure.models.transaction import TransactionModel
+from app.infrastructure.repositories.account_repository import AccountRepository
 from app.infrastructure.repositories.budget_repository import BudgetRepository
 from app.infrastructure.repositories.goal_repository import GoalRepository
 from app.infrastructure.repositories.user_repository import UserRepository
@@ -16,7 +19,6 @@ from app.infrastructure.security.password_hasher import PasswordHasher
 from app.workers.handlers import (
     handle_budget_event,
     handle_goal_event,
-    handle_notification_event,
 )
 
 
@@ -29,7 +31,7 @@ class TestBudgetEventHandler:
         )
         await db_session.commit()
 
-        today = date.today()  # noqa: DTZ011
+        today = datetime.now(UTC).date()
         budget = await BudgetRepository(db_session).create_budget(
             user.id,
             name="Event Budget",
@@ -91,7 +93,7 @@ class TestBudgetEventHandler:
         )
         await db_session.commit()
 
-        today = date.today()  # noqa: DTZ011
+        today = datetime.now(UTC).date()
         await BudgetRepository(db_session).create_budget(
             user.id,
             name="Category Budget",
@@ -129,7 +131,7 @@ class TestGoalEventHandler:
         )
         await db_session.commit()
 
-        today = date.today()  # noqa: DTZ011
+        today = datetime.now(UTC).date()
         goal = await GoalRepository(db_session).create_goal(
             user.id,
             name="Vacaciones",
@@ -189,29 +191,66 @@ class TestGoalEventHandler:
 
 
 @pytest.mark.integration
-class TestNotificationEventHandler:
+class TestTransactionNotificationHelper:
     async def test_creates_inapp_notification(self, db_session, test_password):
         user_repo = UserRepository(db_session)
         user = await user_repo.create(
             email="event-notif@test.com", password_hash=PasswordHasher.hash_password(test_password)
         )
+        account = await AccountRepository(db_session).create(
+            user.id, name="Banco", account_type="bank"
+        )
         await db_session.commit()
 
-        event = {
-            "event_type": EventType.TRANSACTION_CREATED.value,
-            "user_id": str(user.id),
-            "data": {"amount": "1250.50", "account": "Banco"},
-        }
-
-        created = await handle_notification_event(db_session, event)
+        transaction_id = uuid.uuid4()
+        emitted = await emit_transaction_notification(
+            db_session,
+            user.id,
+            transaction_id=transaction_id,
+            account_id=account.id,
+            amount="1250.50",
+            currency_code="DOP",
+            action="created",
+        )
         await db_session.commit()
 
-        assert created == 1
+        assert emitted is True
         result = await db_session.execute(
             select(NotificationModel).where(NotificationModel.user_id == user.id)
         )
         notif = result.scalar_one()
-        assert notif.type == "transaction_confirmed"
+        assert notif.type == "transaction_alert"
         assert "1250.50" in notif.body
+        assert "Banco" in notif.body
         assert notif.channel == "push"
         assert notif.is_sent is True
+        assert notif.data["link"] == f"/transactions/{transaction_id}"
+
+    async def test_delete_has_no_link(self, db_session, test_password):
+        user_repo = UserRepository(db_session)
+        user = await user_repo.create(
+            email="event-notif-delete@test.com",
+            password_hash=PasswordHasher.hash_password(test_password),
+        )
+        await db_session.commit()
+
+        transaction_id = uuid.uuid4()
+        await emit_transaction_notification(
+            db_session,
+            user.id,
+            transaction_id=transaction_id,
+            account_id=None,
+            amount="500",
+            currency_code="DOP",
+            action="deleted",
+        )
+        await db_session.commit()
+
+        result = await db_session.execute(
+            select(NotificationModel).where(NotificationModel.user_id == user.id)
+        )
+        notif = result.scalar_one()
+        assert notif.type == "transaction_alert"
+        assert "eliminada" in notif.body
+        assert "tu cuenta" in notif.body
+        assert notif.data.get("link") is None

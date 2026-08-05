@@ -60,6 +60,18 @@ class CreateIncomeBulkUseCase:
                 if tx.status == "completed":
                     await self._tx_repo.update_account_balance(inc["account_id"], amount, "add")
 
+                from app.application.transactions.notifications import emit_transaction_notification
+
+                await emit_transaction_notification(
+                    self._session,
+                    user_id,
+                    transaction_id=tx.id,
+                    account_id=tx.account_id,
+                    amount=f"{tx.amount}",
+                    currency_code=tx.currency_code,
+                    action="created",
+                )
+
                 income = await self._income_repo.create_income(
                     user_id,
                     transaction_id=tx.id,

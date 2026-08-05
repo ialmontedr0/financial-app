@@ -72,11 +72,24 @@ class ProcessRecurringUseCase:
                         "account_id": str(rec.account_id) if rec.account_id else None,
                         "category_id": str(rec.category_id) if rec.category_id else None,
                         "amount": str(rec.amount),
+                        "currency_code": rec.currency_code,
                         "transaction_type": rec.transaction_type,
                         "effective_date": rec.next_execution_date.isoformat()
                         if rec.next_execution_date
                         else None,
                     },
+                )
+
+                from app.application.transactions.notifications import emit_transaction_notification
+
+                await emit_transaction_notification(
+                    self._session,
+                    rec.user_id,
+                    transaction_id=tx.id,
+                    account_id=tx.account_id,
+                    amount=f"{tx.amount}",
+                    currency_code=tx.currency_code,
+                    action="created",
                 )
                 created_count += 1
 

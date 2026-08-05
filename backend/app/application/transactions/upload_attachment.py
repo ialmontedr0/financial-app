@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import structlog
 
 from app.infrastructure.repositories.transaction_repository import TransactionRepository
-from app.infrastructure.storage.file_storage import store_file
+from app.infrastructure.storage.storage_service import get_storage_backend
 
 if TYPE_CHECKING:
     import uuid
@@ -39,7 +39,14 @@ class UploadAttachmentUseCase:
         if len(content) > MAX_FILE_SIZE:
             raise ValidationError(f"Archivo excede el limite de {MAX_FILE_SIZE // (1024 * 1024)} MB")
 
-        file_info = store_file(user_id=user_id, transaction_id=transaction_id, filename=filename, content=content, content_type=content_type)
+        backend = get_storage_backend()
+        file_info = backend.store_file(
+            user_id=user_id,
+            transaction_id=transaction_id,
+            filename=filename,
+            content=content,
+            content_type=content_type,
+        )
         att = await self._repo.create_attachment(transaction_id, user_id, **file_info)
 
         return {"id": str(att.id), "transaction_id": str(att.transaction_id),

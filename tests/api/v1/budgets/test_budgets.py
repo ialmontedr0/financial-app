@@ -395,3 +395,63 @@ class TestBudgetRollover:
         assert resp.status_code == 200
         budgets = resp.json()["budgets"]
         assert len(budgets) == 2
+
+    async def test_create_budget_defaults_to_dop_currency(self, client: AsyncClient, test_password: str):
+        email = "budget_curr1@test.com"
+        token = await self._register_and_login(client, email, test_password)
+
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"name": "Currency Default", "amount": "10000", "budget_type": "total"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["currency"] == "DOP"
+
+    async def test_create_budget_with_custom_currency(self, client: AsyncClient, test_password: str):
+        email = "budget_curr2@test.com"
+        token = await self._register_and_login(client, email, test_password)
+
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "name": "Currency Custom",
+                "amount": "10000",
+                "budget_type": "total",
+                "currency_code": "MXN",
+            },
+        )
+        assert resp.status_code == 201
+        assert resp.json()["currency"] == "MXN"
+
+    async def test_create_budget_invalid_currency(self, client: AsyncClient, test_password: str):
+        email = "budget_curr3@test.com"
+        token = await self._register_and_login(client, email, test_password)
+
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "name": "Currency Invalid",
+                "amount": "10000",
+                "budget_type": "total",
+                "currency_code": "DO",
+            },
+        )
+        assert resp.status_code == 422
+
+    async def test_list_budget_includes_currency(self, client: AsyncClient, test_password: str):
+        email = "budget_curr4@test.com"
+        token = await self._register_and_login(client, email, test_password)
+
+        await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"name": "List Currency", "amount": "20000", "budget_type": "total"},
+        )
+
+        resp = await client.get("/api/v1/budgets", headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        budget = resp.json()["budgets"][0]
+        assert budget["currency"] == "DOP"

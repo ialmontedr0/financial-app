@@ -28,6 +28,7 @@ class CreateBudgetUseCase:
         *,
         name: str,
         amount: float,
+        currency_code: str = "DOP",
         budget_type: str = "total",
         period: str = "monthly",
         start_date: date | None = None,
@@ -52,6 +53,9 @@ class CreateBudgetUseCase:
             raise ValidationError("Budget name es requerido")
         if amount <= 0:
             raise ValidationError("amount debe ser mayor a 0")
+
+        if not currency_code or len(currency_code) != 3:
+            raise ValidationError("currency_code debe ser un codigo ISO 4217 de 3 letras")
 
         valid_types = {"total", "category", "account"}
         if budget_type not in valid_types:
@@ -85,6 +89,7 @@ class CreateBudgetUseCase:
             description=description,
             budget_type=budget_type,
             amount=amount,
+            currency_code=currency_code,
             spent=0,
             remaining=amount,
             period=period,
@@ -108,6 +113,7 @@ class CreateBudgetUseCase:
             "description": budget.description,
             "budget_type": budget.budget_type,
             "amount": str(budget.amount),
+            "currency": budget.currency_code,
             "spent": str(budget.spent),
             "remaining": str(budget.remaining),
             "period": budget.period,

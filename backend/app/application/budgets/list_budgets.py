@@ -50,6 +50,7 @@ class ListBudgetsUseCase:
                 "description": b.description,
                 "budget_type": b.budget_type,
                 "amount": str(b.amount),
+                "currency": b.currency_code,
                 "spent": str(b.spent),
                 "remaining": str(b.remaining),
                 "period": b.period,

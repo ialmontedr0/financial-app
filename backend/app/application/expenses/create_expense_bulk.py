@@ -58,6 +58,18 @@ class CreateExpenseBulkUseCase:
                 if tx.status == "completed":
                     await self._repo.update_account_balance(exp["account_id"], amount, "subtract")
 
+                from app.application.transactions.notifications import emit_transaction_notification
+
+                await emit_transaction_notification(
+                    self._session,
+                    user_id,
+                    transaction_id=tx.id,
+                    account_id=tx.account_id,
+                    amount=f"{tx.amount}",
+                    currency_code=tx.currency_code,
+                    action="created",
+                )
+
                 created.append(
                     {"id": str(tx.id), "description": tx.description, "amount": str(tx.amount)}
                 )

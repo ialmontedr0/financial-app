@@ -118,11 +118,24 @@ class UpdateTransactionUseCase:
                 "account_id": str(updated.account_id) if updated.account_id else None,
                 "category_id": str(updated.category_id) if updated.category_id else None,
                 "amount": str(updated.amount),
+                "currency_code": updated.currency_code,
                 "transaction_type": updated.transaction_type,
                 "effective_date": updated.effective_date.isoformat()
                 if updated.effective_date
                 else None,
             },
+        )
+
+        from app.application.transactions.notifications import emit_transaction_notification
+
+        await emit_transaction_notification(
+            self._session,
+            user_id,
+            transaction_id=updated.id,
+            account_id=updated.account_id,
+            amount=f"{updated.amount}",
+            currency_code=updated.currency_code,
+            action="updated",
         )
         return {
             "id": str(updated.id),

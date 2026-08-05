@@ -41,6 +41,7 @@ class GetBudgetUseCase:
             "description": budget.description,
             "budget_type": budget.budget_type,
             "amount": str(budget.amount),
+            "currency": budget.currency_code,
             "spent": str(budget.spent),
             "remaining": str(budget.remaining),
             "period": budget.period,

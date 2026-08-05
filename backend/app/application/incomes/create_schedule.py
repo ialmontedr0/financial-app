@@ -115,6 +115,18 @@ class CreateScheduleUseCase:
                 user_agent=None,
             )
 
+            from app.application.transactions.notifications import emit_transaction_notification
+
+            await emit_transaction_notification(
+                self._session,
+                user_id,
+                transaction_id=tx.id,
+                account_id=tx.account_id,
+                amount=f"{tx.amount}",
+                currency_code=tx.currency_code,
+                action="created",
+            )
+
             return {
                 "id": str(schedule.id),
                 "description": schedule.description,

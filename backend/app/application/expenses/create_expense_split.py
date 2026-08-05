@@ -101,6 +101,18 @@ class CreateExpenseSplitUseCase:
             changes={"split": {"total": str(total_amount), "child_count": len(children)}},
         )
 
+        from app.application.transactions.notifications import emit_transaction_notification
+
+        await emit_transaction_notification(
+            self._session,
+            user_id,
+            transaction_id=parent.id,
+            account_id=parent.account_id,
+            amount=f"{parent.amount}",
+            currency_code=parent.currency_code,
+            action="created",
+        )
+
         return {
             "id": str(parent.id),
             "transfer_id": str(transfer_id),

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
 import structlog
@@ -39,7 +39,7 @@ class MarkPremiumPaidUseCase:
         if premium.status == "cancelled":
             raise ValidationError("No se puede pagar una prima cancelada")
 
-        paid = paid_date or date.today()  # noqa: DTZ011
+        paid = paid_date or datetime.now(UTC).date()
         updates: dict[str, Any] = {"status": "paid", "paid_date": paid}
         if payment_method:
             updates["payment_method"] = payment_method

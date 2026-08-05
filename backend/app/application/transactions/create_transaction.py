@@ -199,9 +199,23 @@ class CreateTransactionUseCase:
                 "account_id": str(tx.account_id) if tx.account_id else None,
                 "category_id": str(tx.category_id) if tx.category_id else None,
                 "amount": str(tx.amount),
+                "currency_code": tx.currency_code,
                 "transaction_type": tx.transaction_type,
                 "effective_date": tx.effective_date.isoformat() if tx.effective_date else None,
             },
+        )
+
+        # Emit notification synchronously (never blocks creation)
+        from app.application.transactions.notifications import emit_transaction_notification
+
+        await emit_transaction_notification(
+            self._session,
+            user_id,
+            transaction_id=tx.id,
+            account_id=tx.account_id,
+            amount=f"{tx.amount}",
+            currency_code=tx.currency_code,
+            action="created",
         )
         return {
             "id": str(tx.id),

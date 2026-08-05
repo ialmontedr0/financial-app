@@ -137,6 +137,14 @@ class Settings(BaseSettings):
     PLAID_SECRET: str = ""
     PLAID_REDIRECT_URI: str = ""
 
+    # --- Storage ---------------------------------------------------------------
+    STORAGE_DRIVER: str = "local"  # local | s3
+    S3_ENDPOINT_URL: str = ""
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_BUCKET: str = "fip-uploads"
+    S3_REGION: str = "us-east-1"
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"

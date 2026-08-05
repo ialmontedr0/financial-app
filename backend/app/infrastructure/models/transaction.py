@@ -7,8 +7,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Computed, Date, DateTime, ForeignKey, Index, Numeric, String, Text, func
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
@@ -76,6 +76,12 @@ class TransactionModel(VersionMixin, Base):
 
     description: Mapped[str] = mapped_column(Text, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+
+    search_vector: Mapped[str] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('spanish', coalesce(description, '') || ' ' || coalesce(notes, ''))", persisted=True),
+        nullable=False,
+    )
 
     effective_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     created_date: Mapped[datetime] = mapped_column(

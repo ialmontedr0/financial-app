@@ -113,6 +113,27 @@ class CreateTransferUseCase:
             await self._repo.add_tags(tx1.id, user_id, tags)
             await self._repo.add_tags(tx2.id, user_id, tags)
 
+        from app.application.transactions.notifications import emit_transaction_notification
+
+        await emit_transaction_notification(
+            self._session,
+            user_id,
+            transaction_id=tx1.id,
+            account_id=source_account_id,
+            amount=f"{amount_decimal}",
+            currency_code=currency_code,
+            action="created",
+        )
+        await emit_transaction_notification(
+            self._session,
+            user_id,
+            transaction_id=tx2.id,
+            account_id=destination_account_id,
+            amount=f"{amount_decimal}",
+            currency_code=currency_code,
+            action="created",
+        )
+
         return {
             "transfer_id": str(transfer_id),
             "source_transaction": {
