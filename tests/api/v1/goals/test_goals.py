@@ -441,3 +441,121 @@ class TestGoalTransactionIntegration:
         )
         assert float(detail.json()["progress"]["current_amount"]) == 0.0
         assert float(detail.json()["progress"]["pct_complete"]) == 0.0
+
+
+@pytest.mark.api
+class TestGoalPatrimonyIntegration:
+    """La meta que inicia desde el patrimonio sigue el saldo real de los activos."""
+
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login_resp.json()["tokens"]["access_token"]
+
+    async def _create_account(self, client: AsyncClient, token: str, balance: float = 50000.0) -> str:
+        resp = await client.post(
+            "/api/v1/accounts",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "name": "Cuenta Patrimonio",
+                "account_type": "bank",
+                "currency_code": "DOP",
+                "initial_balance": balance,
+                "institution": "Test Bank",
+                "account_number_last4": "1111",
+            },
+        )
+        assert resp.status_code == 201
+        return resp.json()["id"]
+
+    async def _create_goal(
+        self, client: AsyncClient, token: str, start_from_zero: bool
+    ) -> dict:
+        resp = await client.post(
+            "/api/v1/goals",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "name": "Meta patrimonio",
+                "target_amount": "200000",
+                "start_from_zero": start_from_zero,
+            },
+        )
+        assert resp.status_code == 201
+        return resp.json()
+
+    async def _create_lent_loan(
+        self, client: AsyncClient, token: str, account_id: str
+    ) -> None:
+        resp = await client.post(
+            "/api/v1/lent-loans",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "borrower_name": "Prestatario",
+                "principal_amount": 5000,
+                "annual_interest_rate": 24,
+                "term_months": 6,
+                "currency_code": "DOP",
+                "account_id": account_id,
+            },
+        )
+        assert resp.status_code == 201
+
+    async def _goal_current_amount(
+        self, client: AsyncClient, token: str, goal_id: str
+    ) -> float:
+        detail = await client.get(
+            f"/api/v1/goals/{goal_id}", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert detail.status_code == 200
+        return float(detail.json()["current_amount"])
+
+    async def test_goal_from_patrimony_keeps_value_when_lent_loan_disburses(
+        self, client: AsyncClient, test_password: str
+    ):
+        token = await self._register_and_login(client, "goal_pat1@test.com", test_password)
+        account_id = await self._create_account(client, token)
+
+        goal = await self._create_goal(client, token, start_from_zero=False)
+        assert float(goal["current_amount"]) == 50000.0
+
+        # El desembolso baja el saldo de la cuenta, pero el prestamo queda como
+        # cuenta por cobrar: el patrimonio no se reduce.
+        await self._create_lent_loan(client, token, account_id)
+
+        assert await self._goal_current_amount(client, token, goal["id"]) == 50000.0
+
+    async def test_net_worth_keeps_value_when_lent_loan_disburses(
+        self, client: AsyncClient, test_password: str
+    ):
+        token = await self._register_and_login(client, "goal_pat3@test.com", test_password)
+        account_id = await self._create_account(client, token)
+
+        nw = await client.get(
+            "/api/v1/analytics/net-worth", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert nw.status_code == 200
+        assert nw.json()["total_assets"] == 50000.0
+
+        await self._create_lent_loan(client, token, account_id)
+
+        nw = await client.get(
+            "/api/v1/analytics/net-worth", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert nw.status_code == 200
+        assert nw.json()["total_assets"] == 50000.0
+        assert "investment" in nw.json()["assets_by_type"]
+
+    async def test_start_from_zero_goal_ignores_account_balance_changes(
+        self, client: AsyncClient, test_password: str
+    ):
+        token = await self._register_and_login(client, "goal_pat2@test.com", test_password)
+        account_id = await self._create_account(client, token)
+
+        goal = await self._create_goal(client, token, start_from_zero=True)
+        assert float(goal["current_amount"]) == 0.0
+
+        await self._create_lent_loan(client, token, account_id)
+
+        assert await self._goal_current_amount(client, token, goal["id"]) == 0.0

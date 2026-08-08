@@ -206,6 +206,14 @@ class AnalyticsRepository:
         for a in asset_rows:
             net_worth += await self._amount_in_base(a.balance, a.currency_code, base, rate_date)
 
+        # Cuentas por cobrar (prestamos otorgados): activos que no reducen el patrimonio.
+        from app.infrastructure.repositories.lent_loan_repository import LentLoanRepository
+
+        for ll in await LentLoanRepository(self._session).list_receivables(user_id):
+            net_worth += await self._amount_in_base(
+                ll.current_balance, ll.currency_code, base, rate_date
+            )
+
         # Total debt (converted)
         debt_stmt = (
             select(
@@ -683,6 +691,28 @@ class AnalyticsRepository:
                     "balance": round(amount, 2),
                     "currency": base,
                     "original_currency": a.currency_code,
+                }
+            )
+
+        # Cuentas por cobrar: prestamos otorgados pendientes de cobro. El dinero
+        # prestado sigue siendo un activo (inversion), por lo que no reduce el
+        # patrimonio.
+        from app.infrastructure.repositories.lent_loan_repository import LentLoanRepository
+
+        receivables = await LentLoanRepository(self._session).list_receivables(user_id)
+        for ll in receivables:
+            amount = await self._amount_in_base(
+                ll.current_balance, ll.currency_code, base, rate_date
+            )
+            total_assets += amount
+            assets_by_type.setdefault("investment", {"total": 0, "accounts": []})
+            assets_by_type["investment"]["total"] += amount
+            assets_by_type["investment"]["accounts"].append(
+                {
+                    "name": f"Prestamo: {ll.borrower_name}",
+                    "balance": round(amount, 2),
+                    "currency": base,
+                    "original_currency": ll.currency_code,
                 }
             )
 

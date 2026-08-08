@@ -17,6 +17,7 @@ from app.application.lent_loans.delete import DeleteLentLoanUseCase
 from app.application.lent_loans.get import GetLentLoanUseCase
 from app.application.lent_loans.get_summary import GetLentLoanSummaryUseCase
 from app.application.lent_loans.list import ListLentLoansUseCase
+from app.application.lent_loans.list_receivables import ListReceivablesUseCase
 from app.application.lent_loans.record_payment import RecordLentLoanPaymentUseCase
 from app.application.lent_loans.simulate import SimulateLentLoanUseCase
 from app.middleware.error_handler import NotFoundError, ValidationError
@@ -90,6 +91,15 @@ async def get_lent_loan_summary(
 ):
     user_id = uuid.UUID(current_user["sub"])
     return await GetLentLoanSummaryUseCase(session).execute(user_id)
+
+
+@router.get("/receivables")
+async def list_receivables(
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
+):
+    user_id = uuid.UUID(current_user["sub"])
+    return await ListReceivablesUseCase(session).execute(user_id)
 
 
 @router.get("/{lent_loan_id}")

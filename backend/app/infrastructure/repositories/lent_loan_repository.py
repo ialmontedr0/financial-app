@@ -3,18 +3,14 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.models.lent_loan import LentLoanModel, LentLoanPaymentModel
-
-if TYPE_CHECKING:
-    pass
 
 logger = structlog.get_logger()
 
@@ -112,11 +108,13 @@ class LentLoanRepository:
         )
         loans = list((await self._session.execute(stmt)).scalars().all())
         total_outstanding = sum(
-            float(l.current_balance * Decimal("1")) for l in loans
+            float(loan.current_balance * Decimal("1")) for loan in loans
         )
-        total_principal = sum(float(l.principal_amount) for l in loans)
-        total_received = sum(float(l.total_received) for l in loans)
-        total_interest_expected = sum(float(l.total_interest_expected) for l in loans)
+        total_principal = sum(float(loan.principal_amount) for loan in loans)
+        total_received = sum(float(loan.total_received) for loan in loans)
+        total_interest_expected = sum(
+            float(loan.total_interest_expected) for loan in loans
+        )
         return {
             "count": len(loans),
             "total_outstanding": total_outstanding,
@@ -124,3 +122,29 @@ class LentLoanRepository:
             "total_received": total_received,
             "total_interest_expected": total_interest_expected,
         }
+
+    async def list_receivables(self, user_id: uuid.UUID) -> list[LentLoanModel]:
+        """Prestamos otorgados pendientes de cobro (cuentas por cobrar).
+
+        Ordena primero los vencidos (defaulted) y luego por fecha de próxima
+        cuota ascendente para priorizar los cobros más urgentes.
+        """
+        stmt = select(LentLoanModel).where(
+            LentLoanModel.user_id == user_id,
+            LentLoanModel.deleted_at.is_(None),
+            LentLoanModel.status.in_(["active", "defaulted"]),
+        )
+        stmt = stmt.order_by(
+            case((LentLoanModel.status == "defaulted", 0), else_=1),
+            LentLoanModel.next_payment_date.asc().nullslast(),
+        )
+        return list((await self._session.execute(stmt)).scalars().all())
+
+    async def get_total_receivables(self, user_id: uuid.UUID) -> Decimal:
+        """Suma del saldo pendiente de los prestamos otorgados (cuentas por cobrar)."""
+        stmt = select(func.coalesce(func.sum(LentLoanModel.current_balance), 0)).where(
+            LentLoanModel.user_id == user_id,
+            LentLoanModel.deleted_at.is_(None),
+            LentLoanModel.status.in_(["active", "defaulted"]),
+        )
+        return (await self._session.execute(stmt)).scalar_one()

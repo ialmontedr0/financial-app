@@ -40,7 +40,7 @@ class GoalRepository:
         return goal
 
     async def get_total_assets(self, user_id: uuid.UUID) -> float:
-        """Sum of account balances included in net worth (active accounts)."""
+        """Sum of account balances included in net worth plus lent loan receivables."""
         stmt = select(func.coalesce(func.sum(FinancialAccountModel.balance), 0)).where(
             FinancialAccountModel.user_id == user_id,
             FinancialAccountModel.deleted_at.is_(None),
@@ -48,7 +48,14 @@ class GoalRepository:
             FinancialAccountModel.status == "active",
         )
         result = await self._session.execute(stmt)
-        return float(result.scalar_one())
+        assets = float(result.scalar_one())
+
+        # Prestamos otorgados (cuentas por cobrar): el dinero prestado sigue
+        # siendo un activo, por lo que no reduce el patrimonio.
+        from app.infrastructure.repositories.lent_loan_repository import LentLoanRepository
+
+        receivables = await LentLoanRepository(self._session).get_total_receivables(user_id)
+        return assets + float(receivables)
 
     async def get_goal_by_id(
         self, goal_id: uuid.UUID, user_id: uuid.UUID
@@ -144,10 +151,23 @@ class GoalRepository:
         expense_result = await self._session.execute(expense_stmt)
         total_income = income_result.scalar_one()
         total_expenses = expense_result.scalar_one()
-        goal.current_amount = max(
-            (goal.initial_amount or Decimal("0")) + total_income - total_expenses,
-            Decimal("0"),
+
+        # Las metas que arrancan desde el patrimonio actual (initial_amount =
+        # activos al momento de crearla) siguen el valor real de los activos:
+        # reflejan todo movimiento de saldo (desembolsos de prestamos, ajustes
+        # de cuenta, transferencias), no solo transacciones income/expense.
+        tracks_patrimony = (
+            (goal.initial_amount or Decimal("0")) > 0
+            and goal.category_id is None
+            and goal.account_id is None
         )
+        if tracks_patrimony:
+            goal.current_amount = max(Decimal(str(await self.get_total_assets(user_id))), Decimal("0"))
+        else:
+            goal.current_amount = max(
+                (goal.initial_amount or Decimal("0")) + total_income - total_expenses,
+                Decimal("0"),
+            )
 
         target = float(goal.target_amount)
         current = float(goal.current_amount)

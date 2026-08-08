@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
+
+from app.infrastructure.models.lent_loan import LentLoanModel
 
 
 @pytest.mark.api
@@ -367,3 +370,87 @@ class TestLentLoanAccountIntegration:
         )
         assert resp.status_code == 422
         assert resp.json()["detail"] == "La cuenta de origen no existe"
+
+
+@pytest.mark.api
+class TestLentLoanReceivables:
+    """Endpoint de cuentas por cobrar (préstamos otorgados pendientes)."""
+
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login.json()["tokens"]["access_token"]
+
+    async def _create_loan(self, client: AsyncClient, token: str, borrower: str) -> dict:
+        resp = await client.post(
+            "/api/v1/lent-loans",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "borrower_name": borrower,
+                "principal_amount": 5000,
+                "annual_interest_rate": 24,
+                "term_months": 6,
+                "currency_code": "DOP",
+            },
+        )
+        assert resp.status_code == 201
+        return resp.json()
+
+    async def test_lists_active_and_defaulted(
+        self, client: AsyncClient, db_session, test_password: str
+    ):
+        token = await self._register_and_login(client, "lent_recv1@test.com", test_password)
+        loan1 = await self._create_loan(client, token, "Deudor Uno")
+        await self._create_loan(client, token, "Deudor Dos")
+
+        await db_session.execute(
+            update(LentLoanModel).where(LentLoanModel.id == loan1["id"]).values(status="defaulted")
+        )
+        await db_session.commit()
+
+        resp = await client.get(
+            "/api/v1/lent-loans/receivables", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 2
+        assert data["summary"]["count"] == 2
+        assert data["summary"]["count_overdue"] == 1
+        assert data["summary"]["total_overdue"] == 5000
+        assert data["summary"]["total_outstanding"] == 10000
+        assert data["summary"]["total_principal"] == 10000
+        assert data["items"][0]["status"] == "defaulted"
+
+    async def test_excludes_paid_off(self, client: AsyncClient, test_password: str):
+        token = await self._register_and_login(client, "lent_recv2@test.com", test_password)
+        resp = await client.post(
+            "/api/v1/lent-loans",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "borrower_name": "Pago Unico",
+                "principal_amount": 5000,
+                "annual_interest_rate": 18,
+                "payment_frequency": "single_payment",
+                "single_payment_date": "2026-12",
+                "currency_code": "DOP",
+            },
+        )
+        assert resp.status_code == 201
+        loan = resp.json()
+
+        pay = await client.post(
+            f"/api/v1/lent-loans/{loan['id']}/payments",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"amount": loan["current_balance"], "payment_method": "bank_transfer"},
+        )
+        assert pay.status_code == 201
+        assert pay.json()["status"] == "paid_off"
+
+        recv = await client.get(
+            "/api/v1/lent-loans/receivables", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert recv.status_code == 200
+        assert recv.json()["total"] == 0
+        assert recv.json()["summary"]["total_outstanding"] == 0
