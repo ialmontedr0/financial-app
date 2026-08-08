@@ -24,16 +24,22 @@ class LogoutUserUseCase:
         *,
         access_token_jti: str | None = None,
         access_token_exp: int | None = None,
+        skip_refresh_revoke: bool = False,
     ) -> None:
-        """Revoke a single session."""
+        """Revoke a single session.
+
+        Si ``skip_refresh_revoke`` es True (logout sin refresh_token), solo se
+        invalida el access token actual y no se tocan las sesiones de refresh.
+        """
         from app.infrastructure.security.token_blacklist_service import TokenBlacklistService
 
-        # Remove from Redis
-        await self._session_store.delete_refresh_token(refresh_token_jti)
-        await self._session_store.delete_session(refresh_token_jti)
+        if not skip_refresh_revoke:
+            # Remove from Redis
+            await self._session_store.delete_refresh_token(refresh_token_jti)
+            await self._session_store.delete_session(refresh_token_jti)
 
-        # Revoke in DB
-        await self._session_repo.revoke(refresh_token_jti)
+            # Revoke in DB
+            await self._session_repo.revoke(refresh_token_jti)
 
         # Blacklist the current access token so it is rejected immediately
         if access_token_jti and access_token_exp:

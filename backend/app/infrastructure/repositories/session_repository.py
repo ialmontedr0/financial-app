@@ -90,6 +90,34 @@ class SessionRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_active_by_id_for_user(
+        self, session_id: uuid.UUID, user_id: uuid.UUID
+    ) -> UserSessionModel | None:
+        """Get a single active session owned by the user (ownership enforced)."""
+        stmt = select(UserSessionModel).where(
+            UserSessionModel.id == session_id,
+            UserSessionModel.user_id == user_id,
+            UserSessionModel.is_revoked.is_(False),
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def revoke_by_id_for_user(
+        self, session_id: uuid.UUID, user_id: uuid.UUID
+    ) -> bool:
+        """Revoke a single session owned by the user. Returns True if revoked."""
+        stmt = (
+            update(UserSessionModel)
+            .where(
+                UserSessionModel.id == session_id,
+                UserSessionModel.user_id == user_id,
+                UserSessionModel.is_revoked.is_(False),
+            )
+            .values(is_revoked=True)
+        )
+        result = await self._session.execute(stmt)
+        return (result.rowcount or 0) > 0
+
     async def delete_expired(self) -> int:
         """Delete expired sessions. Returns count deleted."""
         from sqlalchemy import delete

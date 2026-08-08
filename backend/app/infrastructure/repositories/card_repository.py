@@ -76,7 +76,8 @@ class CardRepository:
         return card
 
     async def delete_card(self, card_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        from datetime import UTC, datetime as dt
+        from datetime import UTC
+        from datetime import datetime as dt
 
         card = await self.get_card_by_id(card_id, user_id)
         if card is None:
@@ -94,9 +95,9 @@ class CardRepository:
         if card is None:
             return None
 
-        from datetime import date as date_type
+        from app.utils.time import today_in
 
-        today = date_type.today()
+        today = today_in()
         stmt_day = card.statement_day or 1
 
         if today.day >= stmt_day:
@@ -144,13 +145,16 @@ class CardRepository:
     async def get_historical_utilization(
         self, card_id: uuid.UUID, user_id: uuid.UUID, months: int = 6
     ) -> list[dict]:
-        from datetime import date as date_type, timedelta
+        from datetime import date as date_type
+        from datetime import timedelta
+
+        from app.utils.time import today_in
 
         card = await self.get_card_by_id(card_id, user_id)
         if card is None:
             return []
 
-        today = date_type.today()
+        today = today_in()
         stmt_day = card.statement_day or 1
         credit_limit = float(card.credit_limit) if card.credit_limit else 0
 
@@ -209,13 +213,13 @@ class CardRepository:
         period_start: date | None = None,
         period_end: date | None = None,
     ) -> list[dict]:
-        from datetime import date as date_type
+        from app.utils.time import today_in
 
         if not period_start:
-            today = date_type.today()
+            today = today_in()
             period_start = today.replace(day=1)
         if not period_end:
-            period_end = date_type.today()
+            period_end = today_in()
 
         from app.infrastructure.models.category import CategoryModel
 
@@ -272,6 +276,25 @@ class CardRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_bill_for_update(
+        self, bill_id: uuid.UUID, user_id: uuid.UUID
+    ) -> CreditCardBillModel | None:
+        """Obtiene la factura con bloqueo de fila (``FOR UPDATE``).
+
+        Evita perdidas de actualizacion al pagar una factura bajo concurrencia.
+        """
+        stmt = (
+            select(CreditCardBillModel)
+            .where(
+                CreditCardBillModel.id == bill_id,
+                CreditCardBillModel.user_id == user_id,
+                CreditCardBillModel.deleted_at.is_(None),
+            )
+            .with_for_update()
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def list_bills(
         self, user_id: uuid.UUID, credit_card_id: uuid.UUID
     ) -> list[CreditCardBillModel]:
@@ -301,7 +324,8 @@ class CardRepository:
         return bill
 
     async def delete_bill(self, bill_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        from datetime import UTC, datetime as dt
+        from datetime import UTC
+        from datetime import datetime as dt
 
         bill = await self.get_bill_by_id(bill_id, user_id)
         if bill is None:
@@ -317,9 +341,10 @@ class CardRepository:
         amount: float,
         payment_method: str = "manual",
     ) -> CreditCardBillModel | None:
-        from datetime import UTC, datetime as dt
+        from datetime import UTC
+        from datetime import datetime as dt
 
-        bill = await self.get_bill_by_id(bill_id, user_id)
+        bill = await self.get_bill_for_update(bill_id, user_id)
         if bill is None:
             return None
 
@@ -352,13 +377,15 @@ class CardRepository:
     async def generate_statement(
         self, credit_card_id: uuid.UUID, user_id: uuid.UUID
     ) -> CreditCardBillModel | None:
-        from datetime import date as date_type, timedelta
+        from datetime import timedelta
+
+        from app.utils.time import today_in
 
         card = await self.get_card_by_id(credit_card_id, user_id)
         if card is None:
             return None
 
-        today = date_type.today()
+        today = today_in()
         stmt_day = card.statement_day or 1
         due_day = card.payment_due_day or min(stmt_day + 20, 28)
 
@@ -416,6 +443,24 @@ class CardRepository:
                 due_date = due_date.replace(year=due_date.year + 1, month=1, day=due_day)
             else:
                 due_date = due_date.replace(month=due_date.month + 1, day=due_day)
+
+        # Idempotencia: si ya existe un estado para este período, devolverlo
+        # en vez de crear uno duplicado.
+        existing_stmt = select(CreditCardBillModel).where(
+            CreditCardBillModel.credit_card_id == credit_card_id,
+            CreditCardBillModel.statement_date == period_start,
+        )
+        existing = (
+            await self._session.execute(existing_stmt)
+        ).scalar_one_or_none()
+        if existing is not None:
+            logger.info(
+                "statement_already_exists",
+                user_id=str(user_id),
+                card_id=str(credit_card_id),
+                bill_id=str(existing.id),
+            )
+            return existing
 
         bill = await self.create_bill(
             user_id,
@@ -492,7 +537,8 @@ class CardRepository:
         return limit
 
     async def delete_limit(self, limit_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        from datetime import UTC, datetime as dt
+        from datetime import UTC
+        from datetime import datetime as dt
 
         limit = await self.get_limit_by_id(limit_id, user_id)
         if limit is None:
@@ -504,13 +550,15 @@ class CardRepository:
     async def recalculate_limit_spent(
         self, limit_id: uuid.UUID, user_id: uuid.UUID
     ) -> CardSpendingLimitModel | None:
-        from datetime import date as date_type, timedelta
+        from datetime import timedelta
+
+        from app.utils.time import today_in
 
         limit = await self.get_limit_by_id(limit_id, user_id)
         if limit is None:
             return None
 
-        today = date_type.today()
+        today = today_in()
 
         if limit.limit_type == "daily":
             period_start = today
@@ -593,7 +641,8 @@ class CardRepository:
         return result.scalar_one_or_none()
 
     async def mark_alert_read(self, alert_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        from datetime import UTC, datetime as dt
+        from datetime import UTC
+        from datetime import datetime as dt
 
         alert = await self.get_alert_by_id(alert_id, user_id)
         if alert is None:
@@ -604,7 +653,8 @@ class CardRepository:
         return True
 
     async def mark_all_alerts_read(self, user_id: uuid.UUID) -> int:
-        from datetime import UTC, datetime as dt
+        from datetime import UTC
+        from datetime import datetime as dt
 
         stmt = select(CardAlertModel).where(
             CardAlertModel.user_id == user_id,
@@ -620,7 +670,8 @@ class CardRepository:
         return len(alerts)
 
     async def dismiss_alert(self, alert_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        from datetime import UTC, datetime as dt
+        from datetime import UTC
+        from datetime import datetime as dt
 
         alert = await self.get_alert_by_id(alert_id, user_id)
         if alert is None:
@@ -684,9 +735,11 @@ class CardRepository:
                     )
                     new_alerts.append(alert)
 
-            from datetime import date as date_type, timedelta
+            from datetime import timedelta
 
-            today = date_type.today()
+            from app.utils.time import today_in
+
+            today = today_in()
             upcoming = today + timedelta(days=7)
             bills = await self.list_bills(user_id, card.id)
             for bill in bills:
@@ -748,10 +801,12 @@ class CardRepository:
 
     async def get_cards_summary(self, user_id: uuid.UUID) -> dict:
         cards = await self.list_cards(user_id)
-        total_limit = sum(float(c.credit_limit) for c in cards if c.credit_limit)
+        currency_code = cards[0].currency_code if cards else "DOP"
+        in_currency = [c for c in cards if c.currency_code == currency_code]
+        total_limit = sum(float(c.credit_limit) for c in in_currency if c.credit_limit)
         total_used = sum(
             float(c.credit_limit - c.available_credit)
-            for c in cards
+            for c in in_currency
             if c.credit_limit and c.available_credit is not None
         )
         total_available = total_limit - total_used
@@ -759,7 +814,7 @@ class CardRepository:
 
         unpaid_bills = 0
         total_minimum = 0.0
-        for card in cards:
+        for card in in_currency:
             bills = await self.list_bills(user_id, card.id)
             for b in bills:
                 if b.payment_status in ("pending", "partial"):
@@ -768,6 +823,7 @@ class CardRepository:
 
         return {
             "total_cards": len(cards),
+            "currency_code": currency_code,
             "total_credit_limit": str(round(total_limit, 2)),
             "total_used_credit": str(round(total_used, 2)),
             "total_available_credit": str(round(total_available, 2)),

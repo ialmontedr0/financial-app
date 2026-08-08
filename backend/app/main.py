@@ -26,7 +26,7 @@ def configure_sentry() -> None:
             dsn=settings.SENTRY_DSN,
             environment=settings.ENVIRONMENT,
             traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
-            send_default_pii=True,
+            send_default_pii=False,
         )
         logger.info("Sentry inicializado", environment=settings.ENVIRONMENT)
 

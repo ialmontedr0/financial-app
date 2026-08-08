@@ -30,10 +30,7 @@ class RequestPasswordResetUseCase:
             return {"message": success_msg}
 
         # Generate reset token
-        token = JWTService.create_access_token(
-            str(user.id),
-            additional_claims={"purpose": "password_reset"},
-        )
+        token = JWTService.create_opaque_token(str(user.id), "password_reset")
 
         # Store in Redis with 24h TTL
         await self._session_store.store_email_verification(

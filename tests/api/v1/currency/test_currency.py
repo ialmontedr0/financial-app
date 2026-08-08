@@ -119,3 +119,25 @@ class TestCurrencyEndpoints:
         assert any(
             r["source_currency"] == "EUR" and r["target_currency"] == "USD" for r in data["rates"]
         )
+
+
+class TestBaseDopRates:
+    async def test_base_map_contains_dop_and_stored_rates(
+        self, client: AsyncClient, db_session, test_password: str
+    ):
+        token = TestCurrencyEndpoints()
+        token = await token._register_and_login(client, "currency_base@test.com", test_password)
+        provider = ExchangeRateProvider(db_session)
+        await provider.store_rate("USD", "DOP", Decimal("58.50"), date(2026, 1, 4))
+        await db_session.commit()
+
+        response = await client.get(
+            "/api/v1/currency/rates/base",
+            params={"date": "2026-01-04"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["base"] == "DOP"
+        assert data["rates"]["DOP"] == 1.0
+        assert data["rates"]["USD"] == 58.5

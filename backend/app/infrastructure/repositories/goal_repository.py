@@ -15,7 +15,6 @@ from app.infrastructure.models.transaction import TransactionModel
 
 if TYPE_CHECKING:
     import uuid
-    from datetime import date
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -140,11 +139,13 @@ class GoalRepository:
         pct = round((current / target * 100), 2) if target > 0 else 0.0
         pct = min(pct, 100.0)
 
-        from datetime import date as date_type
+        from app.utils.time import today_in
 
-        if pct >= 100.0 and goal.status == "active":
-            goal.status = "completed"
-            goal.completed_date = date_type.today()
+        if pct >= 100.0 and goal.milestone_reached_pct < 100:
+            goal.milestone_reached_pct = 100
+            if goal.status == "active":
+                goal.status = "completed"
+                goal.completed_date = today_in()
         elif pct >= 90 and goal.milestone_reached_pct < 90:
             goal.milestone_reached_pct = 90
         elif pct >= 75 and goal.milestone_reached_pct < 75:
@@ -168,9 +169,9 @@ class GoalRepository:
         remaining = max(target - current, 0)
         pct = round((current / target * 100), 2) if target > 0 else 0.0
 
-        from datetime import date as date_type
+        from app.utils.time import today_in
 
-        today = date_type.today()
+        today = today_in()
         days_left = max((goal.target_date - today).days, 0)
         months_left = max(round(days_left / 30.44, 1), 0)
         monthly_needed = round(remaining / months_left, 2) if months_left > 0 else remaining
@@ -269,9 +270,11 @@ class GoalRepository:
     # ==================================================================
 
     async def get_user_spending_history(self, user_id: uuid.UUID, months: int = 6) -> dict:
-        from datetime import date as date_type, timedelta
+        from datetime import timedelta
 
-        today = date_type.today()
+        from app.utils.time import today_in
+
+        today = today_in()
         start = today - timedelta(days=months * 30)
 
         month_expr = func.date_trunc("month", TransactionModel.effective_date).label("month")
@@ -340,9 +343,9 @@ class GoalRepository:
 
         behind_count = 0
         for g in active:
-            from datetime import date as date_type
+            from app.utils.time import today_in
 
-            today = date_type.today()
+            today = today_in()
             days_total = max((g.target_date - g.start_date).days, 1)
             days_elapsed = max((today - g.start_date).days, 0)
             time_pct = days_elapsed / days_total * 100

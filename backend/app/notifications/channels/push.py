@@ -10,7 +10,12 @@ class PushChannel(BaseChannel):
         )
 
     def is_configured(self) -> bool:
-        return True
+        """Push requires a real delivery backend (VAPID/Web Push).
+
+        Sin configuración de push instalada, devuelve False para que el canal
+        se omita en vez de registrar envíos falsos. (Feature B añade el backend.)
+        """
+        return False
 
     def get_name(self) -> str:
         return "push"

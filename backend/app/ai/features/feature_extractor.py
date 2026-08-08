@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from datetime import date
@@ -111,9 +112,16 @@ def _safe_log(value: float) -> float:
 
 
 def _hash_category(name: str | None) -> float:
+    """Hash determinístico de un nombre de categoría.
+
+    ``hash()`` incorporado es aleatorio por proceso (PYTHONHASHSEED), por lo que
+    el mismo nombre generaría features distintas en cada ejecución. Se usa un
+    hash criptográfico estable para reproducibilidad del modelo.
+    """
     if not name:
         return 0.0
-    return float(hash(name.lower()) % 10000) / 10000.0
+    digest = hashlib.sha256(name.lower().encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "big") % 10000 / 10000.0
 
 
 def _std(values: list[float]) -> float:

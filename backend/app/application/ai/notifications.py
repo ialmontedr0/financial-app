@@ -31,6 +31,19 @@ async def emit_anomaly_notifications(
             continue
 
         transaction_id = anomaly.get("transaction_id")
+        if transaction_id:
+            # Dedup entre ejecuciones: no volver a notificar la misma anomalía
+            # (transaction_id) que ya fue emitida.
+            from app.infrastructure.repositories.notification_repository import (
+                NotificationRepository,
+            )
+
+            already = await NotificationRepository(session).exists_with_data(
+                user_id, "anomaly_detected", "transaction_id", str(transaction_id)
+            )
+            if already:
+                continue
+
         data: dict = {
             "severity": severity,
             "anomaly_score": anomaly.get("anomaly_score"),

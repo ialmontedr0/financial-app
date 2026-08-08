@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.models.notification import NotificationModel
@@ -32,10 +34,19 @@ class NotificationRepository:
                     setattr(existing, k, v)
             await self._db.flush()
             return existing
-        pref = NotificationPreferenceModel(user_id=user_id, **data)
-        self._db.add(pref)
-        await self._db.flush()
-        return pref
+        # Reintento por si dos peticiones concurrentes crean la fila a la vez
+        # (IntegrityError por unique de user_id).
+        try:
+            pref = NotificationPreferenceModel(user_id=user_id, **data)
+            self._db.add(pref)
+            await self._db.flush()
+            return pref
+        except IntegrityError:
+            await self._db.rollback()
+            existing = await self.get_user_preferences(user_id)
+            if existing is not None:
+                return existing
+            raise
 
     async def create(self, **kwargs: Any) -> NotificationModel:
         notif = NotificationModel(**kwargs)
@@ -49,6 +60,7 @@ class NotificationRepository:
                 and_(
                     NotificationModel.id == notification_id,
                     NotificationModel.user_id == user_id,
+                    NotificationModel.deleted_at.is_(None),
                 )
             )
         )
@@ -64,7 +76,12 @@ class NotificationRepository:
         skip: int = 0,
         limit: int = 20,
     ) -> list[NotificationModel]:
-        query = select(NotificationModel).where(NotificationModel.user_id == user_id)
+        query = select(NotificationModel).where(
+            and_(
+                NotificationModel.user_id == user_id,
+                NotificationModel.deleted_at.is_(None),
+            )
+        )
         if channel:
             query = query.where(NotificationModel.channel == channel)
         if type_:
@@ -85,73 +102,78 @@ class NotificationRepository:
 
     async def bulk_mark_read(self, ids: list[UUID], user_id: UUID) -> int:
         result = await self._db.execute(
-            select(NotificationModel).where(
+            update(NotificationModel)
+            .where(
                 and_(
                     NotificationModel.id.in_(ids),
                     NotificationModel.user_id == user_id,
+                    NotificationModel.deleted_at.is_(None),
                 )
             )
+            .values(is_read=True)
         )
-        count = 0
-        for n in result.scalars().all():
-            n.is_read = True
-            count += 1
         await self._db.flush()
-        return count
+        return result.rowcount or 0
 
     async def mark_all_read(self, user_id: UUID) -> int:
         result = await self._db.execute(
-            select(NotificationModel).where(
+            update(NotificationModel)
+            .where(
                 and_(
                     NotificationModel.user_id == user_id,
                     NotificationModel.is_read == False,  # noqa: E712
+                    NotificationModel.deleted_at.is_(None),
                 )
             )
+            .values(is_read=True)
         )
-        count = 0
-        for n in result.scalars().all():
-            n.is_read = True
-            count += 1
         await self._db.flush()
-        return count
+        return result.rowcount or 0
 
     async def bulk_delete(self, ids: list[UUID], user_id: UUID) -> int:
         result = await self._db.execute(
-            select(NotificationModel).where(
+            update(NotificationModel)
+            .where(
                 and_(
                     NotificationModel.id.in_(ids),
                     NotificationModel.user_id == user_id,
+                    NotificationModel.deleted_at.is_(None),
                 )
             )
+            .values(deleted_at=datetime.now(UTC))
         )
-        notifs = result.scalars().all()
-        for n in notifs:
-            await self._db.delete(n)
         await self._db.flush()
-        return len(notifs)
+        return result.rowcount or 0
 
     async def delete_read(self, user_id: UUID) -> int:
         result = await self._db.execute(
-            select(NotificationModel).where(
+            update(NotificationModel)
+            .where(
                 and_(
                     NotificationModel.user_id == user_id,
                     NotificationModel.is_read == True,  # noqa: E712
+                    NotificationModel.deleted_at.is_(None),
                 )
             )
+            .values(deleted_at=datetime.now(UTC))
         )
-        notifs = result.scalars().all()
-        for n in notifs:
-            await self._db.delete(n)
         await self._db.flush()
-        return len(notifs)
+        return result.rowcount or 0
 
     async def delete(self, notification_id: UUID, user_id: UUID) -> bool:
-        notif = await self.get_by_id(notification_id, user_id)
-        if not notif:
-            return False
-        await self._db.delete(notif)
+        result = await self._db.execute(
+            update(NotificationModel)
+            .where(
+                and_(
+                    NotificationModel.id == notification_id,
+                    NotificationModel.user_id == user_id,
+                    NotificationModel.deleted_at.is_(None),
+                )
+            )
+            .values(deleted_at=datetime.now(UTC))
+        )
         await self._db.flush()
-        return True
+        return (result.rowcount or 0) > 0
 
     async def unread_count(self, user_id: UUID) -> int:
         result = await self._db.execute(
@@ -159,6 +181,7 @@ class NotificationRepository:
                 and_(
                     NotificationModel.user_id == user_id,
                     NotificationModel.is_read == False,  # noqa: E712
+                    NotificationModel.deleted_at.is_(None),
                 )
             )
         )
@@ -166,21 +189,36 @@ class NotificationRepository:
 
     async def stats(self, user_id: UUID) -> dict[str, Any]:
         total_q = await self._db.execute(
-            select(func.count(NotificationModel.id)).where(NotificationModel.user_id == user_id)
+            select(func.count(NotificationModel.id)).where(
+                and_(
+                    NotificationModel.user_id == user_id,
+                    NotificationModel.deleted_at.is_(None),
+                )
+            )
         )
         total = total_q.scalar() or 0
         unread = await self.unread_count(user_id)
 
         ch_q = await self._db.execute(
             select(NotificationModel.channel, func.count(NotificationModel.id))
-            .where(NotificationModel.user_id == user_id)
+            .where(
+                and_(
+                    NotificationModel.user_id == user_id,
+                    NotificationModel.deleted_at.is_(None),
+                )
+            )
             .group_by(NotificationModel.channel)
         )
         by_channel: dict[str, int] = dict(ch_q.all())
 
         tp_q = await self._db.execute(
             select(NotificationModel.type, func.count(NotificationModel.id))
-            .where(NotificationModel.user_id == user_id)
+            .where(
+                and_(
+                    NotificationModel.user_id == user_id,
+                    NotificationModel.deleted_at.is_(None),
+                )
+            )
             .group_by(NotificationModel.type)
         )
         by_type: dict[str, int] = dict(tp_q.all())
@@ -206,6 +244,7 @@ class NotificationRepository:
                     NotificationModel.user_id == user_id,
                     NotificationModel.type == type_,
                     NotificationModel.data[key].astext == value,
+                    NotificationModel.deleted_at.is_(None),
                 )
             )
             .limit(1)

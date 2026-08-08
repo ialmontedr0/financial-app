@@ -8,6 +8,7 @@ import structlog
 from sqlalchemy import select
 
 from app.infrastructure.models.user_preference import UserPreferenceModel
+from app.utils.time import DEFAULT_TIMEZONE
 
 if TYPE_CHECKING:
     import uuid
@@ -47,6 +48,13 @@ class UserPreferenceRepository:
         if prefs is None:
             prefs = await self.create(user_id)
         return prefs
+
+    async def get_timezone(self, user_id: uuid.UUID) -> str:
+        """Resolve a user's IANA timezone (fallback default)."""
+        prefs = await self.get_by_user_id(user_id)
+        if prefs is not None and prefs.timezone:
+            return prefs.timezone
+        return DEFAULT_TIMEZONE
 
     async def update(
         self,

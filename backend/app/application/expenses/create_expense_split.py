@@ -40,10 +40,21 @@ class CreateExpenseSplitUseCase:
         import uuid as uuid_mod
         from decimal import Decimal
 
-        from app.middleware.error_handler import ValidationError
+        from app.middleware.error_handler import NotFoundError, ValidationError
+        from app.infrastructure.repositories.account_repository import AccountRepository
 
         if not splits:
             raise ValidationError("Al menos un split es requerido")
+
+        # Validate ownership of the parent account and every split account
+        account_repo = AccountRepository(self._session)
+        parent_account = await account_repo.get_by_id(account_id, user_id)
+        if parent_account is None:
+            raise NotFoundError("Account")
+        for split in splits:
+            child_account_id = uuid_mod.UUID(split.get("account_id", str(account_id)))
+            if await account_repo.get_by_id(child_account_id, user_id) is None:
+                raise NotFoundError("Account")
 
         split_total = sum(Decimal(str(s["amount"])) for s in splits)
         if split_total != Decimal(str(total_amount)):

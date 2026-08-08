@@ -68,7 +68,7 @@ async def publish_event(
     """
     try:
         publisher = EventPublisher(redis_client)
-        return await publisher.publish(
+        event_id = await publisher.publish(
             event_type=event_type,
             aggregate_id=aggregate_id,
             aggregate_type=aggregate_type,
@@ -79,3 +79,14 @@ async def publish_event(
         event_value = event_type.value if isinstance(event_type, EventType) else event_type
         logger.warning("event_publish_failed", event_type=event_value, exc_info=True)
         return None
+
+    if user_id is not None and aggregate_type == "transaction":
+        event_value = event_type.value if isinstance(event_type, EventType) else event_type
+        if event_value in (EventType.TRANSACTION_CREATED.value, EventType.TRANSACTION_DELETED.value):
+            try:
+                from app.application.analytics.get_dashboard import invalidate_dashboard
+
+                await invalidate_dashboard(user_id)
+            except Exception:
+                logger.warning("dashboard_cache_invalidate_failed", user_id=str(user_id), exc_info=True)
+    return event_id

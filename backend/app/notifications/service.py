@@ -61,6 +61,13 @@ class NotificationService:
                 continue
 
             ch_data = self._enrich_channel_data(ch_name, base_data, preferences)
+            if ch_name == "email" and "email" not in ch_data:
+                from app.infrastructure.repositories.user_repository import UserRepository
+
+                user = await UserRepository(self._repo._db).get_by_id(user_id)
+                if user and user.email:
+                    ch_data["email"] = user.email
+
             msg = NotificationMessage(
                 user_id=user_id,
                 channel=ch_name,
@@ -79,18 +86,40 @@ class NotificationService:
 
             results.append(result)
 
-            await self._repo.create(
-                user_id=user_id,
-                channel=ch_name,
-                type=type,
-                title=title,
-                body=body,
-                data=base_data,
-                is_sent=result.success,
-                sent_at=None,
-            )
+        # El feed in-app debe persistir siempre, independientemente de dónde se
+        # configure la entrega externa. is_sent refleja si ALGÚN canal externo
+        # entregó el mensaje correctamente (EmailChannel en entornos sin SMTP lo
+        # marca como fallido; las colas de reintento pueden relanzarlo).
+        delivered = any(r.success for r in results)
+        await self._repo.create(
+            user_id=user_id,
+            channel="inapp",
+            type=type,
+            title=title,
+            body=body,
+            data=base_data,
+            is_sent=delivered or not enabled,
+            sent_at=None,
+        )
 
         return results
+
+    def _build_message(
+        self,
+        notif: Any,
+        *,
+        data: dict[str, Any] | None = None,
+    ) -> NotificationMessage:
+        """Reconstruye un NotificationMessage desde una fila persistida."""
+        return NotificationMessage(
+            user_id=notif.user_id,
+            channel=notif.channel,
+            type=notif.type,
+            title=notif.title,
+            body=notif.body,
+            data=data or dict(notif.data or {}),
+            template_vars=dict(notif.data or {}),
+        )
 
     def _resolve_channels(
         self, prefs: NotificationPreferenceModel, requested: list[str] | None

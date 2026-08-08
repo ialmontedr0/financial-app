@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from calendar import monthrange
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 import structlog
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.repositories.loan_repository import LoanRepository
 from app.middleware.error_handler import NotFoundError, ValidationError
+from app.utils.time import today_in
 
 logger = structlog.get_logger()
 
@@ -34,7 +36,7 @@ class MakeLoanPaymentUseCase:
         is_extra_payment: bool = False,
         notes: str | None = None,
     ) -> dict:
-        loan = await self._repo.get_loan(loan_id, user_id)
+        loan = await self._repo.get_loan_for_update(loan_id, user_id)
         if not loan:
             raise NotFoundError("Loan")
         if loan.status not in ("active", "pending"):
@@ -42,12 +44,26 @@ class MakeLoanPaymentUseCase:
         if amount <= 0:
             raise ValidationError("El monto del pago debe ser mayor a 0")
 
+        pay_date = today_in()
+        if payment_date:
+            pay_date = date.fromisoformat(payment_date)
+
         pay_amount = Decimal(str(amount))
         balance = Decimal(str(loan.current_balance))
-        r = Decimal(str(loan.annual_interest_rate)) / PERCENT_BASE / MONTHS_IN_YEAR
+        monthly_rate = Decimal(str(loan.annual_interest_rate)) / PERCENT_BASE / MONTHS_IN_YEAR
 
-        # Calculate portions
-        interest = (balance * r).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        # Interés pro-rata diario: se cobra solo el interés acumulado desde el
+        # último pago, no un mes completo por cada pago (evita doble interés
+        # cuando hay varios pagos en el mismo mes).
+        last_paid = (
+            loan.last_payment_date
+            or loan.disbursement_date
+            or (loan.first_payment_date - timedelta(days=30) if loan.first_payment_date else None)
+            or loan.created_at.date()
+        )
+        days = max((pay_date - last_paid).days, 0)
+        daily_rate = monthly_rate / Decimal("30")
+        interest = (balance * daily_rate * days).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         if pay_amount <= interest:
             raise ValidationError(
                 f"El monto del pago ({pay_amount}) es menor que el interés del mes ({interest}). "
@@ -67,7 +83,7 @@ class MakeLoanPaymentUseCase:
         if new_balance < 0:
             new_balance = Decimal("0")
 
-        pay_date = date.today()
+        pay_date = today_in()
         if payment_date:
             pay_date = date.fromisoformat(payment_date)
 
@@ -102,16 +118,14 @@ class MakeLoanPaymentUseCase:
 
         # Calculate next payment date
         if new_balance > 0 and loan.next_payment_date:
-            from datetime import timedelta
-
-            next = loan.next_payment_date
-            month = next.month + 1
-            year = next.year + (month - 1) // 12
+            next_date = loan.next_payment_date
+            month = next_date.month + 1
+            year = next_date.year + (month - 1) // 12
             month = (month - 1) % 12 + 1
-            from calendar import monthrange
-
-            day = min(next.day, monthrange(year, month)[1])
+            day = min(next_date.day, monthrange(year, month)[1])
             updates["next_payment_date"] = date(year, month, day)
+
+        updates["last_payment_date"] = pay_date
 
         loan = await self._repo.update_loan(loan, **updates)
 

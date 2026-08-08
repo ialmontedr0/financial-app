@@ -67,8 +67,12 @@ class UserRepository:
         """Mark user email as verified."""
         await self.update(user_id, is_verified=True)
 
+    async def store_mfa_secret(self, user_id: uuid.UUID, secret: str) -> None:
+        """Store the MFA secret in a pending state (not yet enabled)."""
+        await self.update(user_id, mfa_secret=secret, mfa_enabled=False)
+
     async def update_mfa_secret(self, user_id: uuid.UUID, secret: str) -> None:
-        """Enable MFA and store the secret."""
+        """Enable MFA and store the secret (called after code verification)."""
         await self.update(user_id, mfa_enabled=True, mfa_secret=secret)
 
     async def disable_mfa(self, user_id: uuid.UUID) -> None:

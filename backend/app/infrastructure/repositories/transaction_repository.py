@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import structlog
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select, update
 
 from app.infrastructure.models.financial_account import FinancialAccountModel
 from app.infrastructure.models.transaction import TransactionModel
@@ -160,21 +161,38 @@ class TransactionRepository:
     async def update_account_balance(
         self, account_id: uuid.UUID, amount: Decimal, operation: str
     ) -> FinancialAccountModel | None:
+        """Ajusta el saldo de forma atomica (un solo UPDATE).
+
+        Evita la perdida de actualizaciones (lost update) bajo concurrencia
+        al operar directamente sobre la columna en la base de datos en vez de
+        leer-modificar-escribir en Python.
+        """
         from decimal import Decimal as _Decimal
 
-        stmt = select(FinancialAccountModel).where(FinancialAccountModel.id == account_id)
-        result = await self._session.execute(stmt)
-        account = result.scalar_one_or_none()
-        if account is None:
+        delta = _Decimal(str(amount))
+        expr = (
+            FinancialAccountModel.balance + delta
+            if operation == "add"
+            else FinancialAccountModel.balance - delta
+            if operation == "subtract"
+            else None
+        )
+        if expr is None:
             return None
-        amount = _Decimal(str(amount))
-        if operation == "add":
-            account.balance = account.balance + amount  # type: ignore[assignment]
-        elif operation == "subtract":
-            account.balance = account.balance - amount  # type: ignore[assignment]
-        await self._session.flush()
-        await self._session.refresh(account)
-        return account
+
+        stmt = (
+            update(FinancialAccountModel)
+            .where(FinancialAccountModel.id == account_id)
+            .values(balance=expr)
+        )
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            return None
+
+        refreshed = await self._session.execute(
+            select(FinancialAccountModel).where(FinancialAccountModel.id == account_id)
+        )
+        return refreshed.scalar_one_or_none()
 
     async def get_account_by_id(
         self, account_id: uuid.UUID, user_id: uuid.UUID
@@ -404,15 +422,54 @@ class TransactionRepository:
         return True
 
     async def get_due_recurring(self) -> list[TransactionRecurringModel]:
-        from datetime import date as date_type
+        from app.utils.time import today_in
 
-        stmt = select(TransactionRecurringModel).where(
-            TransactionRecurringModel.is_active.is_(True),
-            TransactionRecurringModel.deleted_at.is_(None),
-            TransactionRecurringModel.next_execution_date <= date_type.today(),  # noqa: DTZ011
+        stmt = (
+            select(TransactionRecurringModel)
+            .where(
+                TransactionRecurringModel.is_active.is_(True),
+                TransactionRecurringModel.deleted_at.is_(None),
+                TransactionRecurringModel.next_execution_date <= today_in(),
+            )
+            .with_for_update(skip_locked=True)
+            .limit(200)
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
+
+    async def claim_due_recurring(self, user_id, recurring_id) -> bool:
+        """Reserva el recurrente para este worker (unico).
+
+        Solo puede reservarse si nunca se inicio o si el intento anterior
+        quedo colgado hace mas de 1 hora (crash), evitando doble ejecucion.
+        """
+        stale_before = datetime.now(UTC).astimezone() - timedelta(hours=1)
+        stmt = (
+            update(TransactionRecurringModel)
+            .where(
+                TransactionRecurringModel.id == recurring_id,
+                TransactionRecurringModel.user_id == user_id,
+                or_(
+                    TransactionRecurringModel.processing_started_at.is_(None),
+                    TransactionRecurringModel.processing_started_at < stale_before,
+                ),
+            )
+            .values(processing_started_at=datetime.now(UTC))
+        )
+        result = await self._session.execute(stmt)
+        return result.rowcount == 1
+
+    async def release_due_recurring(self, user_id, recurring_id) -> None:
+        """Libera la reserva cuando el procesamiento falla, para reintentar."""
+        stmt = (
+            update(TransactionRecurringModel)
+            .where(
+                TransactionRecurringModel.id == recurring_id,
+                TransactionRecurringModel.user_id == user_id,
+            )
+            .values(processing_started_at=None)
+        )
+        await self._session.execute(stmt)
 
     # ==============================================================
     # Audit Log

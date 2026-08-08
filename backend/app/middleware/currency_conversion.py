@@ -69,6 +69,7 @@ class CurrencyConversionMiddleware(BaseHTTPMiddleware):
         except ValueError:
             return await call_next(request)
 
+        response: Response | None = None
         try:
             response = await call_next(request)
             return await self._convert_response(request, response, collection, target)
@@ -78,7 +79,21 @@ class CurrencyConversionMiddleware(BaseHTTPMiddleware):
                 path=path,
                 target_currency=target,
             )
-            return await call_next(request)
+            # Devolver la respuesta ya capturada (si existe) en vez de
+            # re-ejecutar el endpoint (evita efectos colaterales duplicados).
+            if response is not None:
+                return response
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": "Currency conversion failed",
+                        "details": [],
+                    },
+                },
+            )
 
     @staticmethod
     def _match_collection(path: str) -> str | None:

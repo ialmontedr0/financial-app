@@ -99,6 +99,17 @@ class EnableMFAResponse(BaseModel):
     message: str
 
 
+class ConfirmMFARequest(BaseModel):
+    """Confirm MFA setup with a TOTP code."""
+
+    code: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        description="6-digit TOTP code to verify before enabling MFA",
+    )
+
+
 class DisableMFARequest(BaseModel):
     """Disable MFA request."""
 
@@ -132,6 +143,12 @@ class LogoutRequest(BaseModel):
     """Logout request (optional refresh_token for specific session)."""
 
     refresh_token: str | None = None
+
+
+class RevokeSessionRequest(BaseModel):
+    """Revoke a single session by id."""
+
+    session_id: str
 
 
 # ============================================================

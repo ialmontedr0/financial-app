@@ -91,6 +91,11 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                     response_body=response_body,
                 )
 
+    async def _delete_db_pending(self, idempotency_key: str) -> None:
+        async with async_session_factory() as session:  # noqa: SIM117
+            async with session.begin():
+                await IdempotencyRepository(session).delete(idempotency_key)
+
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.method not in IDEMPOTENT_METHODS:
             return await call_next(request)
@@ -150,6 +155,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
         except Exception:
             await redis_client.delete(redis_key)
+            await self._delete_db_pending(idempotency_key)
             logger.exception("idempotency_inflight_error", idempotency_key=idempotency_key)
             raise
 
@@ -193,4 +199,5 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             )
 
         await redis_client.delete(redis_key)
+        await self._delete_db_pending(idempotency_key)
         return response

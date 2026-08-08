@@ -22,6 +22,7 @@ from app.api.v1.imports.router import router as imports_router
 from app.api.v1.incomes.router import router as incomes_router
 from app.api.v1.insurance.router import router as insurance_router
 from app.api.v1.investments.router import router as investments_router
+from app.api.v1.lent_loans.router import router as lent_loans_router
 from app.api.v1.loans.router import router as loans_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.ocr.router import router as ocr_router
@@ -56,6 +57,7 @@ api_v1_router.include_router(credit_purchases_router)
 api_v1_router.include_router(currency_router)
 api_v1_router.include_router(debit_cards_router)
 api_v1_router.include_router(loans_router)
+api_v1_router.include_router(lent_loans_router)
 api_v1_router.include_router(insurance_router)
 api_v1_router.include_router(investments_router)
 api_v1_router.include_router(notifications_router)

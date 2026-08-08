@@ -101,6 +101,7 @@ class BudgetRepository:
                 BudgetModel.end_date < today,
             )
             .order_by(BudgetModel.end_date.asc())
+            .with_for_update(skip_locked=True)
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
@@ -143,6 +144,7 @@ class BudgetRepository:
             TransactionModel.effective_date >= budget.start_date,
             TransactionModel.effective_date <= budget.end_date,
             TransactionModel.deleted_at.is_(None),
+            TransactionModel.currency_code == budget.currency_code,
         )
 
         if budget.budget_type == "category" and budget.category_id:
@@ -192,10 +194,11 @@ class BudgetRepository:
         self, user_id: uuid.UUID, category_id: uuid.UUID | None = None
     ) -> list[dict]:
         """Get monthly spending totals for the last 3 months."""
-        from datetime import date as date_type
         from datetime import timedelta
 
-        today = date_type.today()  # noqa: DTZ011
+        from app.utils.time import today_in
+
+        today = today_in()
         three_months_ago = today - timedelta(days=90)
 
         month_expr = func.date_trunc("month", TransactionModel.effective_date).label("month")

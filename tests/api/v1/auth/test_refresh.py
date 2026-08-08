@@ -47,3 +47,31 @@ class TestRefreshToken:
             json={"refresh_token": valid_access_token},
         )
         assert response.status_code == 401
+
+    async def test_rotation_reuse_detected(self, client: AsyncClient, test_password: str):
+        """Reusing a refresh token after rotation revokes sessions."""
+        email = "refresh-reuse@test.com"
+        await client.post(
+            "/api/v1/auth/register",
+            json={"email": email, "password": test_password},
+        )
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": test_password},
+        )
+        refresh_token = login_resp.json()["tokens"]["refresh_token"]
+
+        # First refresh succeeds
+        first = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": refresh_token},
+        )
+        assert first.status_code == 200
+
+        # Reusing the same (now consumed) refresh token must be rejected
+        second = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": refresh_token},
+        )
+        assert second.status_code == 401
+        assert "reused" in second.json()["error"]["message"].lower()

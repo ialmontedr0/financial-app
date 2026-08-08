@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user, get_current_user, get_db
 from app.api.v1.auth.schemas import (
+    ConfirmMFARequest,
     DisableMFARequest,
     EnableMFAResponse,
     LoginRequest,
@@ -20,6 +21,7 @@ from app.api.v1.auth.schemas import (
     RequestEmailVerificationRequest,
     RequestPasswordResetRequest,
     ResetPasswordRequest,
+    RevokeSessionRequest,
     UserResponse,
     VerifyEmailResponse,
 )
@@ -33,8 +35,9 @@ from app.application.auth.register_user import RegisterUserUseCase
 from app.application.auth.request_email_verification import RequestEmailVerificationUseCase
 from app.application.auth.request_password_reset import RequestPasswordResetUseCase
 from app.application.auth.reset_password import ResetPasswordUseCase
+from app.application.auth.revoke_session import RevokeSessionUseCase
 from app.application.auth.verify_email import VerifyEmailUseCase
-from app.core.rate_limiter import rate_limit
+from app.core.rate_limiter import login_rate_limit, rate_limit
 
 logger = structlog.get_logger()
 
@@ -100,6 +103,7 @@ async def register(
     "/login",
     response_model=LoginResponse,
     summary="Login with email and password",
+    dependencies=[Depends(login_rate_limit())],
 )
 async def login(
     body: LoginRequest,
@@ -211,10 +215,15 @@ async def logout(
                 access_token_jti=access_jti,
                 access_token_exp=access_exp,
             )
-    else:
-        # Without a specific token, we can't revoke a specific session
-        # The client should pass the refresh_token
-        pass
+    elif access_jti:
+        # Sin refresh_token: al menos invalidar el access token actual
+        # (blacklist) para que deje de ser válido.
+        await use_case.execute_logout(
+            access_jti,
+            access_token_jti=access_jti,
+            access_token_exp=access_exp,
+            skip_refresh_revoke=True,
+        )
 
     return {"message": "Logged out successfully"}
 
@@ -359,6 +368,33 @@ async def enable_mfa(
 
 
 # ============================================================
+# POST /auth/mfa/confirm
+# ============================================================
+@router.post(
+    "/mfa/confirm",
+    response_model=MessageResponse,
+    summary="Confirm MFA setup with a TOTP code",
+    dependencies=[Depends(rate_limit("auth"))],
+)
+async def confirm_mfa(
+    body: ConfirmMFARequest,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Enable MFA for the current user after verifying a valid TOTP code.
+
+    The QR/secret were returned by ``/auth/mfa/enable``; this step only
+    activates MFA once the user proves ownership of the authenticator.
+    """
+    from app.application.auth.confirm_mfa import ConfirmMFAUseCase
+
+    user_id = uuid.UUID(current_user["sub"])
+
+    use_case = ConfirmMFAUseCase(db)
+    return await use_case.execute(user_id=user_id, code=body.code)
+
+
+# ============================================================
 # POST /auth/mfa/disable
 # ============================================================
 @router.post(
@@ -441,3 +477,22 @@ async def list_sessions(
         )
 
     return {"sessions": result, "total": len(result)}
+
+
+# ============================================================
+# POST /auth/sessions/revoke
+# ============================================================
+@router.post(
+    "/sessions/revoke",
+    response_model=MessageResponse,
+    summary="Revoke a specific session",
+)
+async def revoke_session(
+    body: RevokeSessionRequest,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Revoke one active session belonging to the current user."""
+    user_id = uuid.UUID(current_user["sub"])
+    use_case = RevokeSessionUseCase(db)
+    return await use_case.execute(user_id=user_id, session_id=body.session_id)

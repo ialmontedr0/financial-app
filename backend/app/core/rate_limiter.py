@@ -80,6 +80,49 @@ def rate_limit(
     return _check
 
 
+def login_rate_limit(
+    scope: str = "login",
+    max_requests: int = 10,
+    window_seconds: int = 60,
+) -> Callable[[Request], Awaitable[None]]:
+    """Rate limit por email (antes de autenticar) en login.
+
+    Previene fuerza bruta dirigida a una cuenta concreta además del límite
+    global por IP que aplica el middleware.
+    """
+    import json
+
+    async def _check(request: Request) -> None:
+        raw_body = await request.body()
+        identity = "unknown"
+        try:
+            payload = json.loads(raw_body or b"{}")
+            email = str(payload.get("email", "")).strip().lower()
+            if email:
+                identity = f"email:{email}"
+        except (ValueError, TypeError):
+            pass
+
+        key = RateLimitService.build_key(scope, identity)
+        try:
+            service = RateLimitService(redis_client)
+            allowed, count, retry_after = await service.check_rate_limit(key, max_requests, window_seconds)
+        except Exception:
+            logger.warning("rate_limit_redis_error", scope=scope, exc_info=True)
+            return
+
+        if not allowed:
+            logger.warning(
+                "rate_limit_exceeded_login",
+                identity=identity,
+                count=count,
+                limit=max_requests,
+            )
+            raise RateLimitError(retry_after_seconds=retry_after)
+
+    return _check
+
+
 def get_rate_limit_config() -> dict[str, Any]:
     """Expose the scope configuration (useful for admin/ops tooling)."""
     return dict(RATE_LIMIT_CONFIG)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.infrastructure.models.idempotency_key import IdempotencyKeyModel
 
@@ -38,3 +38,13 @@ class IdempotencyRepository:
             record.status_code = status_code
             record.response_body = response_body
             await self._session.flush()
+
+    async def delete(self, key: str) -> None:
+        """Elimina la fila (pendiente) de una clave que falló con error >= 500.
+
+        Evita dejar claves ``pending`` huérfanas en BD tras un 5xx, lo que
+        bloquearía reintentos con la misma cabecera.
+        """
+        await self._session.execute(
+            delete(IdempotencyKeyModel).where(IdempotencyKeyModel.key == key)
+        )

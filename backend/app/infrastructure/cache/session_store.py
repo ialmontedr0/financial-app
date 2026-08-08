@@ -120,6 +120,24 @@ class SessionStore:
         return await redis_client.get(key)
 
     @staticmethod
+    async def consume_refresh_token(jti: str) -> str | None:
+        """Consume el refresh token de forma atómica (get + delete).
+
+        El get-and-delete se ejecuta en un script Lua, por lo que dos peticiones
+        de refresh concurrentes con el mismo JTI no pueden ganar ambas: solo una
+        recibe el valor y la otra obtiene None (detección de reuso).
+        """
+        key = f"{REFRESH_PREFIX}:{jti}"
+        script = """
+        local value = redis.call('GET', KEYS[1])
+        if value then
+            redis.call('DEL', KEYS[1])
+        end
+        return value
+        """
+        return await redis_client.eval(script, 1, key)
+
+    @staticmethod
     async def delete_refresh_token(jti: str) -> None:
         """Delete a refresh token from Redis (invalidation)."""
         key = f"{REFRESH_PREFIX}:{jti}"

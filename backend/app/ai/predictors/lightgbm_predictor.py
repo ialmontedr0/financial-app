@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 import joblib
 import lightgbm as lgb
@@ -14,10 +13,11 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.features.feature_extractor import MONTHLY_FEATURE_NAMES, extract_monthly_features
+from app.core.config import get_ai_model_dir
 from app.infrastructure.models.transaction import TransactionModel
 
 logger = structlog.get_logger()
-MODEL_DIR = Path("backend/ai_models")
+MODEL_DIR = get_ai_model_dir()
 
 
 class LightGBMPredictor:
@@ -35,6 +35,11 @@ class LightGBMPredictor:
     @property
     def model_version(self) -> str:
         return self._model_version
+
+    def configure(self, *, target_type: str, model_version: str) -> None:
+        """Configura el predictor para un tipo de objetivo y versión de modelo."""
+        self._target_type = target_type
+        self._model_version = model_version
 
     async def train(self, session: AsyncSession, user_id, *, target_type: str = "expense") -> dict:
         start_time = time.time()
@@ -160,8 +165,13 @@ class LightGBMPredictor:
         from datetime import date, timedelta
 
         today = date.today()
-        month_start = today.replace(day=1)
-        prev_month_end = month_start - timedelta(days=1)
+        # La predicción apunta a un mes futuro: el histórico de referencia es
+        # el mes previo al mes objetivo (months_ahead hacia delante).
+        months_shift = max(int(months_ahead), 1)
+        target_month_start = today.replace(day=1)
+        for _ in range(months_shift):
+            target_month_start = (target_month_start - timedelta(days=1)).replace(day=1)
+        prev_month_end = target_month_start - timedelta(days=1)
         prev_month_start = prev_month_end.replace(day=1)
 
         stmt = select(TransactionModel).where(
@@ -206,7 +216,10 @@ class LightGBMPredictor:
             "confidence": round(confidence, 4),
             "model_version": self._model_version,
             "features_used": features,
-            "reason": f"Prediccion basada en {features['total_transactions']} transacciones del mes anterior.",
+            "reason": (
+                f"Prediccion basada en {features['total_transactions']} transacciones "
+                f"del mes previo al mes objetivo (+{months_shift} meses)."
+            ),
         }
 
     def _save_model(self, user_id: str) -> None:

@@ -44,10 +44,10 @@ class CreateGoalUseCase:
         color: str | None = None,
         image_url: str | None = None,
     ) -> dict:
-        from datetime import date as date_type
         from datetime import timedelta
 
         from app.middleware.error_handler import ValidationError
+        from app.utils.time import today_in
 
         if not name or not name.strip():
             raise ValidationError("Goal name es requerido")
@@ -70,7 +70,7 @@ class CreateGoalUseCase:
             )
 
         if not start_date:
-            start_date = date_type.today()
+            start_date = today_in()
         if not target_date:
             target_date = start_date + timedelta(days=365)
         if target_date <= start_date:
@@ -185,11 +185,14 @@ class CreateGoalUseCase:
 
         from datetime import timedelta
 
-        predicted_date = goal.start_date + timedelta(days=int(months * 30.44))
+        from app.utils.time import today_in
+
+        # Anclar a la fecha actual, no al inicio de la meta (A4.12/A2.6).
+        predicted_date = today_in() + timedelta(days=int(months * 30.44))
         if predicted_date > goal.target_date:
             probability = max(0.0, 1.0 - ((predicted_date - goal.target_date).days / 365.0))
         else:
-            probability = min(1.0, 1.0 - max((goal.target_date - predicted_date).days / 365.0, 0))
+            probability = max(0.0, min(1.0, 1.0 - (goal.target_date - predicted_date).days / 365.0))
 
         if history["avg_monthly_savings"] > 0 and monthly <= history["avg_monthly_savings"]:
             probability = min(probability * 1.1, 1.0)
@@ -231,6 +234,11 @@ class CreateGoalUseCase:
                 balance = balance + monthly
                 if months % 3 == 0:
                     balance = balance * (1 + annual_rate / 100 / 4)
+            elif freq == "annually":
+                # El capital se compone una vez al año; el aporte es mensual.
+                balance = balance + monthly
+                if months % 12 == 0:
+                    balance = balance * (1 + annual_rate / 100)
             else:
                 balance = (balance + monthly) * (1 + monthly_rate)
         return months

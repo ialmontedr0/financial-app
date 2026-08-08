@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from collections import defaultdict
 from datetime import date, timedelta
-from decimal import Decimal
 from statistics import mean
 from typing import Any
 
@@ -79,14 +77,14 @@ class SavingsOptimizer:
         balance = 0.0
 
         for m in range(1, months + 1):
+            previous = balance
+            interest = previous * monthly_rate
             balance = balance * (1 + monthly_rate) + monthly_amount
             projections.append(
                 {
                     "month": m,
                     "contribution": monthly_amount,
-                    "interest": round(
-                        balance - (monthly_amount * m) - (balance * monthly_rate if m > 1 else 0), 2
-                    ),
+                    "interest": round(interest, 2),
                     "balance": round(balance, 2),
                 }
             )

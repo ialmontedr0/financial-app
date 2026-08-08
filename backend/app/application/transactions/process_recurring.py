@@ -30,6 +30,9 @@ class ProcessRecurringUseCase:
 
         for rec in due:
             try:
+                claimed = await self._repo.claim_due_recurring(rec.user_id, rec.id)
+                if not claimed:
+                    continue
                 tx = await self._repo.create(
                     rec.user_id,
                     account_id=rec.account_id,
@@ -111,6 +114,7 @@ class ProcessRecurringUseCase:
 
             except Exception as e:
                 logger.error("recurring_processing_error", recurring_id=str(rec.id), error=str(e))
+                await self._repo.release_due_recurring(rec.user_id, rec.id)
                 errors.append({"recurring_id": str(rec.id), "error": str(e)})
 
         return {"processed": len(due), "created": created_count, "errors": errors}

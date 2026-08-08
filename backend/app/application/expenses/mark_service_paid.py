@@ -50,6 +50,30 @@ class MarkServicePaidUseCase:
 
         ed = date_type.fromisoformat(effective_date) if effective_date else date_type.today()  # noqa: DTZ011
 
+        # Idempotencia: el servicio ya fue pagado este periodo (mismo mes).
+        # Evita doble-pago si el cliente reintenta la operación.
+        if service.last_paid_at is not None:
+            same_period = (
+                service.frequency == "monthly"
+                and service.last_paid_at.year == ed.year
+                and service.last_paid_at.month == ed.month
+            ) or (
+                service.frequency == "annually"
+                and service.last_paid_at.year == ed.year
+            )
+            if same_period:
+                raise ValidationError(
+                    f"El servicio '{service.name}' ya fue pagado para este periodo"
+                )
+
+        # Usar la moneda de la cuenta si existe; fallback a DOP (A4.10).
+        account = await self._tx_repo.get_account_by_id(account_id, user_id)
+        currency_code = (
+            account.currency_code
+            if account is not None and getattr(account, "currency_code", None)
+            else "DOP"
+        )
+
         # Create expense linked to service
         tx = await self._tx_repo.create(
             user_id,
@@ -58,7 +82,7 @@ class MarkServicePaidUseCase:
             transaction_type="expense",
             status="completed",
             amount=amount,
-            currency_code="DOP",
+            currency_code=currency_code,
             description=f"Pago: {service.name}",
             effective_date=ed,
             source="manual",

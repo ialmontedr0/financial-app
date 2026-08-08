@@ -517,9 +517,11 @@ async def process_recurring_incomes(
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    from app.application.incomes.process_recurring_income import ProcessRecurringIncomeUseCase
+    from app.application.transactions.process_recurring import ProcessRecurringUseCase
 
-    return await ProcessRecurringIncomeUseCase(db).execute()
+    result = await ProcessRecurringUseCase(db).execute()
+    await db.commit()
+    return result
 
 
 # --- Income Detail (MUST be after all static routes) ---

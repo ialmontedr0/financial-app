@@ -29,11 +29,8 @@ class RequestEmailVerificationUseCase:
         if user.is_verified:
             raise ValidationError("Email is already verified")
 
-        # Generate a verification token
-        token = JWTService.create_access_token(
-            str(user.id),
-            additional_claims={"purpose": "registration"},
-        )
+        # Generate an opaque verification token (not a usable access token)
+        token = JWTService.create_opaque_token(str(user.id), "registration")
 
         # Store in Redis with 24h TTL
         await self._session_store.store_email_verification(

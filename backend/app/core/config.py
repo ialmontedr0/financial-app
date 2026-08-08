@@ -1,8 +1,12 @@
 import json
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Raíz del repo: backend/  (anclado a este archivo, no al CWD).
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def _parse_cors_origins(raw: str) -> list[str]:
@@ -122,6 +126,11 @@ class Settings(BaseSettings):
     OTEL_SERVICE_NAME: str = "fip-api"
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
 
+    # --- AI Models --------------------------------------------------------------
+    # Ruta de los modelos entrenados, anclada al repo (no al CWD). Puede
+    # sobreescribirse con la variable de entorno AI_MODEL_DIR.
+    AI_MODEL_DIR: str = "ai_models"
+
     # --- OCR --------------------------------------------------------------------
     # Si OCR_ENABLED=False o faltan los binarios de Tesseract/Poppler, el
     # endpoint degrada a extraccion por regex sobre el texto del archivo.
@@ -167,3 +176,17 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Cached singleton para ajustes."""
     return Settings()
+
+
+def get_ai_model_dir() -> Path:
+    """Ruta absoluta del directorio de modelos de IA.
+
+    Anclada a la raíz del backend (``_BACKEND_ROOT``), nunca al CWD, de modo
+    que entrenar en un worker y predecir en otro no dependa de dónde se arranca.
+    Si ``AI_MODEL_DIR`` es una ruta absoluta, se respeta tal cual.
+    """
+    configured = get_settings().AI_MODEL_DIR
+    p = Path(configured)
+    if p.is_absolute():
+        return p
+    return _BACKEND_ROOT / p

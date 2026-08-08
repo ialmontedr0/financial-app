@@ -31,8 +31,7 @@ class PredictIncomeUseCase:
 
         repo = AIRepository(self._session)
         predictor = create_predictor(model_version)
-        predictor._target_type = "income"
-        predictor._model_version = model_version
+        predictor.configure(target_type="income", model_version=model_version)
 
         if not predictor.is_trained:
             predictor.load_model(str(user_id))

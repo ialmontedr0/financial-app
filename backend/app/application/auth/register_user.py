@@ -93,12 +93,18 @@ class RegisterUserUseCase:
             expires_at=expires_at,
         )
 
-        # Send verification email (fire and forget)
-        verification_token = str(uuid.uuid4())
+        # Generate and store an opaque verification token, then send email (fire and forget)
+        token = JWTService.create_opaque_token(user_id_str, "registration")
+        await self._session_store.store_email_verification(
+            token=token,
+            user_id=user_id_str,
+            purpose="registration",
+            ttl_seconds=86400,
+        )
         try:
             await EmailService.send_verification_email(
                 to_email=str(validated_email),
-                token=verification_token,  # In production, use a dedicated verification token
+                token=token,
                 user_name=str(validated_email).split("@")[0],
             )
         except Exception as exc:

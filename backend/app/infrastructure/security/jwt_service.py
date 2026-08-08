@@ -35,7 +35,6 @@ class JWTService:
             payload.update(additional_claims)
 
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-        logger.info("access_token_created", user_id=user_id, expires=expire.isoformat())
         return token
 
     @staticmethod
@@ -60,7 +59,6 @@ class JWTService:
             payload.update(additional_claims)
 
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-        logger.info("refresh_token_created", user_id=user_id, expires=expire.isoformat())
         return token
 
     @staticmethod
@@ -109,3 +107,15 @@ class JWTService:
         if exp is None:
             return None
         return datetime.fromtimestamp(exp, tz=UTC)
+
+    @staticmethod
+    def create_opaque_token(user_id: str, purpose: str) -> str:
+        """Token aleatorio no-JWT para reset/verificacion.
+
+        Se guarda el valor opaco directamente en Redis (ver session_store).
+        Al ser un token de alta entropia de un solo uso, no puede usarse como
+        access token ni reutilizarse tras su consumo.
+        """
+        import secrets
+
+        return secrets.token_urlsafe(48)

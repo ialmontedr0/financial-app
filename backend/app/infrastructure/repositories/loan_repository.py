@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
-from decimal import Decimal
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.infrastructure.models.financial_account import FinancialAccountModel
 from app.infrastructure.models.loan import LoanModel
 from app.infrastructure.models.loan_amortization_entry import LoanAmortizationEntryModel
 from app.infrastructure.models.loan_payment import LoanPaymentModel
@@ -35,6 +35,26 @@ class LoanRepository:
             LoanModel.id == loan_id,
             LoanModel.user_id == user_id,
             LoanModel.deleted_at.is_(None),
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_loan_for_update(
+        self, loan_id: uuid.UUID, user_id: uuid.UUID
+    ) -> LoanModel | None:
+        """Obtiene el prestamo con bloqueo de fila (``FOR UPDATE``).
+
+        Usado en flujos de escritura (pagos) para serializar lecturas y
+        evitar perdidas de actualizacion (lost update) bajo concurrencia.
+        """
+        stmt = (
+            select(LoanModel)
+            .where(
+                LoanModel.id == loan_id,
+                LoanModel.user_id == user_id,
+                LoanModel.deleted_at.is_(None),
+            )
+            .with_for_update()
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
@@ -67,7 +87,7 @@ class LoanRepository:
         return loan
 
     async def delete_loan(self, loan: LoanModel) -> bool:
-        loan.deleted_at = datetime.now(timezone.utc)
+        loan.deleted_at = datetime.now(UTC)
         await self._session.flush()
         logger.info("loan_deleted", loan_id=str(loan.id))
         return True
@@ -173,19 +193,25 @@ class LoanRepository:
     # ── SUMMARY ────────────────────────────────────────────────
 
     async def get_loans_summary(self, user_id: uuid.UUID) -> dict:
+        currency = func.coalesce(FinancialAccountModel.currency_code, "DOP")
         stmt = select(
             func.coalesce(func.sum(LoanModel.current_balance), 0).label("total_balance"),
             func.coalesce(func.sum(LoanModel.monthly_payment), 0).label("total_monthly_payment"),
             func.coalesce(func.sum(LoanModel.total_paid), 0).label("total_paid"),
             func.coalesce(func.sum(LoanModel.total_interest_paid), 0).label("total_interest_paid"),
             func.count(LoanModel.id).label("total_loans"),
+            currency.label("currency_code"),
+        ).join(
+            FinancialAccountModel,
+            FinancialAccountModel.id == LoanModel.account_id,
+            isouter=True,
         ).where(
             LoanModel.user_id == user_id,
             LoanModel.deleted_at.is_(None),
             LoanModel.status.in_(["active", "pending"]),
-        )
+        ).group_by(currency)
         result = await self._session.execute(stmt)
-        row = result.one()
+        rows = result.all()
 
         # count by status
         status_stmt = (
@@ -199,19 +225,48 @@ class LoanRepository:
         status_result = await self._session.execute(status_stmt)
         status_counts = {r[0]: r[1] for r in status_result.all()}
 
+        if not rows:
+            return {
+                "total_balance": 0.0,
+                "total_monthly_payment": 0.0,
+                "total_paid": 0.0,
+                "total_interest_paid": 0.0,
+                "total_loans": 0,
+                "currency_code": "DOP",
+                "by_currency": [],
+                "by_status": status_counts,
+            }
+
+        reference = rows[0]
+        by_currency = [
+            {
+                "currency_code": r.currency_code,
+                "total_balance": float(r.total_balance),
+                "total_monthly_payment": float(r.total_monthly_payment),
+                "total_paid": float(r.total_paid),
+                "total_interest_paid": float(r.total_interest_paid),
+                "total_loans": r.total_loans,
+            }
+            for r in rows
+        ]
+
         return {
-            "total_balance": float(row.total_balance),
-            "total_monthly_payment": float(row.total_monthly_payment),
-            "total_paid": float(row.total_paid),
-            "total_interest_paid": float(row.total_interest_paid),
-            "total_loans": row.total_loans,
+            "total_balance": float(reference.total_balance),
+            "total_monthly_payment": float(reference.total_monthly_payment),
+            "total_paid": float(reference.total_paid),
+            "total_interest_paid": float(reference.total_interest_paid),
+            "total_loans": reference.total_loans,
+            "currency_code": reference.currency_code,
+            "by_currency": by_currency,
             "by_status": status_counts,
         }
 
     async def get_upcoming_payments(self, user_id: uuid.UUID, days_ahead: int = 30) -> list[dict]:
         from datetime import timedelta
 
-        cutoff = date.today() + timedelta(days=days_ahead)  # noqa: DTZ011
+        from app.utils.time import today_in
+
+        cutoff = today_in() + timedelta(days=days_ahead)
         stmt = (
             select(LoanModel)
             .where(

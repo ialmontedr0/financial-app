@@ -47,7 +47,14 @@ class ScanSubscriptionRenewalsUseCase:
         emitted = 0
 
         for sub in subscriptions:
-            if await repo.exists_with_data(sub.user_id, "bill_due", "subscription_id", str(sub.id)):
+            already_this_sub = await repo.exists_with_data(
+                sub.user_id, "bill_due", "subscription_id", str(sub.id)
+            )
+            already_this_period = await repo.exists_with_data(
+                sub.user_id, "bill_due", "due_date", sub.next_billing_date.isoformat()
+            )
+            # Aviso una sola vez por suscripcion y por periodo (evita duplicados)
+            if already_this_sub and already_this_period:
                 continue
             days_left = (sub.next_billing_date - today).days
             await service.send(

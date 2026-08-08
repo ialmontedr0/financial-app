@@ -48,9 +48,16 @@ class ScanLoanDueUseCase:
         emitted = 0
 
         for loan in loans:
-            if await repo.exists_with_data(loan.user_id, "payment_due", "loan_id", str(loan.id)):
-                continue
             due = loan.next_payment_date
+            already_this_loan = await repo.exists_with_data(
+                loan.user_id, "payment_due", "loan_id", str(loan.id)
+            )
+            already_this_period = await repo.exists_with_data(
+                loan.user_id, "payment_due", "due_date", due.isoformat()
+            )
+            # Aviso una sola vez por prestamo y por periodo (evita duplicados)
+            if already_this_loan and already_this_period:
+                continue
             status = "venció" if due < today else "vence"
             days = (due - today).days
             await service.send(

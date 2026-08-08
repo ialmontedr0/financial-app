@@ -33,6 +33,9 @@ async def get_current_user(
     token = authorization.replace("Bearer ", "")
     payload = JWTService.verify_token(token, expected_type="access")
 
+    if payload and payload.get("purpose") in ("password_reset", "email_verification"):
+        raise UnauthorizedError("Token invalido")
+
     if payload is None:
         raise UnauthorizedError("Invalid or expired access token")
 

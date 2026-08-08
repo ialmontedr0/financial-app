@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 import joblib
 import numpy as np
@@ -15,10 +14,11 @@ from app.ai.features.feature_extractor import (
     TRANSACTION_FEATURE_NAMES,
     extract_transaction_features,
 )
+from app.core.config import get_ai_model_dir
 from app.infrastructure.models.transaction import TransactionModel
 
 logger = structlog.get_logger()
-MODEL_DIR = Path("backend/ai_models")
+MODEL_DIR = get_ai_model_dir()
 
 
 class IsolationForestDetector:
@@ -199,6 +199,3 @@ class IsolationForestDetector:
         except Exception as e:
             logger.error("anomaly_detector_load_failed", error=str(e))
             return False
-
-
-anomaly_detector = IsolationForestDetector()

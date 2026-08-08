@@ -40,6 +40,7 @@ from app.infrastructure.models.investment import (
     PortfolioAssetModel,
     PortfolioModel,
 )
+from app.infrastructure.models.lent_loan import LentLoanModel, LentLoanPaymentModel
 from app.infrastructure.models.loan import LoanModel
 from app.infrastructure.models.loan_amortization_entry import LoanAmortizationEntryModel
 from app.infrastructure.models.loan_payment import LoanPaymentModel
@@ -106,6 +107,8 @@ __all__ = [
     "InsurancePolicyModel",
     "InsurancePremiumModel",
     "InvestmentTransactionModel",
+    "LentLoanModel",
+    "LentLoanPaymentModel",
     "LoanAmortizationEntryModel",
     "LoanModel",
     "LoanPaymentModel",

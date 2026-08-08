@@ -156,6 +156,53 @@ class TestAnalyticsNetWorth:
         assert "net_worth" in data
         assert "total_assets" in data
         assert "total_liabilities" in data
+        assert data["base_currency"] == "DOP"
+
+    async def test_net_worth_converts_foreign_currency(
+        self, client: AsyncClient, test_password: str, db_session
+    ):
+        """DOP + USD accounts: net worth sums both in the base currency (DOP)."""
+        from decimal import Decimal
+        from datetime import date as _date
+
+        from app.infrastructure.currency.exchange_rate_provider import ExchangeRateProvider
+
+        token = await self._register_and_login(client, "analytics_nw2@test.com", test_password)
+
+        today = _date.today()
+        provider = ExchangeRateProvider(db_session)
+        await provider.store_rate("USD", "DOP", Decimal("100"), today)
+        await db_session.commit()
+
+        # DOP account = 1000 DOP
+        r1 = await client.post(
+            "/api/v1/accounts",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"name": "Pesos", "account_type": "bank", "currency_code": "DOP", "initial_balance": 1000},
+        )
+        assert r1.status_code == 201
+        # USD account = 50 USD -> 5000 DOP at rate 100
+        r2 = await client.post(
+            "/api/v1/accounts",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"name": "Dolares", "account_type": "bank", "currency_code": "USD", "initial_balance": 50},
+        )
+        assert r2.status_code == 201
+
+        resp = await client.get(
+            "/api/v1/analytics/net-worth",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["base_currency"] == "DOP"
+        # 1000 DOP + 50 USD*100 = 6000 DOP
+        self.assert_close(data["total_assets"], 6000.0)
+        self.assert_close(data["net_worth"], 6000.0)
+
+    @staticmethod
+    def assert_close(actual, expected, tol: float = 2.0):
+        assert abs(actual - expected) <= tol, f"{actual} != {expected}"
 
 
 @pytest.mark.api

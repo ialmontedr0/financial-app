@@ -47,6 +47,40 @@ class AnalyticsRepository:
             TransactionModel.effective_date <= end,
         ]
 
+    # ── CURRENCY HELPER: base-currency conversion ───────────────
+
+    async def _base_currency(self, user_id: uuid.UUID) -> str:
+        """Resolve the user's base currency (fallback DOP)."""
+        from app.infrastructure.repositories.user_preference_repository import (
+            UserPreferenceRepository,
+        )
+
+        prefs = await UserPreferenceRepository(self._session).get_by_user_id(user_id)
+        return (prefs.currency_code or "DOP").upper() if prefs else "DOP"
+
+    async def _amount_in_base(
+        self,
+        value: Decimal | float | int,
+        from_currency: str | None,
+        base: str,
+        rate_date: date,
+    ) -> float:
+        """Convert ``value`` from ``from_currency`` to the base currency.
+
+        Returns the original amount (float) when ``from_currency`` is missing
+        or equals the base, or when no rate can be resolved (degrade gracefully).
+        """
+        cur = (from_currency or base).upper()
+        amount = float(value or 0)
+        if cur == base:
+            return amount
+        from app.infrastructure.currency.exchange_rate_provider import ExchangeRateProvider
+
+        rate = await ExchangeRateProvider(self._session).get_rate(cur, base, rate_date)
+        if rate is None or rate <= 0:
+            return amount
+        return amount * float(rate)
+
     # ── 1. KPIs ───────────────────────────────────────────────
 
     async def get_monthly_kpis(self, user_id: uuid.UUID, year: int, month: int) -> dict:
@@ -153,35 +187,75 @@ class AnalyticsRepository:
         }
 
     async def get_portfolio_kpis(self, user_id: uuid.UUID) -> dict:
-        """Overall portfolio KPIs across all time."""
-        # Net worth
-        nw_stmt = select(func.coalesce(func.sum(FinancialAccountModel.balance), 0)).where(
+        """Overall portfolio KPIs across all time (converted to base currency)."""
+        base = await self._base_currency(user_id)
+        rate_date = date.today()
+
+        # Net worth (per account, converted)
+        nw_stmt = select(
+            FinancialAccountModel.balance,
+            FinancialAccountModel.currency_code,
+        ).where(
             FinancialAccountModel.user_id == user_id,
             FinancialAccountModel.deleted_at.is_(None),
             FinancialAccountModel.include_in_net_worth == True,  # noqa: E712
             FinancialAccountModel.status == "active",
         )
-        net_worth = (await self._session.execute(nw_stmt)).scalar() or 0
+        asset_rows = (await self._session.execute(nw_stmt)).all()
+        net_worth = 0.0
+        for a in asset_rows:
+            net_worth += await self._amount_in_base(a.balance, a.currency_code, base, rate_date)
 
-        # Total debt
-        debt_stmt = select(func.coalesce(func.sum(LoanModel.current_balance), 0)).where(
-            LoanModel.user_id == user_id,
-            LoanModel.deleted_at.is_(None),
-            LoanModel.status.in_(["active", "pending"]),
+        # Total debt (converted)
+        debt_stmt = (
+            select(
+                LoanModel.current_balance,
+                FinancialAccountModel.currency_code.label("currency_code"),
+            )
+            .outerjoin(
+                FinancialAccountModel,
+                FinancialAccountModel.id == LoanModel.account_id,
+            )
+            .where(
+                LoanModel.user_id == user_id,
+                LoanModel.deleted_at.is_(None),
+                LoanModel.status.in_(["active", "pending"]),
+            )
         )
-        total_debt = (await self._session.execute(debt_stmt)).scalar() or 0
+        debt_rows = (await self._session.execute(debt_stmt)).all()
+        total_debt = 0.0
+        for l in debt_rows:
+            total_debt += await self._amount_in_base(l.current_balance, l.currency_code, base, rate_date)
 
-        # Total monthly loan payments
-        loan_pmt_stmt = select(func.coalesce(func.sum(LoanModel.monthly_payment), 0)).where(
-            LoanModel.user_id == user_id,
-            LoanModel.deleted_at.is_(None),
-            LoanModel.status.in_(["active", "pending"]),
+        # Total monthly loan payments (converted)
+        loan_pmt_stmt = (
+            select(
+                LoanModel.monthly_payment,
+                FinancialAccountModel.currency_code.label("currency_code"),
+            )
+            .outerjoin(
+                FinancialAccountModel,
+                FinancialAccountModel.id == LoanModel.account_id,
+            )
+            .where(
+                LoanModel.user_id == user_id,
+                LoanModel.deleted_at.is_(None),
+                LoanModel.status.in_(["active", "pending"]),
+            )
         )
-        total_monthly_debt = (await self._session.execute(loan_pmt_stmt)).scalar() or 0
+        pmt_rows = (await self._session.execute(loan_pmt_stmt)).all()
+        total_monthly_debt = 0.0
+        for l in pmt_rows:
+            total_monthly_debt += await self._amount_in_base(
+                l.monthly_payment, l.currency_code, base, rate_date
+            )
 
-        # Monthly income (last 3 months average)
+        # Monthly income (average of the last 3 real months with income)
         three_months_ago = date.today() - timedelta(days=90)
-        avg_income_stmt = select(func.coalesce(func.sum(TransactionModel.amount) / 3, 0)).where(
+        month_bucket = func.to_char(TransactionModel.effective_date, "YYYY-MM")
+        avg_income_stmt = select(
+            func.coalesce(func.sum(TransactionModel.amount) / func.count(func.distinct(month_bucket)), 0)
+        ).where(
             TransactionModel.user_id == user_id,
             TransactionModel.deleted_at.is_(None),
             TransactionModel.status == "completed",
@@ -225,12 +299,13 @@ class AnalyticsRepository:
         active_loans = (await self._session.execute(loan_count_stmt)).scalar() or 0
 
         return {
-            "net_worth": net_worth_value,
-            "total_assets": float(net_worth),
-            "total_liabilities": float(total_debt),
+            "net_worth": round(net_worth_value, 2),
+            "total_assets": round(net_worth, 2),
+            "total_liabilities": round(total_debt, 2),
             "debt_to_income": dti,
-            "total_monthly_debt_payments": float(total_monthly_debt),
+            "total_monthly_debt_payments": round(total_monthly_debt, 2),
             "avg_monthly_income": round(float(avg_monthly_income), 2),
+            "base_currency": base,
             "active_budgets": active_budgets,
             "active_goals": active_goals,
             "active_loans": active_loans,
@@ -569,6 +644,10 @@ class AnalyticsRepository:
     # ── 4. NET WORTH ──────────────────────────────────────────
 
     async def get_net_worth(self, user_id: uuid.UUID) -> dict:
+        """Net worth with all amounts converted to the user's base currency."""
+        base = await self._base_currency(user_id)
+        rate_date = date.today()
+
         # Assets (active accounts)
         asset_stmt = (
             select(
@@ -589,18 +668,21 @@ class AnalyticsRepository:
         result = await self._session.execute(asset_stmt)
         accounts = result.all()
 
-        total_assets = sum(float(a.balance) for a in accounts)
+        total_assets = 0.0
         assets_by_type = {}
         for a in accounts:
             t = a.account_type
             if t not in assets_by_type:
                 assets_by_type[t] = {"total": 0, "accounts": []}
-            assets_by_type[t]["total"] += float(a.balance)
+            amount = await self._amount_in_base(a.balance, a.currency_code, base, rate_date)
+            total_assets += amount
+            assets_by_type[t]["total"] += amount
             assets_by_type[t]["accounts"].append(
                 {
                     "name": a.name,
-                    "balance": float(a.balance),
-                    "currency": a.currency_code,
+                    "balance": round(amount, 2),
+                    "currency": base,
+                    "original_currency": a.currency_code,
                 }
             )
 
@@ -611,6 +693,11 @@ class AnalyticsRepository:
                 LoanModel.loan_type,
                 LoanModel.current_balance,
                 LoanModel.monthly_payment,
+                FinancialAccountModel.currency_code.label("currency_code"),
+            )
+            .outerjoin(
+                FinancialAccountModel,
+                FinancialAccountModel.id == LoanModel.account_id,
             )
             .where(
                 LoanModel.user_id == user_id,
@@ -623,41 +710,51 @@ class AnalyticsRepository:
         debt_result = await self._session.execute(debt_stmt)
         loans = debt_result.all()
 
-        total_liabilities = sum(float(l.current_balance) for l in loans)
+        total_liabilities = 0.0
         liabilities_by_type = {}
         for l in loans:
             t = l.loan_type
             if t not in liabilities_by_type:
                 liabilities_by_type[t] = {"total": 0, "loans": []}
-            liabilities_by_type[t]["total"] += float(l.current_balance)
+            amount = await self._amount_in_base(l.current_balance, l.currency_code, base, rate_date)
+            pmt = await self._amount_in_base(l.monthly_payment, l.currency_code, base, rate_date)
+            total_liabilities += amount
+            liabilities_by_type[t]["total"] += amount
             liabilities_by_type[t]["loans"].append(
                 {
                     "name": l.name,
-                    "balance": float(l.current_balance),
-                    "monthly_payment": float(l.monthly_payment),
+                    "balance": round(amount, 2),
+                    "monthly_payment": round(pmt, 2),
+                    "original_currency": l.currency_code or base,
                 }
             )
 
         # Credit card debt (utilized credit)
         cc_stmt = select(
-            func.coalesce(
-                func.sum(CreditCardModel.credit_limit - CreditCardModel.available_credit), 0
-            )
+            CreditCardModel.name,
+            CreditCardModel.currency_code,
+            CreditCardModel.credit_limit,
+            CreditCardModel.available_credit,
         ).where(
             CreditCardModel.user_id == user_id,
             CreditCardModel.deleted_at.is_(None),
             CreditCardModel.is_active == True,  # noqa: E712
         )
-        cc_debt = (await self._session.execute(cc_stmt)).scalar() or 0
-        total_liabilities += float(cc_debt)
+        cc_rows = (await self._session.execute(cc_stmt)).all()
+        cc_debt = 0.0
+        for r in cc_rows:
+            used = float(r.credit_limit or 0) - float(r.available_credit or 0)
+            cc_debt += await self._amount_in_base(used, r.currency_code, base, rate_date)
+        total_liabilities += cc_debt
 
-        net_worth = total_assets - total_liabilities
+        net_worth = round(total_assets - total_liabilities, 2)
 
         return {
-            "net_worth": round(net_worth, 2),
+            "net_worth": net_worth,
             "total_assets": round(total_assets, 2),
             "total_liabilities": round(total_liabilities, 2),
-            "credit_card_debt": round(float(cc_debt), 2),
+            "credit_card_debt": round(cc_debt, 2),
+            "base_currency": base,
             "assets_by_type": assets_by_type,
             "liabilities_by_type": liabilities_by_type,
         }

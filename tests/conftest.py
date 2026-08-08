@@ -66,6 +66,22 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
         yield ac
 
 
+@pytest_asyncio.fixture(loop_scope="session", autouse=True)
+async def _clean_redis_rate_limit(cls_vars=None):
+    """Limpia los contadores de rate-limit antes de cada test.
+
+    Redis es persistente entre procesos de pytest y los límites por email/IP
+    acumulan. Esto aísla los tests de login/lockout determinísticamente.
+    """
+    from app.infrastructure.cache.redis import redis_client
+
+    async for key in redis_client.scan_iter(match="ratelimit:*"):
+        await redis_client.delete(key)
+    yield
+    async for key in redis_client.scan_iter(match="ratelimit:*"):
+        await redis_client.delete(key)
+
+
 @pytest.fixture
 def test_password() -> str:
     """A valid test password."""

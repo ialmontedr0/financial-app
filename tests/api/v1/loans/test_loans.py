@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from decimal import Decimal
 from httpx import AsyncClient  # noqa: TC002
 
 
@@ -154,22 +155,28 @@ class TestLoanPayments:
         )
         return login_resp.json()["tokens"]["access_token"]
 
-    async def _create_loan(self, client: AsyncClient, token: str) -> str:
+    async def _create_loan(self, client: AsyncClient, token: str, disbursement_date: str | None = None) -> str:
+        body = {
+            "name": "Payment Test",
+            "principal_amount": 60000,
+            "annual_interest_rate": 18,
+            "term_months": 12,
+        }
+        if disbursement_date:
+            body["disbursement_date"] = disbursement_date
         resp = await client.post(
             "/api/v1/loans",
-            json={
-                "name": "Payment Test",
-                "principal_amount": 60000,
-                "annual_interest_rate": 18,
-                "term_months": 12,
-            },
+            json=body,
             headers={"Authorization": f"Bearer {token}"},
         )
         return resp.json()["id"]
 
     async def test_make_payment(self, client: AsyncClient, test_password: str):
+        from datetime import date, timedelta
+
         token = await self._register_and_login(client, "loan_pay1@test.com", test_password)
-        loan_id = await self._create_loan(client, token)
+        disbursement = (date.today() - timedelta(days=30)).isoformat()
+        loan_id = await self._create_loan(client, token, disbursement_date=disbursement)
         resp = await client.post(
             f"/api/v1/loans/{loan_id}/payments",
             json={
@@ -183,6 +190,42 @@ class TestLoanPayments:
         assert data["principal_portion"] > 0
         assert data["interest_portion"] > 0
         assert data["loan_status"] == "active"
+
+    async def test_interest_is_prorated_daily(self, client: AsyncClient, test_password: str):
+        """Two payments in the same month must not double-charge interest."""
+        from datetime import date, timedelta
+
+        token = await self._register_and_login(client, "loan_prorata@test.com", test_password)
+        disbursement = (date.today() - timedelta(days=10)).isoformat()
+        loan_id = await self._create_loan(client, token, disbursement_date=disbursement)
+
+        def _pay(amount: int, payment_date: str | None = None):
+            resp = client.post(
+                f"/api/v1/loans/{loan_id}/payments",
+                json={
+                    "amount": amount,
+                    "payment_method": "bank_transfer",
+                    **({"payment_date": payment_date} if payment_date else {}),
+                },
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            return resp
+
+        # First payment 10 days after disbursement: ~10/30 of a month of interest
+        first = await _pay(1000, date.today().isoformat())
+        assert first.status_code == 201
+        first_interest = Decimal(str(first.json()["interest_portion"]))
+
+        # Second payment one day later: only ~1 day of interest accrued
+        day_after = (date.today() + timedelta(days=1)).isoformat()
+        second = await _pay(1000, day_after)
+        assert second.status_code == 201
+        second_interest = Decimal(str(second.json()["interest_portion"]))
+
+        # The second payment's interest must be a small fraction of the first
+        assert first_interest > 0
+        assert second_interest < first_interest
+        assert second_interest > 0
 
     async def test_list_payments(self, client: AsyncClient, test_password: str):
         token = await self._register_and_login(client, "loan_listpay1@test.com", test_password)

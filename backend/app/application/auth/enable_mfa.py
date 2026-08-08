@@ -33,8 +33,8 @@ class EnableMFAUseCase:
         # Generate MFA setup
         secret, uri, qr_b64 = MFAService.generate_mfa_setup(user.email)
 
-        # Store secret (not yet enabled — will be enabled after verification)
-        await self._user_repo.update_mfa_secret(user_id, secret)
+        # Store secret in pending state (MFA stays disabled until a valid code is confirmed)
+        await self._user_repo.store_mfa_secret(user_id, secret)
 
         event = MFAEnabledEvent(user_id=user_id)
         logger.info("mfa_setup_initiated", event_type=event.event_type, user_id=str(user_id))

@@ -37,7 +37,7 @@ class SendDailyDigestUseCase:
             result = await self._session.execute(
                 select(
                     TransactionModel.transaction_type,
-                    func.coalesce(func.sun(TransactionModel.amount), 0),
+                    func.sum(TransactionModel.amount),
                 )
                 .where(
                     TransactionModel.user_id == user_id,
@@ -54,7 +54,7 @@ class SendDailyDigestUseCase:
                 user_id=user_id,
                 type="system",
                 title="Resumen semanal",
-                body=f"Ultimo dia: ingresos ${income:,.2f} · gastos ${expense:,.2f}.",
+                body=f"Últimos 7 días: ingresos ${income:,.2f} · gastos ${expense:,.2f}.",
                 data={"period": "weekly", "income": income, "expense": expense},
                 channels=["email", "push"],
             )

@@ -70,6 +70,15 @@ class UpdateTransactionUseCase:
             logger.warning("transaction_has_no_account", transaction_id=tx.id)
             return
 
+        if "account_id" in changes and changes["account_id"] is not None:
+            from app.infrastructure.repositories.account_repository import AccountRepository
+
+            new_acct = await AccountRepository(self._session).get_by_id(
+                uuid.UUID(str(changes["account_id"])), user_id
+            )
+            if new_acct is None:
+                raise NotFoundError("Account")
+
         if "amount" in changes or "account_id" in changes:
             old_amount = tx.amount
             new_amount = Decimal(str(changes["amount"])) if "amount" in changes else tx.amount

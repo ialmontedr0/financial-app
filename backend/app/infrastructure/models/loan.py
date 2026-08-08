@@ -89,6 +89,7 @@ class LoanModel(Base):
 
     disbursement_date: Mapped[date | None] = mapped_column(nullable=True, default=None)
     first_payment_date: Mapped[date | None] = mapped_column(nullable=True, default=None)
+    last_payment_date: Mapped[date | None] = mapped_column(nullable=True, default=None)
     next_payment_date: Mapped[date | None] = mapped_column(nullable=True, default=None)
     final_payment_date: Mapped[date | None] = mapped_column(nullable=True, default=None)
     paid_off_date: Mapped[date | None] = mapped_column(nullable=True, default=None)

@@ -65,6 +65,12 @@ class CreateIncomeUseCase:
         if amount <= 0:
             raise ValidationError("amount debe ser mayor que 0")
 
+        from app.infrastructure.repositories.account_repository import AccountRepository
+
+        account = await AccountRepository(self._session).get_by_id(account_id, user_id)
+        if account is None:
+            raise NotFoundError("Account")
+
         if income_source_id:
             source_model = await self._income_repo.get_source_by_id(income_source_id, user_id)
             if source_model is None:

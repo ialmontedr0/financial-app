@@ -56,6 +56,13 @@ class CreateExpenseUseCase:
                 "Debe especificar una cuenta, tarjeta de credito o tarjeta de debito"
             )
 
+        from app.infrastructure.repositories.account_repository import AccountRepository
+
+        if account_id:
+            account = await AccountRepository(self._session).get_by_id(account_id, user_id)
+            if account is None:
+                raise NotFoundError("Account")
+
         # Validate expense method
         if template_id:
             source = "template"

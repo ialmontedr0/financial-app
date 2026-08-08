@@ -45,3 +45,11 @@ class ListExchangeRatesResponse(BaseModel):
     rates: list[ExchangeRateItem]
     total: int
     date: str
+
+
+class BaseDopRatesResponse(BaseModel):
+    """Rate map expressed in the base currency (DOP)."""
+
+    base: str
+    date: str
+    rates: dict[str, float] = Field(description="Base units per 1 unit of each currency")

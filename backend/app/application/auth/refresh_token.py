@@ -43,8 +43,16 @@ class RefreshTokenUseCase:
         user_id = payload["sub"]
         old_jti = payload["jti"]
 
-        # Check if the refresh token JTI exists in Redis
-        stored_user_id = await self._session_store.get_refresh_token(old_jti)
+        # Validar que el usuario siga activo antes de emitir nuevos tokens.
+        from app.infrastructure.repositories.user_repository import UserRepository
+
+        user = await UserRepository(self._session).get_by_id(uuid.UUID(user_id))
+        if user is None or not user.is_active:
+            raise UnauthorizedError("User account is inactive or not found")
+
+        # Consume el refresh token de forma atómica: solo una petición puede
+        # ganar. Si no hay valor, el token ya fue usado (reuse detection).
+        stored_user_id = await self._session_store.consume_refresh_token(old_jti)
         if stored_user_id is None:
             # Token reuse detected — revoke all sessions for this user
             logger.warning(
@@ -56,7 +64,6 @@ class RefreshTokenUseCase:
             raise UnauthorizedError("Refresh token has been reused. All sessions revoked.")
 
         # Invalidate old refresh token
-        await self._session_store.delete_refresh_token(old_jti)
         await self._session_store.delete_session(old_jti)
 
         # Revoke old session in DB

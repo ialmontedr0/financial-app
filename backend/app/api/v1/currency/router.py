@@ -10,11 +10,13 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_active_user, get_db
 from app.api.v1.currency.schemas import (
+    BaseDopRatesResponse,
     ConvertCurrencyResponse,
     ListExchangeRatesResponse,
     SupportedCurrenciesResponse,
 )
 from app.application.currency.convert_currency import ConvertCurrencyUseCase
+from app.application.currency.get_rates_base_dop import GetRatesBaseDopUseCase
 from app.application.currency.list_exchange_rates import ListExchangeRatesUseCase
 from app.application.currency.list_supported_currencies import GetSupportedCurrenciesUseCase
 
@@ -88,4 +90,20 @@ async def list_exchange_rates(
 ) -> dict[str, Any]:
     """List locally cached exchange rates for a date."""
     use_case = ListExchangeRatesUseCase(db)
+    return await use_case.execute(rate_date)
+
+
+@router.get(
+    "/rates/base",
+    response_model=BaseDopRatesResponse,
+    summary="List base-DOP rate map",
+    description="Returns a single map of rates expressed in DOP per unit of each currency.",
+)
+async def list_base_dop_rates(
+    rate_date: date | None = Query(None, alias="date", description="Date of the rates"),
+    current_user: dict[str, Any] = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """List base-DOP rate map for conversion in the frontend."""
+    use_case = GetRatesBaseDopUseCase(db)
     return await use_case.execute(rate_date)

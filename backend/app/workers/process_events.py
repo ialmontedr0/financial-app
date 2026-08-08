@@ -110,6 +110,35 @@ async def process_events(ctx: dict[str, Any]) -> int:
                 await redis_client.xdel(EVENT_STREAM, message_id)
                 processed += 1
 
+    # Reclama mensajes pendientes de un consumer caído: tras un reinicio los
+    # eventos quedan atascados en la PEL de otro consumer y no se ven con "0".
+    # Se usa un min-idle-time para no robar mensajes que otro consumer activo
+    # está procesando todavía.
+    claimed = await redis_client.xautoclaim(
+        EVENT_STREAM,
+        EVENT_WORKER_GROUP,
+        consumer,
+        min_idle_time=60_000,
+        start_id="0-0",
+        count=100,
+    )
+    claimed_messages = claimed[1] if isinstance(claimed, tuple) else claimed
+    for message_id, fields, _pending in claimed_messages or []:
+        try:
+            event = _parse_event(fields)
+            await _dispatch(session, event)
+            await _record_processed(session, fields)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            logger.exception("event_reclaim_error", message_id=message_id)
+            await redis_client.xack(EVENT_STREAM, EVENT_WORKER_GROUP, message_id)
+            continue
+
+        await redis_client.xack(EVENT_STREAM, EVENT_WORKER_GROUP, message_id)
+        await redis_client.xdel(EVENT_STREAM, message_id)
+        processed += 1
+
     if processed:
         logger.info("events_processed", count=processed)
     return processed

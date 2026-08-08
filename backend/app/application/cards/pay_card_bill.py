@@ -38,9 +38,19 @@ class PayCardBillUseCase:
         if amount <= 0:
             raise ValidationError("amount debe ser mayor a 0")
 
+        from decimal import Decimal
+
         bill = await self._repo.pay_bill(bill_id, user_id, amount, payment_method)
         if bill is None:
             raise NotFoundError("CardBill")
+
+        # Restore the paid amount back into the card's available credit
+        if card.available_credit is not None:
+            restored = Decimal(str(card.available_credit)) + Decimal(str(amount))
+            if card.credit_limit is not None:
+                restored = min(restored, Decimal(str(card.credit_limit)))
+            card.available_credit = restored
+            await self._session.flush()
 
         return {
             "id": str(bill.id),

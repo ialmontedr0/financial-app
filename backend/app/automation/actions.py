@@ -296,9 +296,9 @@ class ActionExecutor:
 
             success = any(r.success for r in results)
             if success:
-                self.logger.info("notification_sent", rule_id=str(rule.id))
+                logger.info("notification_sent", rule_id=str(rule.id))
             else:
-                self.logger.warning("notification_all_channels_failed", rule_id=str(rule.id))
+                logger.warning("notification_all_channels_failed", rule_id=str(rule.id))
             return {
                 "action": "notify",
                 "message": message,
@@ -309,7 +309,7 @@ class ActionExecutor:
                 ],
             }
         except Exception as exc:
-            self.logger.exception("notification_send_error", rule_id=str(rule.id))
+            logger.exception("notification_send_error", rule_id=str(rule.id))
             return {
                 "action": "notify",
                 "message": message,

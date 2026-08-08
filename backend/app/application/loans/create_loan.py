@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.repositories.loan_repository import LoanRepository
 from app.middleware.error_handler import ValidationError
+from app.utils.time import today_in
 
 logger = structlog.get_logger()
 
@@ -134,7 +135,7 @@ class CreateLoanUseCase:
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
 
-        disbursement = date.today()  # noqa: DTZ011
+        disbursement = today_in()
         if disbursement_date:
             disbursement = date.fromisoformat(disbursement_date)
 
