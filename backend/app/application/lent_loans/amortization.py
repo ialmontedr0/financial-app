@@ -20,6 +20,12 @@ def monthly_rate(annual_rate: float) -> Decimal:
     return Decimal(str(annual_rate)) / PERCENT_BASE / MONTHS_IN_YEAR
 
 
+def months_between(start: date, end: date) -> int:
+    """Whole months between two dates, rounded up to a minimum of 1."""
+    diff = (end.year - start.year) * 12 + (end.month - start.month)
+    return max(diff, 1)
+
+
 def calculate_installment(principal: Decimal, annual_rate: float, term_months: int) -> Decimal:
     """Fixed installment: M = P * [r(1+r)^n] / [(1+r)^n - 1]."""
     if term_months <= 0:
@@ -35,12 +41,30 @@ def calculate_installment(principal: Decimal, annual_rate: float, term_months: i
     return payment.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def calculate_single_payment(principal: Decimal, annual_rate: float, term_months: int) -> Decimal:
+    """Lump sum due at maturity: F = P * (1 + r)^n (compound monthly).
+
+    ``term_months`` is the number of months between the start date and the
+    agreed payment month. A 0% rate returns the principal unchanged.
+    """
+    if term_months <= 0:
+        raise ValueError("El plazo debe ser mayor a 0")
+    if annual_rate == 0:
+        return principal.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    r = monthly_rate(annual_rate)
+    return (principal * (1 + r) ** Decimal(term_months)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+
 def generate_schedule(
     principal_amount: float,
     annual_interest_rate: float,
     term_months: int,
     installment: Decimal,
     start_date: date,
+    payment_frequency: str = "monthly",
+    single_payment_date: date | None = None,
 ) -> list[dict]:
     """Build the full amortization schedule (lender perspective).
 
@@ -49,6 +73,15 @@ def generate_schedule(
     lender) and principal (return of capital). The residual ``balance`` is what
     the borrower still owes the lender.
     """
+    if payment_frequency == "single_payment":
+        return _generate_single_payment_schedule(
+            principal_amount,
+            annual_interest_rate,
+            installment,
+            start_date,
+            single_payment_date,
+        )
+
     balance = Decimal(str(principal_amount))
     r = monthly_rate(annual_interest_rate)
     entries: list[dict] = []
@@ -90,6 +123,31 @@ def generate_schedule(
         current_date = date(year, month, day)
 
     return entries
+
+
+def _generate_single_payment_schedule(
+    principal_amount: float,
+    annual_interest_rate: float,
+    amount: Decimal,
+    start_date: date,
+    single_payment_date: date | None,
+) -> list[dict]:
+    """Schedule for a single lump-sum receivable (one entry at maturity)."""
+    principal = Decimal(str(principal_amount))
+    interest = (amount - principal).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if interest < 0:
+        interest = Decimal("0")
+
+    return [
+        {
+            "entry_number": 1,
+            "due_date": single_payment_date or start_date,
+            "amount": amount,
+            "principal_portion": principal,
+            "interest_portion": interest,
+            "balance_after": Decimal("0"),
+        }
+    ]
 
 
 def compute_schedule_totals(principal: Decimal, term_months: int, installment: Decimal) -> dict:

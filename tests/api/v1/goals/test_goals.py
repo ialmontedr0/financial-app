@@ -341,3 +341,103 @@ class TestGoalStartingAmount:
         )
         assert resp.status_code == 201
         assert float(resp.json()["current_amount"]) == 0.0
+
+
+@pytest.mark.api
+class TestGoalTransactionIntegration:
+    """El avance de la meta refleja los ingresos y gastos del usuario."""
+
+    async def _register_and_login(self, client: AsyncClient, email: str, password: str) -> str:
+        await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+        login_resp = await client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+        return login_resp.json()["tokens"]["access_token"]
+
+    async def _create_account(self, client: AsyncClient, token: str) -> str:
+        resp = await client.post(
+            "/api/v1/accounts",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "name": "Banco Metas",
+                "account_type": "bank",
+                "currency_code": "DOP",
+                "initial_balance": 100000.0,
+                "institution": "Test Bank",
+                "account_number_last4": "5555",
+            },
+        )
+        assert resp.status_code == 201
+        return resp.json()["id"]
+
+    async def _create_transaction(
+        self,
+        client: AsyncClient,
+        token: str,
+        account_id: str,
+        tx_type: str,
+        amount: float,
+    ) -> None:
+        from datetime import UTC, datetime
+
+        resp = await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "account_id": account_id,
+                "transaction_type": tx_type,
+                "amount": amount,
+                "currency_code": "DOP",
+                "description": f"Tx {tx_type} {amount}",
+                "effective_date": datetime.now(UTC).date().isoformat(),
+            },
+        )
+        assert resp.status_code == 201
+
+    async def test_goal_progress_reflects_income_and_expenses(
+        self, client: AsyncClient, test_password: str
+    ):
+        token = await self._register_and_login(client, "goal_tx1@test.com", test_password)
+        account_id = await self._create_account(client, token)
+
+        goal_resp = await client.post(
+            "/api/v1/goals",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"name": "Meta con transacciones", "target_amount": "200000"},
+        )
+        assert goal_resp.status_code == 201
+        goal_id = goal_resp.json()["id"]
+
+        await self._create_transaction(client, token, account_id, "income", 50000)
+        detail = await client.get(
+            f"/api/v1/goals/{goal_id}", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert float(detail.json()["progress"]["current_amount"]) == 50000.0
+
+        await self._create_transaction(client, token, account_id, "expense", 20000)
+        detail = await client.get(
+            f"/api/v1/goals/{goal_id}", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert float(detail.json()["progress"]["current_amount"]) == 30000.0
+
+    async def test_goal_progress_clamps_at_zero_with_high_expenses(
+        self, client: AsyncClient, test_password: str
+    ):
+        token = await self._register_and_login(client, "goal_tx2@test.com", test_password)
+        account_id = await self._create_account(client, token)
+
+        goal_resp = await client.post(
+            "/api/v1/goals",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"name": "Meta con gastos", "target_amount": "200000"},
+        )
+        assert goal_resp.status_code == 201
+        goal_id = goal_resp.json()["id"]
+
+        await self._create_transaction(client, token, account_id, "income", 10000)
+        await self._create_transaction(client, token, account_id, "expense", 30000)
+        detail = await client.get(
+            f"/api/v1/goals/{goal_id}", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert float(detail.json()["progress"]["current_amount"]) == 0.0
+        assert float(detail.json()["progress"]["pct_complete"]) == 0.0

@@ -67,7 +67,14 @@ class LentLoanModel(Base):
     )
     term_months: Mapped[int] = mapped_column(nullable=False)
     payment_frequency: Mapped[str] = mapped_column(
-        Enum("monthly", "bi_weekly", "weekly", name="lent_loan_frequency_enum", create_type=False),
+        Enum(
+            "monthly",
+            "bi_weekly",
+            "weekly",
+            "single_payment",
+            name="lent_loan_frequency_enum",
+            create_type=False,
+        ),
         nullable=False,
         default="monthly",
     )
@@ -96,6 +103,7 @@ class LentLoanModel(Base):
     next_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True, default=None)
     final_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True, default=None)
     paid_off_date: Mapped[date | None] = mapped_column(Date, nullable=True, default=None)
+    single_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True, default=None)
 
     status: Mapped[str] = mapped_column(
         Enum(
@@ -121,8 +129,8 @@ class LentLoanModel(Base):
 
     # relationships
     user: Mapped[UserModel] = relationship("UserModel", lazy="noload")  # type: ignore[name-defined]
-    account: Mapped["FinancialAccountModel | None"] = relationship("FinancialAccountModel", lazy="noload")
-    payments: Mapped[list["LentLoanPaymentModel"]] = relationship(  # type: ignore[name-defined]
+    account: Mapped[FinancialAccountModel | None] = relationship("FinancialAccountModel", lazy="noload")
+    payments: Mapped[list[LentLoanPaymentModel]] = relationship(  # type: ignore[name-defined]
         back_populates="lent_loan", lazy="selectin", cascade="all, delete-orphan"
     )
 

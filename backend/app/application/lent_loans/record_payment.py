@@ -53,14 +53,22 @@ class RecordLentLoanPaymentUseCase:
         # simple split: everything above principal recovered that period is interest.
         # We approximate: interest_portion = amount * rate/100/12 (period interest share),
         # principal_portion = amount - interest_portion (capped at balance).
-        period_rate = (
-            Decimal(str(loan.annual_interest_rate)) / Decimal("100") / Decimal("12")
-        )
-        interest_share = (entered * period_rate).quantize(Decimal("0.01"))
-        principal_share = entered - interest_share
-        if principal_share < 0:
-            principal_share = entered
-            interest_share = Decimal("0")
+        if loan.payment_frequency == "single_payment":
+            # interest accrues over the whole term; pay expected interest first
+            interest_share = entered - loan.principal_amount
+            principal_share = entered - interest_share
+            if principal_share < 0:
+                principal_share = entered
+                interest_share = Decimal("0")
+        else:
+            period_rate = (
+                Decimal(str(loan.annual_interest_rate)) / Decimal("100") / Decimal("12")
+            )
+            interest_share = (entered * period_rate).quantize(Decimal("0.01"))
+            principal_share = entered - interest_share
+            if principal_share < 0:
+                principal_share = entered
+                interest_share = Decimal("0")
         if principal_share > loan.current_balance:
             principal_share = loan.current_balance
             interest_share = entered - principal_share
@@ -91,6 +99,17 @@ class RecordLentLoanPaymentUseCase:
             status="paid_off" if is_paid_off else loan.status,
             paid_off_date=pmt_date if is_paid_off else None,
         )
+
+        # El cobro del deudor se acredita a la cuenta origen del préstamo.
+        if loan.account_id:
+            from app.infrastructure.repositories.transaction_repository import (
+                TransactionRepository,
+            )
+
+            await TransactionRepository(self._session).update_account_balance(
+                loan.account_id, entered, "add"
+            )
+
         await self._session.commit()
 
         logger.info(

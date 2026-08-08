@@ -7,6 +7,11 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.deps import get_current_active_user, get_db
+from app.api.v1.lent_loans.schemas import (
+    CreateLentLoanSchema,
+    RecordLentLoanPaymentSchema,
+    SimulateLentLoanSchema,
+)
 from app.application.lent_loans.create import CreateLentLoanUseCase
 from app.application.lent_loans.delete import DeleteLentLoanUseCase
 from app.application.lent_loans.get import GetLentLoanUseCase
@@ -14,11 +19,6 @@ from app.application.lent_loans.get_summary import GetLentLoanSummaryUseCase
 from app.application.lent_loans.list import ListLentLoansUseCase
 from app.application.lent_loans.record_payment import RecordLentLoanPaymentUseCase
 from app.application.lent_loans.simulate import SimulateLentLoanUseCase
-from app.api.v1.lent_loans.schemas import (
-    CreateLentLoanSchema,
-    RecordLentLoanPaymentSchema,
-    SimulateLentLoanSchema,
-)
 from app.middleware.error_handler import NotFoundError, ValidationError
 
 router = APIRouter(prefix="/lent-loans", tags=["Lent Loans"])
@@ -27,15 +27,17 @@ router = APIRouter(prefix="/lent-loans", tags=["Lent Loans"])
 @router.post("/simulate")
 async def simulate_lent_loan(
     body: SimulateLentLoanSchema,
-    current_user=Depends(get_current_active_user),  # noqa: B008
-    session=Depends(get_db),  # noqa: B008
+    current_user=Depends(get_current_active_user),
+    session=Depends(get_db),
 ):
     try:
         return await SimulateLentLoanUseCase(session).execute(
             principal_amount=body.principal_amount,
             annual_interest_rate=body.annual_interest_rate,
             term_months=body.term_months,
+            payment_frequency=body.payment_frequency,
             start_date=body.start_date,
+            single_payment_date=body.single_payment_date,
         )
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail=exc.message) from exc
@@ -44,8 +46,8 @@ async def simulate_lent_loan(
 @router.post("", status_code=201)
 async def create_lent_loan(
     body: CreateLentLoanSchema,
-    current_user: dict = Depends(get_current_active_user),  # noqa: B008
-    session=Depends(get_db),  # noqa: B008
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
 ):
     user_id = uuid.UUID(current_user["sub"])
     try:
@@ -61,6 +63,7 @@ async def create_lent_loan(
             start_date=body.start_date,
             is_collateralized=body.is_collateralized,
             notes=body.notes,
+            single_payment_date=body.single_payment_date,
         )
     except ValidationError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
@@ -71,8 +74,8 @@ async def list_lent_loans(
     status: str | None = None,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=100),
-    current_user: dict = Depends(get_current_active_user),  # noqa: B008
-    session=Depends(get_db),  # noqa: B008
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
 ):
     user_id = uuid.UUID(current_user["sub"])
     return await ListLentLoansUseCase(session).execute(
@@ -82,8 +85,8 @@ async def list_lent_loans(
 
 @router.get("/summary")
 async def get_lent_loan_summary(
-    current_user: dict = Depends(get_current_active_user),  # noqa: B008
-    session=Depends(get_db),  # noqa: B008
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
 ):
     user_id = uuid.UUID(current_user["sub"])
     return await GetLentLoanSummaryUseCase(session).execute(user_id)
@@ -92,8 +95,8 @@ async def get_lent_loan_summary(
 @router.get("/{lent_loan_id}")
 async def get_lent_loan(
     lent_loan_id: uuid.UUID,
-    current_user: dict = Depends(get_current_active_user),  # noqa: B008
-    session=Depends(get_db),  # noqa: B008
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
 ):
     user_id = uuid.UUID(current_user["sub"])
     try:
@@ -106,8 +109,8 @@ async def get_lent_loan(
 async def record_lent_loan_payment(
     lent_loan_id: uuid.UUID,
     body: RecordLentLoanPaymentSchema,
-    current_user: dict = Depends(get_current_active_user),  # noqa: B008
-    session=Depends(get_db),  # noqa: B008
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
 ):
     user_id = uuid.UUID(current_user["sub"])
     try:
@@ -127,8 +130,8 @@ async def record_lent_loan_payment(
 @router.delete("/{lent_loan_id}")
 async def delete_lent_loan(
     lent_loan_id: uuid.UUID,
-    current_user: dict = Depends(get_current_active_user),  # noqa: B008
-    session=Depends(get_db),  # noqa: B008
+    current_user: dict = Depends(get_current_active_user),
+    session=Depends(get_db),
 ):
     user_id = uuid.UUID(current_user["sub"])
     try:

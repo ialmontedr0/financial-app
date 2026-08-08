@@ -6,8 +6,6 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from datetime import date
-
 from app.application.lent_loans.amortization import generate_schedule
 from app.application.lent_loans.serializers import serialize_lent_loan
 from app.infrastructure.repositories.lent_loan_repository import LentLoanRepository
@@ -34,6 +32,8 @@ class GetLentLoanUseCase:
             loan.term_months,
             loan.monthly_payment,
             start,
+            payment_frequency=loan.payment_frequency,
+            single_payment_date=loan.single_payment_date,
         )
 
         schedule_payload = [

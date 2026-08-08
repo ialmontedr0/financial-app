@@ -49,6 +49,9 @@ def serialize_lent_loan(
         if loan.final_payment_date
         else None,
         "paid_off_date": loan.paid_off_date.isoformat() if loan.paid_off_date else None,
+        "single_payment_date": loan.single_payment_date.isoformat()
+        if loan.single_payment_date
+        else None,
         "status": loan.status,
         "progress_pct": (
             round(

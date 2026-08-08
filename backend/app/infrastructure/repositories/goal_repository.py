@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 import structlog
@@ -118,21 +119,35 @@ class GoalRepository:
         if goal is None:
             return None
 
-        stmt = select(func.coalesce(func.sum(TransactionModel.amount), 0)).where(
+        income_stmt = select(func.coalesce(func.sum(TransactionModel.amount), 0)).where(
             TransactionModel.user_id == user_id,
             TransactionModel.transaction_type == "income",
             TransactionModel.status == "completed",
             TransactionModel.effective_date >= goal.start_date,
             TransactionModel.deleted_at.is_(None),
         )
+        expense_stmt = select(func.coalesce(func.sum(TransactionModel.amount), 0)).where(
+            TransactionModel.user_id == user_id,
+            TransactionModel.transaction_type == "expense",
+            TransactionModel.status == "completed",
+            TransactionModel.effective_date >= goal.start_date,
+            TransactionModel.deleted_at.is_(None),
+        )
         if goal.category_id:
-            stmt = stmt.where(TransactionModel.category_id == goal.category_id)
+            income_stmt = income_stmt.where(TransactionModel.category_id == goal.category_id)
+            expense_stmt = expense_stmt.where(TransactionModel.category_id == goal.category_id)
         if goal.account_id:
-            stmt = stmt.where(TransactionModel.account_id == goal.account_id)
+            income_stmt = income_stmt.where(TransactionModel.account_id == goal.account_id)
+            expense_stmt = expense_stmt.where(TransactionModel.account_id == goal.account_id)
 
-        result = await self._session.execute(stmt)
-        total_income = result.scalar_one()
-        goal.current_amount = (goal.initial_amount or 0) + total_income
+        income_result = await self._session.execute(income_stmt)
+        expense_result = await self._session.execute(expense_stmt)
+        total_income = income_result.scalar_one()
+        total_expenses = expense_result.scalar_one()
+        goal.current_amount = max(
+            (goal.initial_amount or Decimal("0")) + total_income - total_expenses,
+            Decimal("0"),
+        )
 
         target = float(goal.target_amount)
         current = float(goal.current_amount)

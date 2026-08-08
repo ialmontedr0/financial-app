@@ -1,4 +1,4 @@
-"""Goal event handler - recalculates goal progress when income transactions land."""
+"""Goal event handler - recalculates goal progress when income/expense transactions land."""
 
 from __future__ import annotations
 
@@ -15,17 +15,26 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger()
 
+_TRANSACTION_EVENTS = {
+    EventType.TRANSACTION_CREATED.value,
+    EventType.TRANSACTION_UPDATED.value,
+    EventType.TRANSACTION_DELETED.value,
+}
+
 
 async def handle_transaction_event(session: AsyncSession, event: dict[str, Any]) -> int:
     """Recalculate active goals and emit milestone notifications.
 
+    Se recalcula tanto con ingresos como con gastos (creados, actualizados o
+    eliminados), ya que ambos modifican el avance hacia la meta.
+
     Returns the number of goals evaluated.
     """
-    if event.get("event_type") != EventType.TRANSACTION_CREATED.value:
+    if event.get("event_type") not in _TRANSACTION_EVENTS:
         return 0
 
     data = event.get("data") or {}
-    if data.get("transaction_type") != "income":
+    if data.get("transaction_type") not in ("income", "expense"):
         return 0
 
     user_id_raw = event.get("user_id")

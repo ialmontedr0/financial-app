@@ -24,6 +24,18 @@ class DeleteLentLoanUseCase:
         if loan is None:
             raise NotFoundError("Préstamo otorgado")
         await self._repo.soft_delete(loan, today_in())
+
+        # Al eliminar el préstamo, el saldo pendiente que no se recuperó
+        # regresa a la cuenta origen (lo ya cobrado ya fue acreditado).
+        if loan.account_id and loan.current_balance > 0:
+            from app.infrastructure.repositories.transaction_repository import (
+                TransactionRepository,
+            )
+
+            await TransactionRepository(self._session).update_account_balance(
+                loan.account_id, loan.current_balance, "add"
+            )
+
         await self._session.commit()
         logger.info("lent_loan_deleted", lent_loan_id=str(lent_loan_id))
         return {"message": "Préstamo otorgado eliminado"}

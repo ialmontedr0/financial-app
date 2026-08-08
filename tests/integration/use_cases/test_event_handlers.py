@@ -172,7 +172,7 @@ class TestGoalEventHandler:
         milestones = await GoalRepository(db_session).list_milestones(goal.id, user.id)
         assert len(milestones) == 2  # crossed 25% and 50%
 
-    async def test_skips_expense_events(self, db_session, test_password):
+    async def test_expense_event_reduces_progress(self, db_session, test_password):
         user_repo = UserRepository(db_session)
         user = await user_repo.create(
             email="event-goal-expense@test.com",
@@ -180,10 +180,187 @@ class TestGoalEventHandler:
         )
         await db_session.commit()
 
-        event = {
+        today = datetime.now(UTC).date()
+        goal = await GoalRepository(db_session).create_goal(
+            user.id,
+            name="Ahorro",
+            goal_type="savings",
+            target_amount=Decimal("1000"),
+            start_date=today - timedelta(days=30),
+            target_date=today + timedelta(days=300),
+        )
+        await db_session.commit()
+
+        income_tx = TransactionModel(
+            user_id=user.id,
+            transaction_type="income",
+            status="completed",
+            amount=Decimal("500"),
+            currency_code="DOP",
+            description="salario",
+            effective_date=today,
+        )
+        db_session.add(income_tx)
+        await db_session.commit()
+
+        income_event = {
             "event_type": EventType.TRANSACTION_CREATED.value,
             "user_id": str(user.id),
-            "data": {"transaction_type": "expense", "amount": "500"},
+            "data": {"transaction_type": "income", "amount": "500"},
+        }
+        evaluated = await handle_goal_event(db_session, income_event)
+        await db_session.commit()
+        assert evaluated == 1
+        reloaded = await GoalRepository(db_session).get_goal_by_id(goal.id, user.id)
+        assert reloaded is not None
+        assert float(reloaded.current_amount) == 500.0
+
+        expense_tx = TransactionModel(
+            user_id=user.id,
+            transaction_type="expense",
+            status="completed",
+            amount=Decimal("200"),
+            currency_code="DOP",
+            description="compra",
+            effective_date=today,
+        )
+        db_session.add(expense_tx)
+        await db_session.commit()
+
+        expense_event = {
+            "event_type": EventType.TRANSACTION_CREATED.value,
+            "user_id": str(user.id),
+            "data": {"transaction_type": "expense", "amount": "200"},
+        }
+        evaluated = await handle_goal_event(db_session, expense_event)
+        await db_session.commit()
+        assert evaluated == 1
+        reloaded = await GoalRepository(db_session).get_goal_by_id(goal.id, user.id)
+        assert reloaded is not None
+        assert float(reloaded.current_amount) == 300.0
+
+    async def test_updated_event_recalculates_progress(self, db_session, test_password):
+        user_repo = UserRepository(db_session)
+        user = await user_repo.create(
+            email="event-goal-updated@test.com",
+            password_hash=PasswordHasher.hash_password(test_password),
+        )
+        await db_session.commit()
+
+        today = datetime.now(UTC).date()
+        goal = await GoalRepository(db_session).create_goal(
+            user.id,
+            name="Ahorro",
+            goal_type="savings",
+            target_amount=Decimal("1000"),
+            start_date=today - timedelta(days=30),
+            target_date=today + timedelta(days=300),
+        )
+        await db_session.commit()
+
+        tx = TransactionModel(
+            user_id=user.id,
+            transaction_type="income",
+            status="completed",
+            amount=Decimal("500"),
+            currency_code="DOP",
+            description="salario",
+            effective_date=today,
+        )
+        db_session.add(tx)
+        await db_session.commit()
+
+        created = {
+            "event_type": EventType.TRANSACTION_CREATED.value,
+            "user_id": str(user.id),
+            "data": {"transaction_type": "income", "amount": "500"},
+        }
+        assert await handle_goal_event(db_session, created) == 1
+        await db_session.commit()
+
+        tx.amount = Decimal("700")
+        await db_session.commit()
+
+        updated = {
+            "event_type": EventType.TRANSACTION_UPDATED.value,
+            "user_id": str(user.id),
+            "data": {"transaction_type": "income", "amount": "700"},
+        }
+        evaluated = await handle_goal_event(db_session, updated)
+        await db_session.commit()
+
+        assert evaluated == 1
+        reloaded = await GoalRepository(db_session).get_goal_by_id(goal.id, user.id)
+        assert reloaded is not None
+        assert float(reloaded.current_amount) == 700.0
+
+    async def test_deleted_event_recalculates_progress(self, db_session, test_password):
+        user_repo = UserRepository(db_session)
+        user = await user_repo.create(
+            email="event-goal-deleted@test.com",
+            password_hash=PasswordHasher.hash_password(test_password),
+        )
+        await db_session.commit()
+
+        today = datetime.now(UTC).date()
+        goal = await GoalRepository(db_session).create_goal(
+            user.id,
+            name="Ahorro",
+            goal_type="savings",
+            target_amount=Decimal("1000"),
+            start_date=today - timedelta(days=30),
+            target_date=today + timedelta(days=300),
+        )
+        await db_session.commit()
+
+        tx = TransactionModel(
+            user_id=user.id,
+            transaction_type="income",
+            status="completed",
+            amount=Decimal("500"),
+            currency_code="DOP",
+            description="salario",
+            effective_date=today,
+        )
+        db_session.add(tx)
+        await db_session.commit()
+
+        created = {
+            "event_type": EventType.TRANSACTION_CREATED.value,
+            "user_id": str(user.id),
+            "data": {"transaction_type": "income", "amount": "500"},
+        }
+        assert await handle_goal_event(db_session, created) == 1
+        await db_session.commit()
+
+        tx.deleted_at = datetime.now(UTC)
+        await db_session.commit()
+
+        deleted = {
+            "event_type": EventType.TRANSACTION_DELETED.value,
+            "user_id": str(user.id),
+            "data": {"transaction_type": "income", "amount": "500"},
+        }
+        evaluated = await handle_goal_event(db_session, deleted)
+        await db_session.commit()
+
+        assert evaluated == 1
+        reloaded = await GoalRepository(db_session).get_goal_by_id(goal.id, user.id)
+        assert reloaded is not None
+        assert float(reloaded.current_amount) == 0.0
+
+    async def test_skips_non_goal_events(self, db_session, test_password):
+        user_repo = UserRepository(db_session)
+        user = await user_repo.create(
+            email="event-goal-skip@test.com",
+            password_hash=PasswordHasher.hash_password(test_password),
+        )
+        await db_session.commit()
+
+        event = {
+            "event_type": EventType.RECURRING_TRANSACTION_PROCESSED.value,
+            "user_id": str(user.id),
+            "data": {"transaction_type": "transfer", "amount": "500"},
         }
 
         evaluated = await handle_goal_event(db_session, event)
